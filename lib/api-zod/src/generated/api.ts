@@ -505,6 +505,92 @@ export const GetDashboardSummaryResponse = zod.object({
 
 
 /**
+ * @summary List documents (all, or filtered by studio)
+ */
+export const ListDocumentsQueryParams = zod.object({
+  "studioId": zod.coerce.number().optional(),
+  "global": zod.coerce.boolean().optional().describe('If true, return only global (non-studio) documents'),
+  "category": zod.coerce.string().optional()
+})
+
+export const ListDocumentsResponseItem = zod.object({
+  "id": zod.number(),
+  "studioId": zod.number().nullish(),
+  "studioName": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "category": zod.enum(['spec', 'plan', 'permit', 'vendor', 'as_built', 'safety', 'general']),
+  "uploadedBy": zod.string().nullish(),
+  "version": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem)
+
+
+/**
+ * @summary Create a document entry
+ */
+
+
+
+export const CreateDocumentBody = zod.object({
+  "studioId": zod.number().optional(),
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "url": zod.string().optional(),
+  "notes": zod.string().optional(),
+  "category": zod.enum(['spec', 'plan', 'permit', 'vendor', 'as_built', 'safety', 'general']),
+  "uploadedBy": zod.string().optional(),
+  "version": zod.string().optional()
+})
+
+
+/**
+ * @summary Update a document
+ */
+export const UpdateDocumentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateDocumentBody = zod.object({
+  "studioId": zod.number().optional(),
+  "title": zod.string().optional(),
+  "description": zod.string().optional(),
+  "url": zod.string().optional(),
+  "notes": zod.string().optional(),
+  "category": zod.enum(['spec', 'plan', 'permit', 'vendor', 'as_built', 'safety', 'general']).optional(),
+  "uploadedBy": zod.string().optional(),
+  "version": zod.string().optional()
+})
+
+export const UpdateDocumentResponse = zod.object({
+  "id": zod.number(),
+  "studioId": zod.number().nullish(),
+  "studioName": zod.string().nullish(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "category": zod.enum(['spec', 'plan', 'permit', 'vendor', 'as_built', 'safety', 'general']),
+  "uploadedBy": zod.string().nullish(),
+  "version": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Delete a document
+ */
+export const DeleteDocumentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
  * @summary Recent activity feed across all studios
  */
 export const GetDashboardActivityResponseItem = zod.object({

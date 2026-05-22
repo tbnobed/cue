@@ -9,6 +9,7 @@ import StudioDetail from "@/pages/studios/detail";
 import Tasks from "@/pages/tasks";
 import Timeline from "@/pages/timeline";
 import Team from "@/pages/team";
+import Documents from "@/pages/documents";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ function Router() {
         <Route path="/tasks" component={Tasks} />
         <Route path="/timeline" component={Timeline} />
         <Route path="/team" component={Team} />
+        <Route path="/documents" component={Documents} />
         <Route component={NotFound} />
       </Switch>
     </AppShell>

@@ -444,6 +444,90 @@ export interface DashboardSummary {
   tasksByCategory: DashboardSummaryTasksByCategoryItem[];
 }
 
+export type DocumentCategory = typeof DocumentCategory[keyof typeof DocumentCategory];
+
+
+export const DocumentCategory = {
+  spec: 'spec',
+  plan: 'plan',
+  permit: 'permit',
+  vendor: 'vendor',
+  as_built: 'as_built',
+  safety: 'safety',
+  general: 'general',
+} as const;
+
+export interface Document {
+  id: number;
+  /** @nullable */
+  studioId?: number | null;
+  /** @nullable */
+  studioName?: string | null;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  url?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  category: DocumentCategory;
+  /** @nullable */
+  uploadedBy?: string | null;
+  /** @nullable */
+  version?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type DocumentInputCategory = typeof DocumentInputCategory[keyof typeof DocumentInputCategory];
+
+
+export const DocumentInputCategory = {
+  spec: 'spec',
+  plan: 'plan',
+  permit: 'permit',
+  vendor: 'vendor',
+  as_built: 'as_built',
+  safety: 'safety',
+  general: 'general',
+} as const;
+
+export interface DocumentInput {
+  studioId?: number;
+  /** @minLength 1 */
+  title: string;
+  description?: string;
+  url?: string;
+  notes?: string;
+  category: DocumentInputCategory;
+  uploadedBy?: string;
+  version?: string;
+}
+
+export type DocumentUpdateCategory = typeof DocumentUpdateCategory[keyof typeof DocumentUpdateCategory];
+
+
+export const DocumentUpdateCategory = {
+  spec: 'spec',
+  plan: 'plan',
+  permit: 'permit',
+  vendor: 'vendor',
+  as_built: 'as_built',
+  safety: 'safety',
+  general: 'general',
+} as const;
+
+export interface DocumentUpdate {
+  studioId?: number;
+  title?: string;
+  description?: string;
+  url?: string;
+  notes?: string;
+  category?: DocumentUpdateCategory;
+  uploadedBy?: string;
+  version?: string;
+}
+
 export type ActivityEntryType = typeof ActivityEntryType[keyof typeof ActivityEntryType];
 
 
@@ -476,6 +560,15 @@ studioId?: number;
 milestoneId?: number;
 assigneeId?: number;
 status?: string;
+category?: string;
+};
+
+export type ListDocumentsParams = {
+studioId?: number;
+/**
+ * If true, return only global (non-studio) documents
+ */
+global?: boolean;
 category?: string;
 };
 
