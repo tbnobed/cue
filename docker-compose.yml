@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: studiopm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-studiopm_secret}
+      POSTGRES_DB: studiopm
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studiopm -d studiopm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build: .
+    command: >
+      sh -c "
+        node --enable-source-maps -e \"
+          import('@workspace/db/drizzle.config').then(() => {
+            const { execSync } = require('child_process');
+            execSync('pnpm --filter @workspace/db run push', { stdio: 'inherit' });
+          });
+        \"
+      "
+    environment:
+      DATABASE_URL: postgres://studiopm:${POSTGRES_PASSWORD:-studiopm_secret}@db:5432/studiopm
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-5000}:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgres://studiopm:${POSTGRES_PASSWORD:-studiopm_secret}@db:5432/studiopm
+      SESSION_SECRET: ${SESSION_SECRET:-change_me_in_production}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  pgdata:
