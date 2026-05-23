@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import cueMark from "@assets/cue-mark_1779576125630.svg";
 
 export default function Login() {
   const auth = useAuth();
@@ -46,12 +47,12 @@ export default function Login() {
       {/* Ambient background mesh */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div
-          className="absolute -top-32 left-1/2 -translate-x-1/2 h-[520px] w-[820px] rounded-full blur-3xl opacity-40"
-          style={{ background: "radial-gradient(closest-side, hsl(30 100% 55% / 0.35), transparent)" }}
+          className="absolute -top-40 -right-32 h-[640px] w-[680px] rounded-full blur-3xl opacity-50"
+          style={{ background: "radial-gradient(closest-side, #5b3dff, transparent 68%)" }}
         />
         <div
-          className="absolute -bottom-40 -right-32 h-[480px] w-[680px] rounded-full blur-3xl opacity-30"
-          style={{ background: "radial-gradient(closest-side, hsl(220 90% 55% / 0.35), transparent)" }}
+          className="absolute -bottom-48 -left-32 h-[580px] w-[620px] rounded-full blur-3xl opacity-40"
+          style={{ background: "radial-gradient(closest-side, #0fb89e, transparent 68%)" }}
         />
         <div className="absolute inset-0 opacity-[0.04]"
           style={{ backgroundImage: "linear-gradient(hsl(0 0% 100%) 1px, transparent 1px), linear-gradient(90deg, hsl(0 0% 100%) 1px, transparent 1px)", backgroundSize: "44px 44px" }} />
@@ -60,12 +61,10 @@ export default function Login() {
       <div className="w-full max-w-sm">
         {/* Brand */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-11 h-11 rounded-xl bg-primary glow-primary flex items-center justify-center mb-4">
-            <div className="w-2.5 h-2.5 rounded-sm bg-primary-foreground/90" />
-          </div>
-          <div className="text-sm font-medium tracking-tight text-foreground">Studio Command</div>
+          <img src={cueMark} alt="Cue" className="w-14 h-14 mb-4 drop-shadow-[0_10px_30px_rgba(109,92,255,0.45)]" />
+          <div className="font-display text-3xl font-bold tracking-tight text-aurora">Cue</div>
           <div className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground mt-1">
-            Production · v1
+            On cue · v1
           </div>
         </div>
 

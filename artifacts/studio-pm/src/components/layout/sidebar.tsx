@@ -2,6 +2,7 @@ import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, S
 import { Link, useLocation } from "wouter";
 import { LayoutDashboard, Video, CheckSquare, Users, FolderOpen, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import cueMark from "@assets/cue-icon_1779576125630.svg";
 
 export function AppSidebar() {
   const [location] = useLocation();
@@ -26,13 +27,11 @@ export function AppSidebar() {
     <Sidebar variant="sidebar" className="border-r border-border/60 bg-sidebar">
       <SidebarHeader className="px-4 pt-5 pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-primary glow-primary flex items-center justify-center shrink-0">
-            <div className="w-1.5 h-1.5 rounded-[1px] bg-primary-foreground/90" />
-          </div>
+          <img src={cueMark} alt="Cue" className="w-9 h-9 rounded-[10px] shrink-0 shadow-[0_8px_24px_-8px_rgba(109,92,255,0.7)]" />
           <div className="flex flex-col min-w-0 leading-tight">
-            <div className="text-[13px] font-semibold tracking-tight truncate">Studio Command</div>
+            <div className="font-display text-[18px] font-bold tracking-tight truncate text-aurora">Cue</div>
             <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
-              Production · v1
+              On cue · v1
             </div>
           </div>
         </div>
