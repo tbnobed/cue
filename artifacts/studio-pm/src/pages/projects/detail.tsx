@@ -4,6 +4,7 @@ import {
   useListMembers, useListDocuments, useDeleteDocument,
   useListFolders, useCreateFolder, useDeleteFolder,
   useUpdateProject, useDeleteProject,
+  useCreateMilestone, useUpdateMilestone, useDeleteMilestone,
   getGetProjectQueryKey, getGetProjectProgressQueryKey, getListMilestonesQueryKey,
   getListTasksQueryKey, getListDocumentsQueryKey, getListFoldersQueryKey,
   getListProjectsQueryKey,
@@ -168,31 +169,282 @@ function OverviewTab({ projectId }: { projectId: number }) {
         )}
       </Panel>
 
-      <Panel title="Key Milestones">
-        {isLoadingMilestones ? <Skeleton className="h-32 w-full" /> : (
+      <MilestonesPanel
+        projectId={projectId}
+        milestones={milestones ?? []}
+        isLoading={isLoadingMilestones}
+      />
+    </div>
+  );
+}
+
+// ─── MILESTONES ──────────────────────────────────────────────────────────────
+
+const MILESTONE_STATUSES = ["pending", "in_progress", "completed", "missed"] as const;
+const MILESTONE_TONE: Record<string, string> = {
+  pending:     "text-muted-foreground bg-muted/40 ring-border/60",
+  in_progress: "text-blue-400 bg-blue-500/10 ring-blue-500/20",
+  completed:   "text-emerald-400 bg-emerald-500/10 ring-emerald-500/20",
+  missed:      "text-red-400 bg-red-500/10 ring-red-500/20",
+};
+const MILESTONE_DOT: Record<string, string> = {
+  pending:     "bg-muted-foreground/40",
+  in_progress: "bg-blue-400",
+  completed:   "bg-emerald-400",
+  missed:      "bg-red-400",
+};
+const MILESTONE_COLORS = [
+  { value: "blue",   class: "bg-blue-500" },
+  { value: "violet", class: "bg-violet-500" },
+  { value: "amber",  class: "bg-amber-500" },
+  { value: "teal",   class: "bg-teal-500" },
+  { value: "emerald",class: "bg-emerald-500" },
+  { value: "red",    class: "bg-red-500" },
+  { value: "pink",   class: "bg-pink-500" },
+];
+
+type MilestoneItem = {
+  id: number; name: string; description?: string | null; dueDate?: string | null;
+  status: string; color?: string | null;
+};
+
+type MilestoneFormState = {
+  name: string; description: string; dueDate: string; status: string; color: string;
+};
+
+const EMPTY_MILESTONE: MilestoneFormState = {
+  name: "", description: "", dueDate: "", status: "pending", color: "blue",
+};
+
+function MilestonesPanel({
+  projectId, milestones, isLoading,
+}: { projectId: number; milestones: MilestoneItem[]; isLoading: boolean }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<MilestoneFormState>(EMPTY_MILESTONE);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+  const createMutation = useCreateMilestone();
+  const updateMutation = useUpdateMilestone();
+  const deleteMutation = useDeleteMilestone();
+
+  function invalidate() {
+    qc.invalidateQueries({ queryKey: getListMilestonesQueryKey(projectId) });
+    qc.invalidateQueries({ queryKey: getGetProjectProgressQueryKey(projectId) });
+  }
+
+  function openNew() {
+    setEditingId(null);
+    setForm(EMPTY_MILESTONE);
+    setDialogOpen(true);
+  }
+
+  function openEdit(m: MilestoneItem) {
+    setEditingId(m.id);
+    setForm({
+      name: m.name,
+      description: m.description ?? "",
+      dueDate: m.dueDate ?? "",
+      status: m.status,
+      color: m.color ?? "blue",
+    });
+    setDialogOpen(true);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim()) {
+      toast({ title: "Name is required", variant: "destructive" });
+      return;
+    }
+    const data = {
+      name: form.name.trim(),
+      description: form.description.trim() || undefined,
+      dueDate: form.dueDate || undefined,
+      status: form.status as any,
+      color: form.color || undefined,
+    };
+    try {
+      if (editingId != null) {
+        await updateMutation.mutateAsync({ id: editingId, data });
+        toast({ title: "Milestone updated" });
+      } else {
+        await createMutation.mutateAsync({ projectId, data });
+        toast({ title: "Milestone created" });
+      }
+      invalidate();
+      setDialogOpen(false);
+    } catch (err) {
+      toast({ title: "Save failed", description: String(err), variant: "destructive" });
+    }
+  }
+
+  async function handleDelete(id: number) {
+    try {
+      await deleteMutation.mutateAsync({ id });
+      toast({ title: "Milestone deleted" });
+      invalidate();
+    } catch (err) {
+      toast({ title: "Delete failed", description: String(err), variant: "destructive" });
+    } finally {
+      setConfirmDeleteId(null);
+    }
+  }
+
+  const busy = createMutation.isPending || updateMutation.isPending;
+
+  return (
+    <div className="surface-card ring-hairline border border-border/70 rounded-2xl">
+      <div className="px-5 pt-4 pb-3 border-b border-border/50 flex items-center justify-between">
+        <h2 className="text-[13px] font-semibold tracking-tight">Key Milestones</h2>
+        <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-primary"
+          onClick={openNew} data-testid="button-new-milestone">
+          <Plus className="w-3.5 h-3.5" /> Add
+        </Button>
+      </div>
+      <div className="p-5">
+        {isLoading ? <Skeleton className="h-32 w-full" /> : milestones.length === 0 ? (
+          <div className="text-center py-6 space-y-3">
+            <div className="text-sm text-muted-foreground font-mono">No milestones yet.</div>
+            <Button size="sm" variant="outline" onClick={openNew} className="gap-1.5">
+              <Plus className="w-3.5 h-3.5" /> Add first milestone
+            </Button>
+          </div>
+        ) : (
           <div className="space-y-1 relative">
             <div className="absolute left-[5px] top-2 bottom-2 w-px bg-border/70" />
-            {milestones?.map(m => (
-              <div key={m.id} className="flex items-start gap-3 py-1.5 relative">
-                <div className="relative z-10 w-[11px] h-[11px] mt-1 rounded-full bg-primary/20 ring-2 ring-background flex items-center justify-center shrink-0">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium leading-snug">{m.name}</div>
-                  <div className="text-[10.5px] text-muted-foreground font-mono tabular-nums">
-                    {m.dueDate ? format(new Date(m.dueDate), "MMM dd, yyyy") : "TBD"}
-                    <span className="mx-1.5 text-border">·</span>
-                    <span className="capitalize">{m.status}</span>
+            {milestones.map(m => {
+              const tone = MILESTONE_TONE[m.status] ?? MILESTONE_TONE.pending;
+              const dot = MILESTONE_DOT[m.status] ?? MILESTONE_DOT.pending;
+              const isOverdue = m.dueDate && new Date(m.dueDate) < new Date() && m.status !== "completed";
+              return (
+                <div key={m.id} className="group flex items-start gap-3 py-1.5 relative">
+                  <div className="relative z-10 w-[11px] h-[11px] mt-1 rounded-full bg-background ring-2 ring-background flex items-center justify-center shrink-0">
+                    <div className={`w-2 h-2 rounded-full ${dot}`} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium leading-snug">{m.name}</span>
+                      <span className={`text-[9px] font-mono uppercase tracking-[0.12em] px-1.5 py-0.5 rounded ring-1 ring-inset ${tone}`}>
+                        {m.status.replace("_", " ")}
+                      </span>
+                    </div>
+                    <div className="text-[10.5px] text-muted-foreground font-mono tabular-nums">
+                      <span className={isOverdue ? "text-red-400" : ""}>
+                        {m.dueDate ? format(new Date(m.dueDate), "MMM dd, yyyy") : "TBD"}
+                      </span>
+                      {m.description && (
+                        <>
+                          <span className="mx-1.5 text-border">·</span>
+                          <span className="text-muted-foreground/80 normal-case font-sans truncate">{m.description}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary"
+                      onClick={() => openEdit(m)} title="Edit">
+                      <PenLine className="w-3 h-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
+                      onClick={() => setConfirmDeleteId(m.id)} title="Delete">
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
-              </div>
-            ))}
-            {(!milestones || milestones.length === 0) && (
-              <div className="text-sm text-muted-foreground font-mono text-center py-4">No milestones yet.</div>
-            )}
+              );
+            })}
           </div>
         )}
-      </Panel>
+      </div>
+
+      {/* Create / edit dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <form onSubmit={handleSubmit}>
+            <DialogHeader>
+              <DialogTitle>{editingId != null ? "Edit milestone" : "New milestone"}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-1.5">
+                <Label htmlFor="ms-name" className="text-xs">Name *</Label>
+                <Input id="ms-name" required value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="e.g. Equipment install complete"
+                  data-testid="input-milestone-name" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="ms-desc" className="text-xs">Description</Label>
+                <Textarea id="ms-desc" rows={2} className="resize-none" value={form.description}
+                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="ms-due" className="text-xs">Due date</Label>
+                  <Input id="ms-due" type="date" value={form.dueDate}
+                    onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="ms-status" className="text-xs">Status</Label>
+                  <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                    <SelectTrigger id="ms-status"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MILESTONE_STATUSES.map(s => (
+                        <SelectItem key={s} value={s} className="capitalize">{s.replace("_", " ")}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid gap-1.5">
+                <Label className="text-xs">Color</Label>
+                <div className="flex gap-2 flex-wrap">
+                  {MILESTONE_COLORS.map(c => (
+                    <button
+                      key={c.value} type="button"
+                      onClick={() => setForm(f => ({ ...f, color: c.value }))}
+                      className={`w-7 h-7 rounded-full ${c.class} ring-2 ring-offset-2 ring-offset-background transition-all ${
+                        form.color === c.value ? "ring-foreground scale-110" : "ring-transparent"
+                      }`}
+                      title={c.value}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={busy || !form.name.trim()} className="gap-2">
+                {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+                {editingId != null ? "Save changes" : "Create milestone"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmDeleteId != null} onOpenChange={o => !o && setConfirmDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this milestone?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tasks linked to this milestone will lose their milestone reference but will not be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmDeleteId != null && handleDelete(confirmDeleteId)}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
