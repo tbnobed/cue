@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useListProjects, useCreateProject, getListProjectsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,11 +15,19 @@ import {
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, MapPin, CalendarDays, ArrowUpRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 const STATUSES = ["planning", "in_progress", "on_hold", "completed"] as const;
 type Status = (typeof STATUSES)[number];
+
+const STATUS_TONE: Record<Status, string> = {
+  planning:    "text-blue-400 bg-blue-500/10 ring-blue-500/20",
+  in_progress: "text-primary bg-primary/10 ring-primary/20",
+  on_hold:     "text-amber-400 bg-amber-500/10 ring-amber-500/20",
+  completed:   "text-emerald-400 bg-emerald-500/10 ring-emerald-500/20",
+};
 
 type FormState = {
   name: string;
@@ -39,7 +45,7 @@ const EMPTY: FormState = {
   phase: "", startDate: "", targetDate: "", budget: "",
 };
 
-function NewProjectDialog() {
+function NewProjectDialog({ trigger }: { trigger?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
   const qc = useQueryClient();
@@ -80,44 +86,46 @@ function NewProjectDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2" data-testid="button-new-project">
-          <Plus className="w-4 h-4" />
-          New Project
-        </Button>
+        {trigger ?? (
+          <Button className="gap-2 h-9" data-testid="button-new-project">
+            <Plus className="w-4 h-4" />
+            New Project
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[520px]">
         <form onSubmit={submit}>
           <DialogHeader>
-            <DialogTitle>Create Project</DialogTitle>
+            <DialogTitle>Create project</DialogTitle>
             <DialogDescription>Add a new project to your command center.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="np-name">Name *</Label>
+            <div className="grid gap-1.5">
+              <Label htmlFor="np-name" className="text-xs">Name *</Label>
               <Input id="np-name" required value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 data-testid="input-project-name" />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="np-desc">Description</Label>
+            <div className="grid gap-1.5">
+              <Label htmlFor="np-desc" className="text-xs">Description</Label>
               <Textarea id="np-desc" rows={3} value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
-                <Label htmlFor="np-location">Location</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="np-location" className="text-xs">Location</Label>
                 <Input id="np-location" value={form.location}
                   onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="np-phase">Phase</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="np-phase" className="text-xs">Phase</Label>
                 <Input id="np-phase" value={form.phase}
                   onChange={(e) => setForm((f) => ({ ...f, phase: e.target.value }))} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
-                <Label htmlFor="np-status">Status</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="np-status" className="text-xs">Status</Label>
                 <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as Status }))}>
                   <SelectTrigger id="np-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -127,20 +135,20 @@ function NewProjectDialog() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="np-budget">Budget</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="np-budget" className="text-xs">Budget</Label>
                 <Input id="np-budget" type="number" inputMode="decimal" value={form.budget}
                   onChange={(e) => setForm((f) => ({ ...f, budget: e.target.value }))} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
-                <Label htmlFor="np-start">Start Date</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="np-start" className="text-xs">Start date</Label>
                 <Input id="np-start" type="date" value={form.startDate}
                   onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))} />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="np-target">Target Date</Label>
+              <div className="grid gap-1.5">
+                <Label htmlFor="np-target" className="text-xs">Target date</Label>
                 <Input id="np-target" type="date" value={form.targetDate}
                   onChange={(e) => setForm((f) => ({ ...f, targetDate: e.target.value }))} />
               </div>
@@ -149,7 +157,7 @@ function NewProjectDialog() {
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={create.isPending || !form.name.trim()} data-testid="button-submit-project">
-              {create.isPending ? "Creating…" : "Create Project"}
+              {create.isPending ? "Creating…" : "Create project"}
             </Button>
           </DialogFooter>
         </form>
@@ -162,57 +170,72 @@ export default function ProjectsList() {
   const { data: projects, isLoading } = useListProjects();
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Projects</h1>
-          <p className="text-muted-foreground text-sm uppercase tracking-wider font-mono">Active Deployments</p>
+    <div className="max-w-7xl mx-auto space-y-8">
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
+            <span className="w-1 h-1 rounded-full bg-primary" />
+            Projects
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight">Active deployments</h1>
         </div>
         <NewProjectDialog />
       </div>
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-52 w-full rounded-2xl" />)}
         </div>
       ) : projects && projects.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="py-12 text-center space-y-4">
-            <p className="text-muted-foreground">No projects yet. Create your first project to get started.</p>
-            <NewProjectDialog />
-          </CardContent>
-        </Card>
+        <div className="surface-card ring-hairline border border-dashed border-border rounded-2xl p-14 text-center space-y-4">
+          <div className="text-sm text-muted-foreground font-mono">
+            No projects yet. Create your first project to get started.
+          </div>
+          <NewProjectDialog />
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects?.map((project, idx) => (
-            <motion.div
-              key={project.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.05 }}
-            >
-              <Link href={`/projects/${project.id}`} className="block h-full hover-elevate">
-                <Card className="h-full border-border bg-card hover:border-primary transition-colors cursor-pointer group flex flex-col">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start mb-2">
-                      <Badge variant="outline" className="font-mono uppercase text-[10px]">
-                        {project.status.replace('_', ' ')}
-                      </Badge>
-                      {project.phase && <span className="text-xs text-muted-foreground font-mono">{project.phase}</span>}
-                    </div>
-                    <CardTitle className="text-xl group-hover:text-primary transition-colors">{project.name}</CardTitle>
-                    <CardDescription className="line-clamp-2 text-sm">{project.description || "No description provided."}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="mt-auto pt-4">
-                    <div className="flex justify-between text-xs text-muted-foreground font-mono border-t border-border pt-4">
-                      <span>{project.location || "TBD"}</span>
-                      {project.targetDate && <span>Target: {new Date(project.targetDate).toLocaleDateString()}</span>}
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            </motion.div>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {projects?.map((project, idx) => {
+            const tone = STATUS_TONE[project.status as Status] ?? "text-muted-foreground bg-muted/40 ring-border/60";
+            return (
+              <motion.div
+                key={project.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.04, duration: 0.25 }}
+              >
+                <Link
+                  href={`/projects/${project.id}`}
+                  className="group block h-full surface-card ring-hairline border border-border/70 rounded-2xl p-5 transition-all hover:border-border hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-4">
+                    <span className={`text-[10px] font-mono uppercase tracking-[0.12em] px-2 py-1 rounded-md ring-1 ring-inset ${tone}`}>
+                      {project.status.replace("_", " ")}
+                    </span>
+                    <ArrowUpRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
+                  </div>
+                  <h3 className="text-lg font-semibold tracking-tight group-hover:text-primary transition-colors line-clamp-1">
+                    {project.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mt-1 leading-snug min-h-[2.5rem]">
+                    {project.description || "No description provided."}
+                  </p>
+                  <div className="flex items-center gap-3 mt-5 pt-4 border-t border-border/50 text-[11px] font-mono text-muted-foreground tabular-nums">
+                    <span className="flex items-center gap-1 truncate">
+                      <MapPin className="w-3 h-3 shrink-0" />
+                      {project.location || "TBD"}
+                    </span>
+                    {project.targetDate && (
+                      <span className="flex items-center gap-1 ml-auto shrink-0">
+                        <CalendarDays className="w-3 h-3" />
+                        {format(new Date(project.targetDate), "MMM dd")}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </div>
