@@ -13,6 +13,8 @@ export interface Document {
   projectId?: number | null;
   /** @nullable */
   projectName?: string | null;
+  /** @nullable */
+  folderId?: number | null;
   title: string;
   /** @nullable */
   description?: string | null;

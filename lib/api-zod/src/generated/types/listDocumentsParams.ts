@@ -13,4 +13,8 @@ projectId?: number;
  */
 global?: boolean;
 category?: string;
+/**
+ * Filter to documents inside this folder (use 0 for root of the given scope)
+ */
+folderId?: number;
 };

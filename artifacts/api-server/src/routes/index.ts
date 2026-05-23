@@ -7,6 +7,7 @@ import commentsRouter from "./comments";
 import membersRouter from "./members";
 import dashboardRouter from "./dashboard";
 import documentsRouter from "./documents";
+import foldersRouter from "./folders";
 import collabRouter from "./collab";
 import wopiRouter from "./wopi";
 import configRouter from "./config";
@@ -32,6 +33,7 @@ router.use(requireAuth, commentsRouter);
 router.use(requireAuth, membersRouter);
 router.use(requireAuth, dashboardRouter);
 router.use(requireAuth, documentsRouter);
+router.use(requireAuth, foldersRouter);
 router.use(requireAuth, collabRouter);
 
 export default router;

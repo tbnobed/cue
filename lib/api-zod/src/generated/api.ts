@@ -510,13 +510,15 @@ export const GetDashboardSummaryResponse = zod.object({
 export const ListDocumentsQueryParams = zod.object({
   "projectId": zod.coerce.number().optional(),
   "global": zod.coerce.boolean().optional().describe('If true, return only global (non-project) documents'),
-  "category": zod.coerce.string().optional()
+  "category": zod.coerce.string().optional(),
+  "folderId": zod.coerce.number().optional().describe('Filter to documents inside this folder (use 0 for root of the given scope)')
 })
 
 export const ListDocumentsResponseItem = zod.object({
   "id": zod.number(),
   "projectId": zod.number().nullish(),
   "projectName": zod.string().nullish(),
+  "folderId": zod.number().nullish(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "url": zod.string().nullish(),
@@ -538,6 +540,7 @@ export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem)
 
 export const CreateDocumentBody = zod.object({
   "projectId": zod.number().optional(),
+  "folderId": zod.number().optional(),
   "title": zod.string().min(1),
   "description": zod.string().optional(),
   "url": zod.string().optional(),
@@ -557,6 +560,7 @@ export const UpdateDocumentParams = zod.object({
 
 export const UpdateDocumentBody = zod.object({
   "projectId": zod.number().optional(),
+  "folderId": zod.number().nullish(),
   "title": zod.string().optional(),
   "description": zod.string().optional(),
   "url": zod.string().optional(),
@@ -570,6 +574,7 @@ export const UpdateDocumentResponse = zod.object({
   "id": zod.number(),
   "projectId": zod.number().nullish(),
   "projectName": zod.string().nullish(),
+  "folderId": zod.number().nullish(),
   "title": zod.string(),
   "description": zod.string().nullish(),
   "url": zod.string().nullish(),
@@ -586,6 +591,71 @@ export const UpdateDocumentResponse = zod.object({
  * @summary Delete a document
  */
 export const DeleteDocumentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary List document folders (optionally filtered by project)
+ */
+export const ListFoldersQueryParams = zod.object({
+  "projectId": zod.coerce.number().optional(),
+  "global": zod.coerce.boolean().optional().describe('If true, return only global (non-project) folders')
+})
+
+export const ListFoldersResponseItem = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number().nullish(),
+  "parentId": zod.number().nullish(),
+  "name": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+export const ListFoldersResponse = zod.array(ListFoldersResponseItem)
+
+
+/**
+ * @summary Create a document folder
+ */
+
+
+
+export const CreateFolderBody = zod.object({
+  "projectId": zod.number().optional(),
+  "parentId": zod.number().optional(),
+  "name": zod.string().min(1)
+})
+
+
+/**
+ * @summary Rename or move a folder
+ */
+export const UpdateFolderParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const UpdateFolderBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "parentId": zod.number().nullish()
+})
+
+export const UpdateFolderResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number().nullish(),
+  "parentId": zod.number().nullish(),
+  "name": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})
+
+
+/**
+ * @summary Delete an empty folder
+ */
+export const DeleteFolderParams = zod.object({
   "id": zod.coerce.number()
 })
 

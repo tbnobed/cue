@@ -6,4 +6,5 @@ export * from "./tasks";
 export * from "./comments";
 export * from "./activity";
 export * from "./documents";
+export * from "./document_folders";
 export * from "./collab_docs";

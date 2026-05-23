@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { db } from "@workspace/db";
-import { documentsTable, projectsTable } from "@workspace/db";
+import { documentsTable, documentFoldersTable, projectsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
   UpdateDocumentParams,
@@ -54,10 +54,15 @@ router.get("/documents", async (req, res): Promise<void> => {
   const projectMap = Object.fromEntries(projects.map(s => [s.id, s.name]));
 
   let filtered = [...docs];
-  const { projectId, global: globalOnly, category } = req.query;
+  const { projectId, global: globalOnly, category, folderId } = req.query;
   if (globalOnly === "true") filtered = filtered.filter(d => d.projectId === null);
   else if (projectId !== undefined) filtered = filtered.filter(d => d.projectId === parseInt(String(projectId)));
   if (category !== undefined) filtered = filtered.filter(d => d.category === String(category));
+  if (folderId !== undefined) {
+    const fid = parseInt(String(folderId));
+    if (fid === 0) filtered = filtered.filter(d => d.folderId === null);
+    else filtered = filtered.filter(d => d.folderId === fid);
+  }
 
   res.json(filtered.map(d => fmt(d, projectMap)));
 });
@@ -68,7 +73,18 @@ router.post("/documents/upload", upload.single("file"), async (req, res): Promis
 
   const title = (req.body.title as string | undefined)?.trim() || req.file?.originalname || "Untitled";
   const projectId = req.body.projectId ? parseInt(req.body.projectId) : null;
+  const folderId = req.body.folderId ? parseInt(req.body.folderId) : null;
   const category = (req.body.category as string | undefined) || "general";
+
+  // Validate folder scope matches document scope (prevents cross-project linkage).
+  if (folderId !== null) {
+    const [folder] = await db.select().from(documentFoldersTable).where(eq(documentFoldersTable.id, folderId));
+    if (!folder) { res.status(400).json({ error: "Folder not found" }); return; }
+    if ((folder.projectId ?? null) !== (projectId ?? null)) {
+      res.status(400).json({ error: "Folder belongs to a different project scope" });
+      return;
+    }
+  }
   const uploadedBy = (req.body.uploadedBy as string | undefined) || null;
   const version = (req.body.version as string | undefined) || null;
 
@@ -78,6 +94,7 @@ router.post("/documents/upload", upload.single("file"), async (req, res): Promis
   const [doc] = await db.insert(documentsTable).values({
     title,
     projectId: projectId ?? undefined,
+    folderId: folderId ?? undefined,
     category,
     url: fileUrl ?? undefined,
     uploadedBy: uploadedBy ?? undefined,
@@ -128,6 +145,20 @@ router.patch("/documents/:id", async (req, res): Promise<void> => {
   const { id } = UpdateDocumentParams.parse(req.params);
   const parsed = UpdateDocumentBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  // Validate folder scope on move/reassign.
+  if (parsed.data.folderId !== undefined && parsed.data.folderId !== null) {
+    const [existing] = await db.select().from(documentsTable).where(eq(documentsTable.id, id));
+    if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+    const [folder] = await db.select().from(documentFoldersTable).where(eq(documentFoldersTable.id, parsed.data.folderId));
+    if (!folder) { res.status(400).json({ error: "Folder not found" }); return; }
+    const newProjectId = parsed.data.projectId !== undefined ? parsed.data.projectId : existing.projectId;
+    if ((folder.projectId ?? null) !== (newProjectId ?? null)) {
+      res.status(400).json({ error: "Folder belongs to a different project scope" });
+      return;
+    }
+  }
+
   const projects = await db.select().from(projectsTable);
   const projectMap = Object.fromEntries(projects.map(s => [s.id, s.name]));
   const [doc] = await db.update(documentsTable)
@@ -155,6 +186,7 @@ function fmt(d: typeof documentsTable.$inferSelect, projectMap: Record<number, s
     id: d.id,
     projectId: d.projectId ?? null,
     projectName: d.projectId ? (projectMap[d.projectId] ?? null) : null,
+    folderId: d.folderId ?? null,
     title: d.title,
     description: d.description ?? null,
     url: d.url ?? null,

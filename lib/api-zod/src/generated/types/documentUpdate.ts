@@ -9,6 +9,8 @@ import type { DocumentUpdateCategory } from './documentUpdateCategory';
 
 export interface DocumentUpdate {
   projectId?: number;
+  /** @nullable */
+  folderId?: number | null;
   title?: string;
   description?: string;
   url?: string;

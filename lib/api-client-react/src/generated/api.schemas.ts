@@ -463,6 +463,8 @@ export interface Document {
   projectId?: number | null;
   /** @nullable */
   projectName?: string | null;
+  /** @nullable */
+  folderId?: number | null;
   title: string;
   /** @nullable */
   description?: string | null;
@@ -494,6 +496,7 @@ export const DocumentInputCategory = {
 
 export interface DocumentInput {
   projectId?: number;
+  folderId?: number;
   /** @minLength 1 */
   title: string;
   description?: string;
@@ -519,6 +522,8 @@ export const DocumentUpdateCategory = {
 
 export interface DocumentUpdate {
   projectId?: number;
+  /** @nullable */
+  folderId?: number | null;
   title?: string;
   description?: string;
   url?: string;
@@ -526,6 +531,31 @@ export interface DocumentUpdate {
   category?: DocumentUpdateCategory;
   uploadedBy?: string;
   version?: string;
+}
+
+export interface DocumentFolder {
+  id: number;
+  /** @nullable */
+  projectId?: number | null;
+  /** @nullable */
+  parentId?: number | null;
+  name: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface DocumentFolderInput {
+  projectId?: number;
+  parentId?: number;
+  /** @minLength 1 */
+  name: string;
+}
+
+export interface DocumentFolderUpdate {
+  /** @minLength 1 */
+  name?: string;
+  /** @nullable */
+  parentId?: number | null;
 }
 
 export type ActivityEntryType = typeof ActivityEntryType[keyof typeof ActivityEntryType];
@@ -570,5 +600,17 @@ projectId?: number;
  */
 global?: boolean;
 category?: string;
+/**
+ * Filter to documents inside this folder (use 0 for root of the given scope)
+ */
+folderId?: number;
+};
+
+export type ListFoldersParams = {
+projectId?: number;
+/**
+ * If true, return only global (non-project) folders
+ */
+global?: boolean;
 };
 
