@@ -25,6 +25,26 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 100 * 1024 * 1024 } });
 
+const TEXT_EXTENSIONS = new Set([
+  "csv", "tsv", "txt", "md", "markdown", "log",
+  "json", "yaml", "yml", "xml", "html", "htm",
+  "js", "ts", "jsx", "tsx", "css", "scss",
+  "py", "rb", "go", "java", "c", "cpp", "h", "sh", "env",
+  "ini", "toml", "conf",
+]);
+
+function readSeedTextSafe(filePath: string, originalName: string): string | null {
+  try {
+    const ext = (originalName.split(".").pop() || "").toLowerCase();
+    if (!TEXT_EXTENSIONS.has(ext)) return null;
+    const stat = fs.statSync(filePath);
+    if (stat.size > 2 * 1024 * 1024) return null; // skip >2MB seeds
+    return fs.readFileSync(filePath, "utf8");
+  } catch {
+    return null;
+  }
+}
+
 const router = Router();
 
 router.get("/documents", async (req, res): Promise<void> => {
@@ -52,6 +72,7 @@ router.post("/documents/upload", upload.single("file"), async (req, res): Promis
   const version = (req.body.version as string | undefined) || null;
 
   const fileUrl = req.file ? `/api/uploads/${req.file.filename}` : null;
+  const seedText = req.file ? readSeedTextSafe(req.file.path, req.file.originalname) : null;
 
   const [doc] = await db.insert(documentsTable).values({
     title,
@@ -60,9 +81,28 @@ router.post("/documents/upload", upload.single("file"), async (req, res): Promis
     url: fileUrl ?? undefined,
     uploadedBy: uploadedBy ?? undefined,
     version: version ?? undefined,
+    pendingSeedText: seedText ?? undefined,
   }).returning();
 
   res.status(201).json(fmt(doc, studioMap));
+});
+
+// Atomically returns and clears the pending seed text — first caller wins.
+router.post("/documents/:id/consume-seed", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id ?? "", 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const text = await db.transaction(async (tx) => {
+    const [row] = await tx.select({ seed: documentsTable.pendingSeedText })
+      .from(documentsTable)
+      .where(eq(documentsTable.id, id))
+      .for("update");
+    if (!row || !row.seed) return null;
+    await tx.update(documentsTable)
+      .set({ pendingSeedText: null })
+      .where(eq(documentsTable.id, id));
+    return row.seed;
+  });
+  res.json({ text });
 });
 
 router.patch("/documents/:id", async (req, res): Promise<void> => {

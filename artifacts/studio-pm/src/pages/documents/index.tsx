@@ -228,7 +228,7 @@ export default function Documents() {
   );
 }
 
-type Doc = { id: number; title: string; url: string | null; category: string; uploadedBy: string | null; version: string | null; updatedAt: string; studioName?: string | null };
+type Doc = { id: number; title: string; url?: string | null; category: string; uploadedBy?: string | null; version?: string | null; updatedAt?: string; studioName?: string | null };
 
 const EXT_META: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
   CSV:  { icon: <FileSpreadsheet className="w-4 h-4" />, color: "text-emerald-400", bg: "bg-emerald-400/15 border-emerald-400/30" },
@@ -248,7 +248,7 @@ const EXT_META: Record<string, { icon: React.ReactNode; color: string; bg: strin
 };
 const DEFAULT_EXT_META = { icon: <FileText className="w-4 h-4" />, color: "text-muted-foreground", bg: "bg-muted/20 border-border" };
 
-function FileTypeBadge({ url }: { url: string | null }) {
+function FileTypeBadge({ url }: { url: string | null | undefined }) {
   if (!url) return (
     <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-muted/20 border border-border text-muted-foreground/40">
       <FileText className="w-4 h-4" />
@@ -284,7 +284,7 @@ function DocRow({ doc, idx, onDelete }: { doc: Doc; idx: number; onDelete: () =>
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               <Badge variant="outline" className={`text-[10px] font-mono uppercase border ${color}`}>{doc.category.replace("_", " ")}</Badge>
               {doc.uploadedBy && <span className="text-[10px] text-muted-foreground font-mono">{doc.uploadedBy}</span>}
-              <span className="text-[10px] text-muted-foreground font-mono">{new Date(doc.updatedAt).toLocaleDateString()}</span>
+              {doc.updatedAt && <span className="text-[10px] text-muted-foreground font-mono">{new Date(doc.updatedAt).toLocaleDateString()}</span>}
             </div>
           </div>
 

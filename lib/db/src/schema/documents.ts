@@ -13,6 +13,7 @@ export const documentsTable = pgTable("documents", {
   uploadedBy: text("uploaded_by"),
   version: text("version"),
   collabContent: text("collab_content"),
+  pendingSeedText: text("pending_seed_text"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
