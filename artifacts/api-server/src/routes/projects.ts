@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { projectsTable, tasksTable } from "@workspace/db";
+import { projectsTable, tasksTable, milestonesTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import {
   CreateProjectBody,
@@ -64,12 +64,28 @@ router.delete("/projects/:id", async (req, res): Promise<void> => {
 
 router.get("/projects/:id/progress", async (req, res): Promise<void> => {
   const { id } = GetProjectProgressParams.parse(req.params);
-  const tasks = await db.select().from(tasksTable).where(eq(tasksTable.projectId, id));
+  const [tasks, milestones] = await Promise.all([
+    db.select().from(tasksTable).where(eq(tasksTable.projectId, id)),
+    db.select().from(milestonesTable).where(eq(milestonesTable.projectId, id)),
+  ]);
   const now = new Date().toISOString().split("T")[0];
+
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter(t => t.status === "done").length;
   const overdueTasks = tasks.filter(t => t.status !== "done" && t.dueDate && t.dueDate < now).length;
-  const percentComplete = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  const totalMilestones = milestones.length;
+  const completedMilestones = milestones.filter(m => m.status === "completed").length;
+
+  const taskPercentComplete = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const milestonePercentComplete = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0;
+  // Blend by item count so a project with 20 tasks and 5 milestones is dominated
+  // by tasks, but a project with only milestones (no tasks yet) still reports
+  // real progress instead of stuck-at-0.
+  const totalItems = totalTasks + totalMilestones;
+  const percentComplete = totalItems > 0
+    ? Math.round(((completedTasks + completedMilestones) / totalItems) * 100)
+    : 0;
 
   const categoryMap: Record<string, { total: number; completed: number }> = {};
   for (const task of tasks) {
@@ -79,7 +95,13 @@ router.get("/projects/:id/progress", async (req, res): Promise<void> => {
   }
   const byCategory = Object.entries(categoryMap).map(([category, counts]) => ({ category, ...counts }));
 
-  res.json({ projectId: id, totalTasks, completedTasks, overdueTasks, percentComplete, byCategory });
+  res.json({
+    projectId: id,
+    totalTasks, completedTasks, overdueTasks,
+    totalMilestones, completedMilestones,
+    percentComplete, taskPercentComplete, milestonePercentComplete,
+    byCategory,
+  });
 });
 
 function formatProject(s: typeof projectsTable.$inferSelect) {

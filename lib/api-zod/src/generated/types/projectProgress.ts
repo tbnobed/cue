@@ -12,6 +12,11 @@ export interface ProjectProgress {
   totalTasks: number;
   completedTasks: number;
   overdueTasks: number;
+  totalMilestones: number;
+  completedMilestones: number;
+  /** Blended completion across tasks and milestones (weighted by item count). */
   percentComplete: number;
+  taskPercentComplete: number;
+  milestonePercentComplete: number;
   byCategory: ProjectProgressByCategoryItem[];
 }

@@ -136,7 +136,11 @@ export const GetProjectProgressResponse = zod.object({
   "totalTasks": zod.number(),
   "completedTasks": zod.number(),
   "overdueTasks": zod.number(),
-  "percentComplete": zod.number(),
+  "totalMilestones": zod.number(),
+  "completedMilestones": zod.number(),
+  "percentComplete": zod.number().describe('Blended completion across tasks and milestones (weighted by item count).'),
+  "taskPercentComplete": zod.number(),
+  "milestonePercentComplete": zod.number(),
   "byCategory": zod.array(zod.object({
   "category": zod.string(),
   "total": zod.number(),

@@ -747,13 +747,17 @@ components:
 
     ProjectProgress:
       type: object
-      required: [projectId, totalTasks, completedTasks, overdueTasks, percentComplete, byCategory]
+      required: [projectId, totalTasks, completedTasks, overdueTasks, totalMilestones, completedMilestones, percentComplete, taskPercentComplete, milestonePercentComplete, byCategory]
       properties:
-        projectId:        { type: integer }
-        totalTasks:      { type: integer }
-        completedTasks:  { type: integer }
-        overdueTasks:    { type: integer }
-        percentComplete: { type: number }
+        projectId:                 { type: integer }
+        totalTasks:                { type: integer }
+        completedTasks:            { type: integer }
+        overdueTasks:              { type: integer }
+        totalMilestones:           { type: integer }
+        completedMilestones:       { type: integer }
+        percentComplete:           { type: number, description: "Blended completion across tasks and milestones (weighted by item count)." }
+        taskPercentComplete:       { type: number }
+        milestonePercentComplete:  { type: number }
         byCategory:
           type: array
           items:

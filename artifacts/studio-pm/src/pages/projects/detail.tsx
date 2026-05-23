@@ -158,17 +158,42 @@ function OverviewTab({ projectId }: { projectId: number }) {
               <Progress value={progress?.percentComplete || 0} className="h-1.5 bg-muted/40" />
             </div>
 
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-5 border-t border-border/50">
-              {progress?.byCategory.map(cat => (
-                <div key={cat.category} className="space-y-1.5">
-                  <div className="flex justify-between text-xs font-mono">
-                    <span className="capitalize text-foreground/80">{cat.category}</span>
-                    <span className="text-muted-foreground tabular-nums">{cat.completed}/{cat.total}</span>
-                  </div>
-                  <Progress value={cat.total > 0 ? (cat.completed / cat.total) * 100 : 0} className="h-1 bg-muted/30" />
+            <div className="grid grid-cols-2 gap-5 pt-5 border-t border-border/50">
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs font-mono">
+                  <span className="uppercase tracking-[0.16em] text-muted-foreground">Milestones</span>
+                  <span className="text-foreground/80 tabular-nums">
+                    {progress?.completedMilestones ?? 0}/{progress?.totalMilestones ?? 0}
+                    <span className="text-muted-foreground"> · {Math.round(progress?.milestonePercentComplete || 0)}%</span>
+                  </span>
                 </div>
-              ))}
+                <Progress value={progress?.milestonePercentComplete || 0} className="h-1 bg-muted/30" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs font-mono">
+                  <span className="uppercase tracking-[0.16em] text-muted-foreground">Tasks</span>
+                  <span className="text-foreground/80 tabular-nums">
+                    {progress?.completedTasks ?? 0}/{progress?.totalTasks ?? 0}
+                    <span className="text-muted-foreground"> · {Math.round(progress?.taskPercentComplete || 0)}%</span>
+                  </span>
+                </div>
+                <Progress value={progress?.taskPercentComplete || 0} className="h-1 bg-muted/30" />
+              </div>
             </div>
+
+            {progress?.byCategory.length ? (
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-5 border-t border-border/50">
+                {progress.byCategory.map(cat => (
+                  <div key={cat.category} className="space-y-1.5">
+                    <div className="flex justify-between text-xs font-mono">
+                      <span className="capitalize text-foreground/80">{cat.category}</span>
+                      <span className="text-muted-foreground tabular-nums">{cat.completed}/{cat.total}</span>
+                    </div>
+                    <Progress value={cat.total > 0 ? (cat.completed / cat.total) * 100 : 0} className="h-1 bg-muted/30" />
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         )}
       </Panel>
