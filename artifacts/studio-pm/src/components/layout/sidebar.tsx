@@ -16,7 +16,7 @@ export function AppSidebar() {
 
   const navItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Studios", href: "/studios", icon: Video },
+    { name: "Projects", href: "/projects", icon: Video },
     { name: "Tasks", href: "/tasks", icon: CheckSquare },
     { name: "Timeline", href: "/timeline", icon: CalendarDays },
     { name: "Team", href: "/team", icon: Users },

@@ -85,7 +85,7 @@ export default function DocumentEditor() {
     queryFn: async () => {
       const res = await fetch(`${BASE}/api/documents`);
       if (!res.ok) throw new Error("Failed to fetch documents");
-      const docs: Array<{ id: number; title: string; url: string | null; category: string; uploadedBy: string | null; version: string | null; studioId: number | null; studioName: string | null; updatedAt: string }> = await res.json();
+      const docs: Array<{ id: number; title: string; url: string | null; category: string; uploadedBy: string | null; version: string | null; projectId: number | null; projectName: string | null; updatedAt: string }> = await res.json();
       const found = docs.find(d => d.id === docId);
       if (!found) throw new Error("Document not found");
       return found;
@@ -199,8 +199,8 @@ export default function DocumentEditor() {
               <span className="text-[10px] font-mono uppercase text-primary/80 border border-primary/40 bg-primary/10 rounded px-1.5 py-0.5">
                 {kindLabel[kind]}
               </span>
-              {doc.studioName && (
-                <span className="text-xs text-primary/80 font-mono">{doc.studioName}</span>
+              {doc.projectName && (
+                <span className="text-xs text-primary/80 font-mono">{doc.projectName}</span>
               )}
               {doc.version && (
                 <span className="text-[10px] font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5">

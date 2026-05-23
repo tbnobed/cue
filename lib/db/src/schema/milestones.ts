@@ -4,7 +4,7 @@ import { z } from "zod/v4";
 
 export const milestonesTable = pgTable("milestones", {
   id: serial("id").primaryKey(),
-  studioId: integer("studio_id").notNull(),
+  projectId: integer("project_id").notNull(),
   name: text("name").notNull(),
   description: text("description"),
   dueDate: text("due_date"),

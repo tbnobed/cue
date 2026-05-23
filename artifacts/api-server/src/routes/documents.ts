@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { db } from "@workspace/db";
-import { documentsTable, studiosTable } from "@workspace/db";
+import { documentsTable, projectsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
   UpdateDocumentParams,
@@ -50,24 +50,24 @@ const router = Router();
 
 router.get("/documents", async (req, res): Promise<void> => {
   const docs = await db.select().from(documentsTable).orderBy(documentsTable.createdAt);
-  const studios = await db.select().from(studiosTable);
-  const studioMap = Object.fromEntries(studios.map(s => [s.id, s.name]));
+  const projects = await db.select().from(projectsTable);
+  const projectMap = Object.fromEntries(projects.map(s => [s.id, s.name]));
 
   let filtered = [...docs];
-  const { studioId, global: globalOnly, category } = req.query;
-  if (globalOnly === "true") filtered = filtered.filter(d => d.studioId === null);
-  else if (studioId !== undefined) filtered = filtered.filter(d => d.studioId === parseInt(String(studioId)));
+  const { projectId, global: globalOnly, category } = req.query;
+  if (globalOnly === "true") filtered = filtered.filter(d => d.projectId === null);
+  else if (projectId !== undefined) filtered = filtered.filter(d => d.projectId === parseInt(String(projectId)));
   if (category !== undefined) filtered = filtered.filter(d => d.category === String(category));
 
-  res.json(filtered.map(d => fmt(d, studioMap)));
+  res.json(filtered.map(d => fmt(d, projectMap)));
 });
 
 router.post("/documents/upload", upload.single("file"), async (req, res): Promise<void> => {
-  const studios = await db.select().from(studiosTable);
-  const studioMap = Object.fromEntries(studios.map(s => [s.id, s.name]));
+  const projects = await db.select().from(projectsTable);
+  const projectMap = Object.fromEntries(projects.map(s => [s.id, s.name]));
 
   const title = (req.body.title as string | undefined)?.trim() || req.file?.originalname || "Untitled";
-  const studioId = req.body.studioId ? parseInt(req.body.studioId) : null;
+  const projectId = req.body.projectId ? parseInt(req.body.projectId) : null;
   const category = (req.body.category as string | undefined) || "general";
   const uploadedBy = (req.body.uploadedBy as string | undefined) || null;
   const version = (req.body.version as string | undefined) || null;
@@ -77,7 +77,7 @@ router.post("/documents/upload", upload.single("file"), async (req, res): Promis
 
   const [doc] = await db.insert(documentsTable).values({
     title,
-    studioId: studioId ?? undefined,
+    projectId: projectId ?? undefined,
     category,
     url: fileUrl ?? undefined,
     uploadedBy: uploadedBy ?? undefined,
@@ -85,7 +85,7 @@ router.post("/documents/upload", upload.single("file"), async (req, res): Promis
     pendingSeedText: seedText ?? undefined,
   }).returning();
 
-  res.status(201).json(fmt(doc, studioMap));
+  res.status(201).json(fmt(doc, projectMap));
 });
 
 // Atomically returns and clears the pending seed text — first caller wins.
@@ -128,14 +128,14 @@ router.patch("/documents/:id", async (req, res): Promise<void> => {
   const { id } = UpdateDocumentParams.parse(req.params);
   const parsed = UpdateDocumentBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const studios = await db.select().from(studiosTable);
-  const studioMap = Object.fromEntries(studios.map(s => [s.id, s.name]));
+  const projects = await db.select().from(projectsTable);
+  const projectMap = Object.fromEntries(projects.map(s => [s.id, s.name]));
   const [doc] = await db.update(documentsTable)
     .set({ ...parsed.data, updatedAt: new Date() })
     .where(eq(documentsTable.id, id))
     .returning();
   if (!doc) { res.status(404).json({ error: "Not found" }); return; }
-  res.json(fmt(doc, studioMap));
+  res.json(fmt(doc, projectMap));
 });
 
 router.delete("/documents/:id", async (req, res): Promise<void> => {
@@ -150,11 +150,11 @@ router.delete("/documents/:id", async (req, res): Promise<void> => {
   res.status(204).send();
 });
 
-function fmt(d: typeof documentsTable.$inferSelect, studioMap: Record<number, string>) {
+function fmt(d: typeof documentsTable.$inferSelect, projectMap: Record<number, string>) {
   return {
     id: d.id,
-    studioId: d.studioId ?? null,
-    studioName: d.studioId ? (studioMap[d.studioId] ?? null) : null,
+    projectId: d.projectId ?? null,
+    projectName: d.projectId ? (projectMap[d.projectId] ?? null) : null,
     title: d.title,
     description: d.description ?? null,
     url: d.url ?? null,

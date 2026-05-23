@@ -1,8 +1,9 @@
 import {
   useListTasks,
-  useListStudios,
+  useListProjects,
   useListMembers,
   useListMilestones,
+  getListMilestonesQueryKey,
   useCreateTask,
   useUpdateTask,
   useDeleteTask,
@@ -66,7 +67,7 @@ export default function Tasks() {
   const [createOpen, setCreateOpen] = useState(false);
   const [detailTask, setDetailTask] = useState<number | null>(null);
   const [form, setForm] = useState({
-    title: "", description: "", studioId: "", milestoneId: "", assigneeId: "",
+    title: "", description: "", projectId: "", milestoneId: "", assigneeId: "",
     status: "todo", priority: "medium", category: "general", dueDate: "",
   });
   const [milestoneStudio, setMilestoneStudio] = useState<number | null>(null);
@@ -74,13 +75,16 @@ export default function Tasks() {
   const params: Record<string, string | number> = {};
   if (filterStatus) params.status = filterStatus;
   if (filterCategory) params.category = filterCategory;
-  if (filterStudio) params.studioId = parseInt(filterStudio);
+  if (filterStudio) params.projectId = parseInt(filterStudio);
 
   const { data: tasks, isLoading } = useListTasks(params as any);
-  const { data: studios } = useListStudios();
+  const { data: projects } = useListProjects();
   const { data: members } = useListMembers();
   const { data: milestones } = useListMilestones(milestoneStudio ?? 0, {
-    query: { enabled: !!milestoneStudio },
+    query: {
+      enabled: !!milestoneStudio,
+      queryKey: getListMilestonesQueryKey(milestoneStudio ?? 0),
+    },
   });
 
   const createMutation = useCreateTask();
@@ -93,13 +97,13 @@ export default function Tasks() {
   }
 
   function resetForm() {
-    setForm({ title: "", description: "", studioId: "", milestoneId: "", assigneeId: "", status: "todo", priority: "medium", category: "general", dueDate: "" });
+    setForm({ title: "", description: "", projectId: "", milestoneId: "", assigneeId: "", status: "todo", priority: "medium", category: "general", dueDate: "" });
     setMilestoneStudio(null);
   }
 
   async function handleCreate() {
-    if (!form.title.trim() || !form.studioId) {
-      toast({ title: "Title and Studio are required", variant: "destructive" });
+    if (!form.title.trim() || !form.projectId) {
+      toast({ title: "Title and Project are required", variant: "destructive" });
       return;
     }
     try {
@@ -107,7 +111,7 @@ export default function Tasks() {
         data: {
           title: form.title,
           description: form.description || undefined,
-          studioId: parseInt(form.studioId),
+          projectId: parseInt(form.projectId),
           milestoneId: form.milestoneId ? parseInt(form.milestoneId) : undefined,
           assigneeId: form.assigneeId ? parseInt(form.assigneeId) : undefined,
           status: form.status as any,
@@ -152,7 +156,7 @@ export default function Tasks() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Task Registry</h1>
-          <p className="text-muted-foreground text-sm uppercase tracking-wider font-mono">Cross-Studio Operations</p>
+          <p className="text-muted-foreground text-sm uppercase tracking-wider font-mono">Cross-Project Operations</p>
         </div>
         <Button
           onClick={() => setCreateOpen(true)}
@@ -187,11 +191,11 @@ export default function Tasks() {
 
         <Select value={filterStudio || "all"} onValueChange={v => setFilterStudio(v === "all" ? "" : v)}>
           <SelectTrigger className="w-44 h-8 text-xs font-mono bg-card border-border">
-            <SelectValue placeholder="Studio" />
+            <SelectValue placeholder="Project" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Studios</SelectItem>
-            {studios?.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+            <SelectItem value="all">All Projects</SelectItem>
+            {projects?.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
           </SelectContent>
         </Select>
 
@@ -250,7 +254,7 @@ export default function Tasks() {
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{task.title}</div>
                       <div className="text-xs text-muted-foreground font-mono flex gap-2 flex-wrap mt-0.5">
-                        <span className="text-primary/80">{task.studioName}</span>
+                        <span className="text-primary/80">{task.projectName}</span>
                         {task.category && <span>· {task.category}</span>}
                         {task.milestoneName && <span>· {task.milestoneName}</span>}
                         {task.assigneeName && <span>· {task.assigneeName}</span>}
@@ -319,16 +323,16 @@ export default function Tasks() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label className="text-xs font-mono uppercase text-muted-foreground">Studio *</Label>
-                <Select value={form.studioId} onValueChange={v => {
-                  setForm(f => ({ ...f, studioId: v, milestoneId: "" }));
+                <Label className="text-xs font-mono uppercase text-muted-foreground">Project *</Label>
+                <Select value={form.projectId} onValueChange={v => {
+                  setForm(f => ({ ...f, projectId: v, milestoneId: "" }));
                   setMilestoneStudio(parseInt(v));
                 }}>
                   <SelectTrigger className="bg-background border-border">
-                    <SelectValue placeholder="Select studio" />
+                    <SelectValue placeholder="Select project" />
                   </SelectTrigger>
                   <SelectContent>
-                    {studios?.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                    {projects?.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -338,7 +342,7 @@ export default function Tasks() {
                 <Select
                   value={form.milestoneId || NONE_VALUE}
                   onValueChange={v => setForm(f => ({ ...f, milestoneId: v === NONE_VALUE ? "" : v }))}
-                  disabled={!form.studioId}
+                  disabled={!form.projectId}
                 >
                   <SelectTrigger className="bg-background border-border">
                     <SelectValue placeholder="Select milestone" />

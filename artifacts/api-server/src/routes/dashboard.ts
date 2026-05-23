@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { studiosTable, tasksTable, milestonesTable, activityTable } from "@workspace/db";
+import { projectsTable, tasksTable, milestonesTable, activityTable } from "@workspace/db";
 
 const router = Router();
 
 router.get("/dashboard/summary", async (_req, res): Promise<void> => {
-  const [studios, tasks, milestones] = await Promise.all([
-    db.select().from(studiosTable),
+  const [projects, tasks, milestones] = await Promise.all([
+    db.select().from(projectsTable),
     db.select().from(tasksTable),
     db.select().from(milestonesTable),
   ]);
@@ -14,13 +14,13 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
   const now = new Date().toISOString().split("T")[0];
   const future = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-  const totalStudios = studios.length;
-  const activeStudios = studios.filter(s => s.status === "in_progress" || s.status === "planning").length;
+  const totalProjects = projects.length;
+  const activeProjects = projects.filter(s => s.status === "in_progress" || s.status === "planning").length;
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter(t => t.status === "done").length;
   const overdueTasks = tasks.filter(t => t.status !== "done" && t.dueDate && t.dueDate < now).length;
 
-  const studioMap = Object.fromEntries(studios.map(s => [s.id, s.name]));
+  const projectMap = Object.fromEntries(projects.map(s => [s.id, s.name]));
 
   const upcomingDeadlines: unknown[] = [];
   for (const m of milestones) {
@@ -30,8 +30,8 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
         id: m.id,
         name: m.name,
         dueDate: m.dueDate,
-        studioName: studioMap[m.studioId] ?? "Unknown",
-        studioId: m.studioId,
+        projectName: projectMap[m.projectId] ?? "Unknown",
+        projectId: m.projectId,
       });
     }
   }
@@ -42,8 +42,8 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
         id: t.id,
         name: t.title,
         dueDate: t.dueDate,
-        studioName: studioMap[t.studioId] ?? "Unknown",
-        studioId: t.studioId,
+        projectName: projectMap[t.projectId] ?? "Unknown",
+        projectId: t.projectId,
       });
     }
   }
@@ -57,8 +57,8 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
   }
 
   res.json({
-    totalStudios,
-    activeStudios,
+    totalProjects,
+    activeProjects,
     totalTasks,
     completedTasks,
     overdueTasks,
@@ -75,8 +75,8 @@ router.get("/dashboard/activity", async (_req, res): Promise<void> => {
       id: a.id,
       type: a.type,
       message: a.message,
-      studioId: a.studioId,
-      studioName: a.studioName,
+      projectId: a.projectId,
+      projectName: a.projectName,
       entityId: a.entityId ?? null,
       entityName: a.entityName ?? null,
       actorName: a.actorName ?? null,

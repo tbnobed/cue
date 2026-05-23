@@ -1,5 +1,5 @@
 export * from "./users";
-export * from "./studios";
+export * from "./projects";
 export * from "./milestones";
 export * from "./members";
 export * from "./tasks";

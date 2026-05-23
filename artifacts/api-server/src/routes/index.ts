@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
-import studiosRouter from "./studios";
+import projectsRouter from "./projects";
 import milestonesRouter from "./milestones";
 import tasksRouter from "./tasks";
 import commentsRouter from "./comments";
@@ -25,7 +25,7 @@ router.use(wopiRouter);
 
 // --- Authenticated routes ---
 // All product data routes require a signed-in user.
-router.use(requireAuth, studiosRouter);
+router.use(requireAuth, projectsRouter);
 router.use(requireAuth, milestonesRouter);
 router.use(requireAuth, tasksRouter);
 router.use(requireAuth, commentsRouter);

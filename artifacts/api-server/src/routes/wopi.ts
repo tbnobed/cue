@@ -35,7 +35,7 @@ router.get("/wopi/files/:id", async (req, res): Promise<void> => {
     Size: stat.size,
     OwnerId: "studiopm",
     UserId: doc.uploadedBy || "user",
-    UserFriendlyName: doc.uploadedBy || "Studio Member",
+    UserFriendlyName: doc.uploadedBy || "Project Member",
     UserCanWrite: claims.w === 1,
     Version: String(doc.updatedAt.getTime()),
     LastModifiedTime: doc.updatedAt.toISOString(),

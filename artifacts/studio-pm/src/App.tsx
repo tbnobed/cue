@@ -6,8 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppShell } from "@/components/layout/app-shell";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import Dashboard from "@/pages/dashboard";
-import StudiosList from "@/pages/studios";
-import StudioDetail from "@/pages/studios/detail";
+import ProjectsList from "@/pages/projects";
+import ProjectDetail from "@/pages/projects/detail";
 import Tasks from "@/pages/tasks";
 import Timeline from "@/pages/timeline";
 import Team from "@/pages/team";
@@ -50,8 +50,8 @@ function Routes() {
         <AuthedShell>
           <Switch>
             <Route path="/" component={Dashboard} />
-            <Route path="/studios" component={StudiosList} />
-            <Route path="/studios/:id" component={StudioDetail} />
+            <Route path="/projects" component={ProjectsList} />
+            <Route path="/projects/:id" component={ProjectDetail} />
             <Route path="/tasks" component={Tasks} />
             <Route path="/timeline" component={Timeline} />
             <Route path="/team" component={Team} />

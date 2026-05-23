@@ -13,17 +13,17 @@ import {
 
 const router = Router();
 
-router.get("/studios/:studioId/milestones", async (req, res): Promise<void> => {
-  const { studioId } = ListMilestonesParams.parse(req.params);
-  const milestones = await db.select().from(milestonesTable).where(eq(milestonesTable.studioId, studioId)).orderBy(milestonesTable.dueDate);
+router.get("/projects/:projectId/milestones", async (req, res): Promise<void> => {
+  const { projectId } = ListMilestonesParams.parse(req.params);
+  const milestones = await db.select().from(milestonesTable).where(eq(milestonesTable.projectId, projectId)).orderBy(milestonesTable.dueDate);
   res.json(milestones.map(fmt));
 });
 
-router.post("/studios/:studioId/milestones", async (req, res): Promise<void> => {
-  const { studioId } = CreateMilestoneParams.parse(req.params);
+router.post("/projects/:projectId/milestones", async (req, res): Promise<void> => {
+  const { projectId } = CreateMilestoneParams.parse(req.params);
   const parsed = CreateMilestoneBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const [m] = await db.insert(milestonesTable).values({ ...parsed.data, studioId }).returning();
+  const [m] = await db.insert(milestonesTable).values({ ...parsed.data, projectId }).returning();
   res.status(201).json(fmt(m));
 });
 
@@ -45,7 +45,7 @@ router.delete("/milestones/:id", async (req, res): Promise<void> => {
 function fmt(m: typeof milestonesTable.$inferSelect) {
   return {
     id: m.id,
-    studioId: m.studioId,
+    projectId: m.projectId,
     name: m.name,
     description: m.description ?? null,
     dueDate: m.dueDate ?? null,

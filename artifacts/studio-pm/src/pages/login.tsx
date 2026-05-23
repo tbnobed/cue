@@ -27,7 +27,7 @@ export default function Login() {
           <div className="space-y-2 text-center">
             <h1 className="text-2xl font-semibold">Sign in</h1>
             <p className="text-sm text-muted-foreground">
-              Studio Command is members-only. Sign in with your studio account to continue.
+              Studio Command is members-only. Sign in with your project account to continue.
             </p>
           </div>
 

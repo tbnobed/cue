@@ -1,6 +1,7 @@
-import session, { type RequestHandler } from "express-session";
+import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
+import type { RequestHandler } from "express";
 
 const WEAK_SECRETS = new Set(["", "change_me_in_production", "dev_only_secret_change_me"]);
 

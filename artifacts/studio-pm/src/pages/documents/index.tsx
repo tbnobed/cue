@@ -1,4 +1,4 @@
-import { useListDocuments, useListStudios, useDeleteDocument, getListDocumentsQueryKey } from "@workspace/api-client-react";
+import { useListDocuments, useListProjects, useDeleteDocument, getListDocumentsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -36,7 +36,7 @@ export default function Documents() {
   const [uploadCategory, setUploadCategory] = useState("general");
 
   const { data: allDocs, isLoading } = useListDocuments({});
-  const { data: studios } = useListStudios();
+  const { data: projects } = useListProjects();
   const { data: appConfig } = useQuery<{ collaboraEnabled: boolean }>({
     queryKey: ["app-config"],
     queryFn: async () => {
@@ -62,7 +62,7 @@ export default function Documents() {
       fd.append("file", file);
       fd.append("title", file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " "));
       fd.append("category", uploadCategory);
-      if (uploadStudio) fd.append("studioId", uploadStudio);
+      if (uploadStudio) fd.append("projectId", uploadStudio);
       try {
         const res = await fetch("/api/documents/upload", { method: "POST", body: fd });
         if (res.ok) ok++;
@@ -86,17 +86,17 @@ export default function Documents() {
 
   const filtered = (allDocs ?? []).filter(d => {
     if (filterCategory && d.category !== filterCategory) return false;
-    if (filterStudio === "__global__" && d.studioId !== null) return false;
-    if (filterStudio && filterStudio !== "__global__" && d.studioId !== parseInt(filterStudio)) return false;
+    if (filterStudio === "__global__" && d.projectId !== null) return false;
+    if (filterStudio && filterStudio !== "__global__" && d.projectId !== parseInt(filterStudio)) return false;
     return true;
   });
 
-  const globalDocs  = filtered.filter(d => d.studioId === null);
-  const studioDocs  = filtered.filter(d => d.studioId !== null);
+  const globalDocs  = filtered.filter(d => d.projectId === null);
+  const studioDocs  = filtered.filter(d => d.projectId !== null);
   const byStudio: Record<string, { name: string; docs: typeof studioDocs }> = {};
   for (const doc of studioDocs) {
-    const k = String(doc.studioId);
-    if (!byStudio[k]) byStudio[k] = { name: doc.studioName ?? `Studio ${doc.studioId}`, docs: [] };
+    const k = String(doc.projectId);
+    if (!byStudio[k]) byStudio[k] = { name: doc.projectName ?? `Project ${doc.projectId}`, docs: [] };
     byStudio[k].docs.push(doc);
   }
 
@@ -121,7 +121,7 @@ export default function Documents() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__global__">General Library</SelectItem>
-              {studios?.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+              {projects?.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
             </SelectContent>
           </Select>
 
@@ -161,7 +161,7 @@ export default function Documents() {
           <SelectContent>
             <SelectItem value="all">All Locations</SelectItem>
             <SelectItem value="__global__"><span className="flex items-center gap-2"><Globe className="w-3 h-3 inline" /> General Library</span></SelectItem>
-            {studios?.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+            {projects?.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
           </SelectContent>
         </Select>
 
@@ -238,7 +238,7 @@ export default function Documents() {
   );
 }
 
-type Doc = { id: number; title: string; url?: string | null; category: string; uploadedBy?: string | null; version?: string | null; updatedAt?: string; studioName?: string | null };
+type Doc = { id: number; title: string; url?: string | null; category: string; uploadedBy?: string | null; version?: string | null; updatedAt?: string; projectName?: string | null };
 
 const EXT_META: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
   CSV:  { icon: <FileSpreadsheet className="w-4 h-4" />, color: "text-emerald-400", bg: "bg-emerald-400/15 border-emerald-400/30" },

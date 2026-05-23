@@ -31,7 +31,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Active Studios" value={summary?.activeStudios} icon={Video} color="text-primary" />
+        <StatCard title="Active Projects" value={summary?.activeProjects} icon={Video} color="text-primary" />
         <StatCard title="Total Tasks" value={summary?.totalTasks} icon={Activity} color="text-blue-500" />
         <StatCard title="Completed" value={summary?.completedTasks} icon={CheckCircle} color="text-green-500" />
         <StatCard title="Overdue" value={summary?.overdueTasks} icon={Clock} color="text-destructive" />
@@ -55,7 +55,7 @@ export default function Dashboard() {
                   >
                     <div>
                       <div className="font-medium text-sm">{deadline.name}</div>
-                      <div className="text-xs text-muted-foreground">{deadline.studioName}</div>
+                      <div className="text-xs text-muted-foreground">{deadline.projectName}</div>
                     </div>
                     <div className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">
                       {format(new Date(deadline.dueDate), "MMM dd")}
@@ -92,7 +92,7 @@ export default function Dashboard() {
                      <div>
                        <span className="text-foreground">{entry.message}</span>
                        <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                         {format(new Date(entry.createdAt), "HH:mm:ss")} · {entry.studioName}
+                         {format(new Date(entry.createdAt), "HH:mm:ss")} · {entry.projectName}
                        </div>
                      </div>
                    </motion.div>

@@ -129,7 +129,7 @@ export function attachCollabServer(httpServer: HttpServer): void {
       emit() { /* no-op */ },
     } as unknown as import("http").ServerResponse;
 
-    sessionMw(request as unknown as import("express").Request, stubRes, () => {
+    sessionMw(request as unknown as import("express").Request, stubRes as unknown as import("express").Response, () => {
       const sess = (request as unknown as { session?: { userId?: number } }).session;
       if (authEnabled && !sess?.userId) {
         socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");

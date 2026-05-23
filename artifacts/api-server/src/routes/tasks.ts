@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { tasksTable, membersTable, studiosTable, milestonesTable } from "@workspace/db";
+import { tasksTable, membersTable, projectsTable, milestonesTable } from "@workspace/db";
 import { eq, and, gte, lte } from "drizzle-orm";
 import {
   ListTasksQueryParams,
@@ -19,8 +19,8 @@ router.get("/tasks", async (req, res): Promise<void> => {
 
   let tasks = await db.select().from(tasksTable).orderBy(tasksTable.createdAt);
 
-  const { studioId, milestoneId, assigneeId, status, category } = params.data;
-  if (studioId !== undefined) tasks = tasks.filter(t => t.studioId === studioId);
+  const { projectId, milestoneId, assigneeId, status, category } = params.data;
+  if (projectId !== undefined) tasks = tasks.filter(t => t.projectId === projectId);
   if (milestoneId !== undefined) tasks = tasks.filter(t => t.milestoneId === milestoneId);
   if (assigneeId !== undefined) tasks = tasks.filter(t => t.assigneeId === assigneeId);
   if (status !== undefined) tasks = tasks.filter(t => t.status === status);
@@ -76,18 +76,18 @@ router.delete("/tasks/:id", async (req, res): Promise<void> => {
 
 async function enrichTasks(tasks: (typeof tasksTable.$inferSelect)[]) {
   if (tasks.length === 0) return [];
-  const [members, studios, milestones] = await Promise.all([
+  const [members, projects, milestones] = await Promise.all([
     db.select().from(membersTable),
-    db.select().from(studiosTable),
+    db.select().from(projectsTable),
     db.select().from(milestonesTable),
   ]);
   const memberMap = Object.fromEntries(members.map(m => [m.id, m.name]));
-  const studioMap = Object.fromEntries(studios.map(s => [s.id, s.name]));
+  const projectMap = Object.fromEntries(projects.map(s => [s.id, s.name]));
   const milestoneMap = Object.fromEntries(milestones.map(m => [m.id, m.name]));
 
   return tasks.map(t => ({
     id: t.id,
-    studioId: t.studioId,
+    projectId: t.projectId,
     milestoneId: t.milestoneId ?? null,
     assigneeId: t.assigneeId ?? null,
     title: t.title,
@@ -100,7 +100,7 @@ async function enrichTasks(tasks: (typeof tasksTable.$inferSelect)[]) {
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
     assigneeName: t.assigneeId ? (memberMap[t.assigneeId] ?? null) : null,
-    studioName: studioMap[t.studioId] ?? null,
+    projectName: projectMap[t.projectId] ?? null,
     milestoneName: t.milestoneId ? (milestoneMap[t.milestoneId] ?? null) : null,
   }));
 }

@@ -6,7 +6,7 @@ export const collabDocsTable = pgTable("collab_docs", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   docType: text("doc_type").notNull().default("text"),
-  studioId: integer("studio_id"),
+  projectId: integer("project_id"),
   content: text("content"),
   createdBy: text("created_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

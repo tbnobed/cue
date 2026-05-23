@@ -42,7 +42,7 @@ The app runs on port 5000 by default. Collabora runs on 9980. Set `APP_PORT` / `
 ## Where things live
 
 - `lib/api-spec/openapi.yaml` — single source of truth for all API contracts
-- `lib/db/src/schema/` — Drizzle table definitions (studios, milestones, tasks, members, comments, activity)
+- `lib/db/src/schema/` — Drizzle table definitions (projects, milestones, tasks, members, comments, activity)
 - `artifacts/api-server/src/routes/` — Express route handlers
 - `artifacts/studio-pm/src/` — React frontend
 - `Dockerfile` + `docker-compose.yml` — self-hosting configuration
@@ -68,13 +68,13 @@ The app runs on port 5000 by default. Collabora runs on 9980. Set `APP_PORT` / `
 
 ## Product
 
-Studio Command is a command center for TV studio construction projects. Key capabilities:
-- **Studios** — manage multiple studio build-out projects with status, phase tracking, and budget
+Studio Command is a general-purpose project command center (originally built for TV studio build-outs; the domain entity was generalized to "Project"). Key capabilities:
+- **Projects** — manage multiple projects with status, phase tracking, and budget. Create from the Projects page via the "New Project" dialog.
 - **Milestones** — set major project gates with due dates and color coding
 - **Tasks** — full task lifecycle (todo → in_progress → blocked → review → done) with priority levels and categories (AV, IT, electrical, construction, acoustics, etc.)
-- **Timeline** — visual cross-studio timeline showing milestones and deadlines
+- **Timeline** — visual cross-project timeline showing milestones and deadlines
 - **Team** — roster management for producers, engineers, IT, integrators, managers, and contractors
-- **Dashboard** — live command center with studio health, upcoming deadlines, task breakdowns, and activity feed
+- **Dashboard** — live command center with project health, upcoming deadlines, task breakdowns, and activity feed
 
 ## User preferences
 
@@ -84,6 +84,7 @@ Studio Command is a command center for TV studio construction projects. Key capa
 ## Gotchas
 
 - Auth routes must be mounted BEFORE the `requireAuth`-wrapped routers in `routes/index.ts` — otherwise sign-in itself would 401.
+- `requireAuth` passes requests through in "guest mode" when no AUTHENTIK_* env is set, so local dev works without sign-in. In production the app **refuses to boot** in guest mode unless `ALLOW_GUEST_MODE=true` is set explicitly — prevents a mistyped env var from silently exposing all data routes.
 - `PUBLIC_URL` (not `localhost`) must match what the browser sees and what Authentik has registered as the redirect URI — mismatches show up as `invalid redirect_uri` from Authentik.
 - Run `pnpm --filter @workspace/api-spec run codegen` after any OpenAPI spec change before touching frontend code
 - The `tasks/upcoming` endpoint uses `/tasks/upcoming` path — it must be registered BEFORE `/tasks/:id` in Express to avoid the path being captured by the param route

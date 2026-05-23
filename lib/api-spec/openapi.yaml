@@ -3,15 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: Studio PM API specification
+  description: Project PM API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
-  - name: studios
-    description: Studio project operations
+  - name: projects
+    description: Project project operations
   - name: milestones
     description: Milestone operations
   - name: tasks
@@ -38,44 +38,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
-  # ── Studios ──────────────────────────────────────────────────────────────
-  /studios:
+  # ── Projects ──────────────────────────────────────────────────────────────
+  /projects:
     get:
-      operationId: listStudios
-      tags: [studios]
-      summary: List all studios
+      operationId: listProjects
+      tags: [projects]
+      summary: List all projects
       responses:
         "200":
-          description: List of studios
+          description: List of projects
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Studio"
+                  $ref: "#/components/schemas/Project"
     post:
-      operationId: createStudio
-      tags: [studios]
-      summary: Create a studio
+      operationId: createProject
+      tags: [projects]
+      summary: Create a project
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/StudioInput"
+              $ref: "#/components/schemas/ProjectInput"
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Studio"
+                $ref: "#/components/schemas/Project"
 
-  /studios/{id}:
+  /projects/{id}:
     get:
-      operationId: getStudio
-      tags: [studios]
-      summary: Get a studio by ID
+      operationId: getProject
+      tags: [projects]
+      summary: Get a project by ID
       parameters:
         - name: id
           in: path
@@ -84,17 +84,17 @@ paths:
             type: integer
       responses:
         "200":
-          description: Studio
+          description: Project
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Studio"
+                $ref: "#/components/schemas/Project"
         "404":
           description: Not found
     patch:
-      operationId: updateStudio
-      tags: [studios]
-      summary: Update a studio
+      operationId: updateProject
+      tags: [projects]
+      summary: Update a project
       parameters:
         - name: id
           in: path
@@ -106,18 +106,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/StudioUpdate"
+              $ref: "#/components/schemas/ProjectUpdate"
       responses:
         "200":
           description: Updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Studio"
+                $ref: "#/components/schemas/Project"
     delete:
-      operationId: deleteStudio
-      tags: [studios]
-      summary: Delete a studio
+      operationId: deleteProject
+      tags: [projects]
+      summary: Delete a project
       parameters:
         - name: id
           in: path
@@ -128,11 +128,11 @@ paths:
         "204":
           description: Deleted
 
-  /studios/{id}/progress:
+  /projects/{id}/progress:
     get:
-      operationId: getStudioProgress
-      tags: [studios]
-      summary: Get completion breakdown for a studio
+      operationId: getProjectProgress
+      tags: [projects]
+      summary: Get completion breakdown for a project
       parameters:
         - name: id
           in: path
@@ -145,16 +145,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StudioProgress"
+                $ref: "#/components/schemas/ProjectProgress"
 
   # ── Milestones ────────────────────────────────────────────────────────────
-  /studios/{studioId}/milestones:
+  /projects/{projectId}/milestones:
     get:
       operationId: listMilestones
       tags: [milestones]
-      summary: List milestones for a studio
+      summary: List milestones for a project
       parameters:
-        - name: studioId
+        - name: projectId
           in: path
           required: true
           schema:
@@ -173,7 +173,7 @@ paths:
       tags: [milestones]
       summary: Create a milestone
       parameters:
-        - name: studioId
+        - name: projectId
           in: path
           required: true
           schema:
@@ -235,9 +235,9 @@ paths:
     get:
       operationId: listTasks
       tags: [tasks]
-      summary: List tasks (optionally filtered by studio or milestone)
+      summary: List tasks (optionally filtered by project or milestone)
       parameters:
-        - name: studioId
+        - name: projectId
           in: query
           schema:
             type: integer
@@ -343,7 +343,7 @@ paths:
     get:
       operationId: listUpcomingTasks
       tags: [tasks]
-      summary: Get tasks due in the next 14 days across all studios
+      summary: Get tasks due in the next 14 days across all projects
       responses:
         "200":
           description: Upcoming tasks
@@ -490,7 +490,7 @@ paths:
     get:
       operationId: getDashboardSummary
       tags: [dashboard]
-      summary: Global dashboard summary — studio counts, task stats, upcoming deadlines
+      summary: Global dashboard summary — project counts, task stats, upcoming deadlines
       responses:
         "200":
           description: Dashboard summary
@@ -504,15 +504,15 @@ paths:
     get:
       operationId: listDocuments
       tags: [documents]
-      summary: List documents (all, or filtered by studio)
+      summary: List documents (all, or filtered by project)
       parameters:
-        - name: studioId
+        - name: projectId
           in: query
           schema:
             type: integer
         - name: global
           in: query
-          description: If true, return only global (non-studio) documents
+          description: If true, return only global (non-project) documents
           schema:
             type: boolean
         - name: category
@@ -588,7 +588,7 @@ paths:
     get:
       operationId: getDashboardActivity
       tags: [dashboard]
-      summary: Recent activity feed across all studios
+      summary: Recent activity feed across all projects
       responses:
         "200":
           description: Activity entries
@@ -609,8 +609,8 @@ components:
       required:
         - status
 
-    # ── Studio ──────────────────────────────────────────────────────────────
-    Studio:
+    # ── Project ──────────────────────────────────────────────────────────────
+    Project:
       type: object
       required: [id, name, status, createdAt]
       properties:
@@ -627,7 +627,7 @@ components:
         createdAt:      { type: string }
         updatedAt:      { type: string }
 
-    StudioInput:
+    ProjectInput:
       type: object
       required: [name]
       properties:
@@ -640,7 +640,7 @@ components:
         targetDate:     { type: string }
         budget:         { type: number }
 
-    StudioUpdate:
+    ProjectUpdate:
       type: object
       properties:
         name:           { type: string, minLength: 1 }
@@ -653,11 +653,11 @@ components:
         completedDate:  { type: string }
         budget:         { type: number }
 
-    StudioProgress:
+    ProjectProgress:
       type: object
-      required: [studioId, totalTasks, completedTasks, overdueTasks, percentComplete, byCategory]
+      required: [projectId, totalTasks, completedTasks, overdueTasks, percentComplete, byCategory]
       properties:
-        studioId:        { type: integer }
+        projectId:        { type: integer }
         totalTasks:      { type: integer }
         completedTasks:  { type: integer }
         overdueTasks:    { type: integer }
@@ -675,10 +675,10 @@ components:
     # ── Milestone ───────────────────────────────────────────────────────────
     Milestone:
       type: object
-      required: [id, studioId, name, status, createdAt]
+      required: [id, projectId, name, status, createdAt]
       properties:
         id:          { type: integer }
-        studioId:    { type: integer }
+        projectId:    { type: integer }
         name:        { type: string }
         description: { type: ["string", "null"] }
         dueDate:     { type: ["string", "null"] }
@@ -708,10 +708,10 @@ components:
     # ── Task ────────────────────────────────────────────────────────────────
     Task:
       type: object
-      required: [id, studioId, title, status, priority, category, createdAt]
+      required: [id, projectId, title, status, priority, category, createdAt]
       properties:
         id:          { type: integer }
-        studioId:    { type: integer }
+        projectId:    { type: integer }
         milestoneId: { type: ["integer", "null"] }
         assigneeId:  { type: ["integer", "null"] }
         title:       { type: string }
@@ -725,14 +725,14 @@ components:
         updatedAt:   { type: string }
         # Joined fields
         assigneeName:   { type: ["string", "null"] }
-        studioName:     { type: ["string", "null"] }
+        projectName:     { type: ["string", "null"] }
         milestoneName:  { type: ["string", "null"] }
 
     TaskInput:
       type: object
-      required: [studioId, title, status, priority, category]
+      required: [projectId, title, status, priority, category]
       properties:
-        studioId:    { type: integer }
+        projectId:    { type: integer }
         milestoneId: { type: integer }
         assigneeId:  { type: integer }
         title:       { type: string, minLength: 1 }
@@ -810,10 +810,10 @@ components:
     # ── Dashboard ────────────────────────────────────────────────────────────
     DashboardSummary:
       type: object
-      required: [totalStudios, activeStudios, totalTasks, completedTasks, overdueTasks, upcomingDeadlines, tasksByStatus, tasksByCategory]
+      required: [totalProjects, activeProjects, totalTasks, completedTasks, overdueTasks, upcomingDeadlines, tasksByStatus, tasksByCategory]
       properties:
-        totalStudios:       { type: integer }
-        activeStudios:      { type: integer }
+        totalProjects:       { type: integer }
+        activeProjects:      { type: integer }
         totalTasks:         { type: integer }
         completedTasks:     { type: integer }
         overdueTasks:       { type: integer }
@@ -821,14 +821,14 @@ components:
           type: array
           items:
             type: object
-            required: [type, id, name, dueDate, studioName]
+            required: [type, id, name, dueDate, projectName]
             properties:
               type:       { type: string, enum: [milestone, task] }
               id:         { type: integer }
               name:       { type: string }
               dueDate:    { type: string }
-              studioName: { type: string }
-              studioId:   { type: integer }
+              projectName: { type: string }
+              projectId:   { type: integer }
         tasksByStatus:
           type: array
           items:
@@ -852,8 +852,8 @@ components:
       required: [id, title, category, createdAt]
       properties:
         id:          { type: integer }
-        studioId:    { type: ["integer", "null"] }
-        studioName:  { type: ["string", "null"] }
+        projectId:    { type: ["integer", "null"] }
+        projectName:  { type: ["string", "null"] }
         title:       { type: string }
         description: { type: ["string", "null"] }
         url:         { type: ["string", "null"] }
@@ -868,7 +868,7 @@ components:
       type: object
       required: [title, category]
       properties:
-        studioId:    { type: integer }
+        projectId:    { type: integer }
         title:       { type: string, minLength: 1 }
         description: { type: string }
         url:         { type: string }
@@ -880,7 +880,7 @@ components:
     DocumentUpdate:
       type: object
       properties:
-        studioId:    { type: integer }
+        projectId:    { type: integer }
         title:       { type: string }
         description: { type: string }
         url:         { type: string }
@@ -891,13 +891,13 @@ components:
 
     ActivityEntry:
       type: object
-      required: [id, type, message, studioId, studioName, createdAt]
+      required: [id, type, message, projectId, projectName, createdAt]
       properties:
         id:         { type: integer }
-        type:       { type: string, enum: [task_created, task_updated, task_completed, milestone_completed, comment_added, studio_created] }
+        type:       { type: string, enum: [task_created, task_updated, task_completed, milestone_completed, comment_added, project_created] }
         message:    { type: string }
-        studioId:   { type: integer }
-        studioName: { type: string }
+        projectId:   { type: integer }
+        projectName: { type: string }
         entityId:   { type: ["integer", "null"] }
         entityName: { type: ["string", "null"] }
         actorName:  { type: ["string", "null"] }

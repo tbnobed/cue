@@ -1,33 +1,42 @@
-import { useGetStudio, useGetStudioProgress, useListMilestones, useListTasks } from "@workspace/api-client-react";
+import {
+  useGetProject, useGetProjectProgress, useListMilestones,
+  getGetProjectQueryKey, getGetProjectProgressQueryKey, getListMilestonesQueryKey,
+} from "@workspace/api-client-react";
 import { useParams } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
-export default function StudioDetail() {
+export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
-  const studioId = parseInt(id || "0", 10);
+  const projectId = parseInt(id || "0", 10);
 
-  const { data: studio, isLoading: isLoadingStudio } = useGetStudio(studioId, { query: { enabled: !!studioId } });
-  const { data: progress, isLoading: isLoadingProgress } = useGetStudioProgress(studioId, { query: { enabled: !!studioId } });
-  const { data: milestones, isLoading: isLoadingMilestones } = useListMilestones(studioId, { query: { enabled: !!studioId } });
+  const { data: project, isLoading: isLoadingStudio } = useGetProject(projectId, {
+    query: { enabled: !!projectId, queryKey: getGetProjectQueryKey(projectId) },
+  });
+  const { data: progress, isLoading: isLoadingProgress } = useGetProjectProgress(projectId, {
+    query: { enabled: !!projectId, queryKey: getGetProjectProgressQueryKey(projectId) },
+  });
+  const { data: milestones, isLoading: isLoadingMilestones } = useListMilestones(projectId, {
+    query: { enabled: !!projectId, queryKey: getListMilestonesQueryKey(projectId) },
+  });
 
   if (isLoadingStudio) {
     return <div className="p-8 space-y-4"><Skeleton className="h-12 w-1/3" /><Skeleton className="h-6 w-1/4" /></div>;
   }
 
-  if (!studio) return <div className="p-8 text-center text-muted-foreground">Studio not found.</div>;
+  if (!project) return <div className="p-8 text-center text-muted-foreground">Project not found.</div>;
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className="font-mono uppercase text-primary border-primary">{studio.status.replace('_', ' ')}</Badge>
-          <span className="text-muted-foreground font-mono text-sm">{studio.phase}</span>
+          <Badge variant="outline" className="font-mono uppercase text-primary border-primary">{project.status.replace('_', ' ')}</Badge>
+          <span className="text-muted-foreground font-mono text-sm">{project.phase}</span>
         </div>
-        <h1 className="text-4xl font-bold tracking-tight">{studio.name}</h1>
-        <p className="text-muted-foreground max-w-2xl">{studio.description}</p>
+        <h1 className="text-4xl font-bold tracking-tight">{project.name}</h1>
+        <p className="text-muted-foreground max-w-2xl">{project.description}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

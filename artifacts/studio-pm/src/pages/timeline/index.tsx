@@ -1,9 +1,9 @@
-import { useListStudios, useListMilestones } from "@workspace/api-client-react";
+import { useListProjects, useListMilestones, getListMilestonesQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Timeline() {
-  const { data: studios, isLoading } = useListStudios();
+  const { data: projects, isLoading } = useListProjects();
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -18,11 +18,11 @@ export default function Timeline() {
         <Skeleton className="h-96 w-full" />
       ) : (
         <div className="space-y-6">
-          {studios?.map(studio => (
-            <Card key={studio.id} className="border-border bg-card">
+          {projects?.map(project => (
+            <Card key={project.id} className="border-border bg-card">
               <CardContent className="p-6">
-                <h3 className="font-bold text-lg mb-4">{studio.name}</h3>
-                <StudioMilestones studioId={studio.id} />
+                <h3 className="font-bold text-lg mb-4">{project.name}</h3>
+                <StudioMilestones projectId={project.id} />
               </CardContent>
             </Card>
           ))}
@@ -32,8 +32,10 @@ export default function Timeline() {
   );
 }
 
-function StudioMilestones({ studioId }: { studioId: number }) {
-  const { data: milestones, isLoading } = useListMilestones(studioId, { query: { enabled: !!studioId } });
+function StudioMilestones({ projectId }: { projectId: number }) {
+  const { data: milestones, isLoading } = useListMilestones(projectId, {
+    query: { enabled: !!projectId, queryKey: getListMilestonesQueryKey(projectId) },
+  });
 
   if (isLoading) return <Skeleton className="h-12 w-full" />;
 
