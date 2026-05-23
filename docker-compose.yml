@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: studiopm
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-studiopm_secret}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in your .env}
       POSTGRES_DB: studiopm
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -30,7 +30,7 @@ services:
         \"
       "
     environment:
-      DATABASE_URL: postgres://studiopm:${POSTGRES_PASSWORD:-studiopm_secret}@db:5432/studiopm
+      DATABASE_URL: postgres://studiopm:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in your .env}@db:5432/studiopm
     depends_on:
       db:
         condition: service_healthy
@@ -43,8 +43,15 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgres://studiopm:${POSTGRES_PASSWORD:-studiopm_secret}@db:5432/studiopm
-      SESSION_SECRET: ${SESSION_SECRET:-change_me_in_production}
+      DATABASE_URL: postgres://studiopm:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in your .env}@db:5432/studiopm
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET to a strong random string (16+ chars) in your .env}
+      # Public URL of Collabora reachable from end users' browsers.
+      # When running locally: http://localhost:9980. In production set to https://office.your-domain.tld.
+      COLLABORA_URL: ${COLLABORA_URL:-http://localhost:9980}
+      # URL Collabora uses to call back into this app over the internal docker network.
+      WOPI_PUBLIC_URL: ${WOPI_PUBLIC_URL:-http://app:5000}
+    volumes:
+      - uploads:/app/artifacts/api-server/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -54,5 +61,26 @@ services:
       timeout: 10s
       retries: 3
 
+  collabora:
+    image: collabora/code:latest
+    restart: unless-stopped
+    # By default Collabora is only reachable on the docker network — put a TLS reverse proxy
+    # (Caddy/Traefik/nginx) in front and route it from there. To expose it directly for local
+    # testing, set COLLABORA_PORT in your .env (e.g. COLLABORA_PORT=9980).
+    ports:
+      - "${COLLABORA_BIND:-127.0.0.1}:${COLLABORA_PORT:-9980}:9980"
+    environment:
+      # Allow the app container to act as a WOPI host
+      aliasgroup1: http://app:5000
+      # Disable internal TLS — assumes a reverse proxy handles TLS in front
+      extra_params: --o:ssl.enable=false --o:ssl.termination=true
+      username: ${COLLABORA_ADMIN_USER:?set COLLABORA_ADMIN_USER in your .env}
+      password: ${COLLABORA_ADMIN_PASSWORD:?set COLLABORA_ADMIN_PASSWORD to a strong random string in your .env}
+      dictionaries: en_US
+    cap_add:
+      - MKNOD
+    tty: true
+
 volumes:
   pgdata:
+  uploads:

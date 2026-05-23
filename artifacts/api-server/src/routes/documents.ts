@@ -11,6 +11,7 @@ import {
   UpdateDocumentBody,
   DeleteDocumentParams,
 } from "@workspace/api-zod";
+import { buildEditSession } from "../lib/wopi-token";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.join(__dirname, "..", "..", "uploads");
@@ -103,6 +104,24 @@ router.post("/documents/:id/consume-seed", async (req, res): Promise<void> => {
     return row.seed;
   });
   res.json({ text });
+});
+
+// Returns a Collabora Online edit session (WOPI access_token + actionUrl)
+// for the requested document. 503 if Collabora is not configured.
+router.post("/documents/:id/edit-session", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id ?? "", 10);
+  if (!Number.isFinite(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [doc] = await db.select().from(documentsTable).where(eq(documentsTable.id, id));
+  if (!doc) { res.status(404).json({ error: "Not found" }); return; }
+  const session = buildEditSession(id);
+  if (!session) {
+    res.status(503).json({
+      error: "Collabora editor not configured",
+      hint: "Set COLLABORA_URL and WOPI_PUBLIC_URL environment variables and start the collabora container.",
+    });
+    return;
+  }
+  res.json(session);
 });
 
 router.patch("/documents/:id", async (req, res): Promise<void> => {

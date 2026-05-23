@@ -17,16 +17,16 @@ A self-hosted project management platform for Production TV studios. Used by pro
 ```bash
 # Copy and configure env
 cp .env.example .env
-# Edit POSTGRES_PASSWORD and SESSION_SECRET
+# Edit POSTGRES_PASSWORD, SESSION_SECRET, COLLABORA_ADMIN_PASSWORD
 
-# Start everything
+# Start everything (app + postgres + Collabora Online for document editing)
 docker compose up -d
 
 # First run: push DB schema
 docker compose exec app sh -c "cd /app && pnpm --filter @workspace/db run push"
 ```
 
-The app runs on port 5000 by default. Set `APP_PORT` in your `.env` to change it.
+The app runs on port 5000 by default. Collabora runs on 9980. Set `APP_PORT` / `COLLABORA_PORT` in your `.env` to change them. Put a TLS reverse proxy (Caddy, Traefik, nginx) in front of both for production.
 
 ## Stack
 
@@ -53,6 +53,7 @@ The app runs on port 5000 by default. Set `APP_PORT` in your `.env` to change it
 - Activity log table (not computed): activity feed is a dedicated table written to on events, not derived from state
 - Enriched task responses: joined member/studio/milestone names returned server-side to avoid N+1 queries on the client
 - Docker multi-stage build: builder stage compiles everything, runner stage is lean production image
+- Document editing via Collabora Online (LibreOffice): all office files (csv/docx/xlsx/pptx/odt/ods/odp/txt/md/rtf) open in a real LibreOffice editor in a new browser window. Implemented as a WOPI host (`/api/wopi/files/:id` endpoints) with HMAC-signed access tokens (8h TTL, signed with `SESSION_SECRET`). When `COLLABORA_URL` + `WOPI_PUBLIC_URL` are unset (e.g. Replit dev), the Edit button falls back to the in-app custom editors. Images/PDFs still use the custom inline viewers regardless.
 
 ## Product
 
@@ -74,6 +75,8 @@ Studio Command is a command center for TV studio construction projects. Key capa
 - Run `pnpm --filter @workspace/api-spec run codegen` after any OpenAPI spec change before touching frontend code
 - The `tasks/upcoming` endpoint uses `/tasks/upcoming` path — it must be registered BEFORE `/tasks/:id` in Express to avoid the path being captured by the param route
 - Seed data timestamps are inserted at creation time — activity feed shows all seeds at the same time in dev
+- Collabora can only call back to the app if it can resolve `WOPI_PUBLIC_URL` from inside its container. In docker-compose this is `http://app:5000`. If you run the app outside compose, set it to the URL Collabora can reach (not `localhost`).
+- The `app` container mounts a named `uploads` volume at `/app/artifacts/api-server/uploads` — uploaded files are persisted across container restarts and are what Collabora reads/writes via WOPI.
 
 ## Pointers
 

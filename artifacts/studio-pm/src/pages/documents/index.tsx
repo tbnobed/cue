@@ -1,5 +1,5 @@
 import { useListDocuments, useListStudios, useDeleteDocument, getListDocumentsQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +37,17 @@ export default function Documents() {
 
   const { data: allDocs, isLoading } = useListDocuments({});
   const { data: studios } = useListStudios();
+  const { data: appConfig } = useQuery<{ collaboraEnabled: boolean }>({
+    queryKey: ["app-config"],
+    queryFn: async () => {
+      const r = await fetch("/api/config");
+      if (!r.ok) return { collaboraEnabled: false };
+      return r.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
   const deleteMutation = useDeleteDocument();
+  const collaboraEnabled = !!appConfig?.collaboraEnabled;
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: getListDocumentsQueryKey() });
@@ -193,7 +203,7 @@ export default function Documents() {
               ) : (
                 <AnimatePresence>
                   <div className="space-y-2">
-                    {globalDocs.map((doc, i) => <DocRow key={doc.id} doc={doc} idx={i} onDelete={() => handleDelete(doc.id)} />)}
+                    {globalDocs.map((doc, i) => <DocRow key={doc.id} doc={doc} idx={i} collaboraEnabled={collaboraEnabled} onDelete={() => handleDelete(doc.id)} />)}
                   </div>
                 </AnimatePresence>
               )}
@@ -210,7 +220,7 @@ export default function Documents() {
                 </div>
                 <AnimatePresence>
                   <div className="space-y-2">
-                    {docs.map((doc, i) => <DocRow key={doc.id} doc={doc} idx={i} onDelete={() => handleDelete(doc.id)} />)}
+                    {docs.map((doc, i) => <DocRow key={doc.id} doc={doc} idx={i} collaboraEnabled={collaboraEnabled} onDelete={() => handleDelete(doc.id)} />)}
                   </div>
                 </AnimatePresence>
               </section>
@@ -264,11 +274,30 @@ function FileTypeBadge({ url }: { url: string | null | undefined }) {
   );
 }
 
-function DocRow({ doc, idx, onDelete }: { doc: Doc; idx: number; onDelete: () => void }) {
+const COLLABORA_EXTS = new Set([
+  "csv","tsv","txt","md","markdown","rtf",
+  "doc","docx","odt",
+  "xls","xlsx","ods",
+  "ppt","pptx","odp",
+]);
+
+function DocRow({ doc, idx, collaboraEnabled, onDelete }: { doc: Doc; idx: number; collaboraEnabled: boolean; onDelete: () => void }) {
   const [, navigate] = useLocation();
   const cat = doc.category as DocCategory;
   const color = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.general;
   const isUploaded = doc.url?.startsWith("/api/uploads/");
+  const ext = (doc.url ?? "").split(".").pop()?.toLowerCase() ?? "";
+  const useCollabora = collaboraEnabled && COLLABORA_EXTS.has(ext);
+
+  function handleEdit() {
+    if (useCollabora) {
+      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+      const url = `${base}/collabora-launcher.html?docId=${doc.id}&base=${encodeURIComponent(base)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      navigate(`/documents/${doc.id}/edit`);
+    }
+  }
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ delay: idx * 0.03 }}>
@@ -291,10 +320,11 @@ function DocRow({ doc, idx, onDelete }: { doc: Doc; idx: number; onDelete: () =>
           <Button
             variant="ghost" size="sm"
             className="h-7 text-xs font-mono text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0 gap-1.5 px-2"
-            onClick={() => navigate(`/documents/${doc.id}/edit`)}
+            onClick={handleEdit}
+            title={useCollabora ? "Open in LibreOffice (new window)" : "Edit"}
           >
             <PenLine className="w-3 h-3" />
-            Edit
+            {useCollabora ? "Open" : "Edit"}
           </Button>
 
           {doc.url && (

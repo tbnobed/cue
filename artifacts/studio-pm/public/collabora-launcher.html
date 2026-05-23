@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Opening editor…</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0a0a0a; color: #fff;
+      font: 14px/1.5 ui-sans-serif, system-ui, sans-serif; }
+    body { display: flex; align-items: center; justify-content: center; }
+    .card { max-width: 520px; padding: 32px; text-align: center; }
+    .spinner { width: 28px; height: 28px; border: 2px solid #333;
+      border-top-color: #f97316; border-radius: 50%; margin: 0 auto 16px;
+      animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .title { font-weight: 600; margin-bottom: 8px; }
+    .hint { color: #888; font-size: 12px; margin-top: 12px; }
+    .error { color: #f87171; }
+    a { color: #f97316; }
+    form { display: none; }
+    iframe { border: 0; width: 100vw; height: 100vh; display: block; }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="spinner"></div>
+    <div class="title" id="title">Opening editor…</div>
+    <div class="hint" id="hint">Connecting to LibreOffice via Collabora.</div>
+  </div>
+  <form id="cool-form" method="POST" target="cool-frame" enctype="application/x-www-form-urlencoded">
+    <input id="access_token" name="access_token" />
+    <input id="access_token_ttl" name="access_token_ttl" />
+  </form>
+  <script>
+    (async () => {
+      const params = new URLSearchParams(location.search);
+      const docId = params.get("docId");
+      const base = params.get("base") || "";
+      const card = document.getElementById("card");
+      const title = document.getElementById("title");
+      const hint = document.getElementById("hint");
+
+      function fail(msg, sub) {
+        document.querySelector(".spinner").remove();
+        title.textContent = msg;
+        title.classList.add("error");
+        if (sub) hint.innerHTML = sub;
+      }
+
+      if (!docId) { fail("Missing document id"); return; }
+
+      try {
+        const res = await fetch(`${base}/api/documents/${docId}/edit-session`, {
+          method: "POST",
+        });
+        if (res.status === 503) {
+          const body = await res.json().catch(() => ({}));
+          fail(
+            "LibreOffice editor isn't configured on this server.",
+            (body.hint || "Ask your admin to set COLLABORA_URL and WOPI_PUBLIC_URL and start the collabora container.") +
+              `<br><br><a href="${base}/documents/${docId}/edit">Open inline preview instead</a>`,
+          );
+          return;
+        }
+        if (!res.ok) { fail("Failed to start edit session (" + res.status + ")"); return; }
+
+        const { actionUrl, accessToken, accessTokenTtl } = await res.json();
+
+        // Replace splash with full-bleed iframe target for Collabora
+        const frame = document.createElement("iframe");
+        frame.name = "cool-frame";
+        frame.allow = "fullscreen";
+        document.body.appendChild(frame);
+        card.style.display = "none";
+
+        const form = document.getElementById("cool-form");
+        form.action = actionUrl;
+        document.getElementById("access_token").value = accessToken;
+        document.getElementById("access_token_ttl").value = String(Date.now() + accessTokenTtl);
+        form.submit();
+
+        document.title = "LibreOffice Editor";
+      } catch (e) {
+        fail("Could not reach the server", String(e && e.message || e));
+      }
+    })();
+  </script>
+</body>
+</html>
