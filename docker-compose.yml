@@ -45,6 +45,13 @@ services:
       PORT: 5000
       DATABASE_URL: postgres://studiopm:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in your .env}@db:5432/studiopm
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET to a strong random string (16+ chars) in your .env}
+      # --- Bootstrap admin (seeded at container start) ---
+      # When both are set, the entrypoint creates (or rotates the password of)
+      # this admin before the app starts. Leave unset to seed manually via
+      # `docker compose exec app node scripts/dist/create-admin.mjs`.
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-}
       # Public URL of Collabora reachable from end users' browsers.
       # When running locally: http://localhost:9980. In production set to https://office.your-domain.tld.
       COLLABORA_URL: ${COLLABORA_URL:-http://localhost:9980}

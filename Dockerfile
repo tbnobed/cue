@@ -43,6 +43,11 @@ RUN BASE_PATH=/ PORT=3000 pnpm run build
 WORKDIR /app/artifacts/api-server
 RUN pnpm run build
 
+# Build the create-admin CLI into a self-contained bundle so the runner image
+# doesn't need tsx/devDeps to seed the first admin at container start.
+WORKDIR /app/scripts
+RUN pnpm run build
+
 # ─── Production image ────────────────────────────────────────────────────────
 FROM node:24-alpine AS runner
 ENV PNPM_HOME="/pnpm"
@@ -70,10 +75,17 @@ COPY --from=base /app/artifacts/api-server/dist artifacts/api-server/dist
 COPY --from=base /app/artifacts/studio-pm/dist artifacts/studio-pm/dist
 COPY --from=base /app/lib/api-zod/src/generated lib/api-zod/src/generated
 COPY --from=base /app/lib/db/src lib/db/src
+COPY --from=base /app/scripts/dist scripts/dist
+
+# Container entrypoint: seed the bootstrap admin (idempotent — only runs when
+# BOOTSTRAP_ADMIN_EMAIL + BOOTSTRAP_ADMIN_PASSWORD are set), then exec the app.
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENV NODE_ENV=production
 ENV PORT=5000
 
 EXPOSE 5000
 
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]
