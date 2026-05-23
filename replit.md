@@ -49,12 +49,16 @@ The app runs on port 5000 by default. Collabora runs on 9980. Set `APP_PORT` / `
 
 ## Authentication
 
-- External Authentik (OIDC) via `openid-client` (Authorization Code + PKCE). Authentik is **not** bundled in docker-compose — point the app at an existing Authentik instance via env vars.
-- In Authentik: create a Confidential OAuth2/OpenID Provider with redirect URI `${PUBLIC_URL}/api/auth/callback` and scopes `openid profile email`, then bind it to an Application.
-- Sessions: `express-session` + `connect-pg-simple` storing in the `user_sessions` table (auto-created on first boot). Cookie `studiopm.sid`, `httpOnly`, `sameSite=lax`, `secure` in production, 7-day TTL, signed with `SESSION_SECRET`.
-- Members-only: every `/api/*` data route requires a session (gate lives in `routes/index.ts`). Unauthenticated: `/api/healthz`, `/api/config`, `/api/auth/*`, `/api/wopi/*` (Collabora authenticates via its own HMAC tokens).
-- No admin tiers: any user Authentik lets through is fully authorized inside the app. Authorization is delegated to Authentik (use its group/policy bindings to restrict access).
-- Frontend: `AuthProvider` (`src/hooks/use-auth.tsx`) fetches `/api/config` + `/api/auth/me` on mount. If `authEnabled` and no session, the `AuthedShell` in `App.tsx` redirects to `/login`. If `authEnabled=false` (no AUTHENTIK_* env), a synthetic guest user is used so dev still works.
+Two auth methods, both available simultaneously:
+
+1. **Local accounts (always on)** — email + password, bcrypt-hashed (`password_hash` column on `users`). Endpoints: `POST /api/auth/signup`, `POST /api/auth/login`. **Only local accounts can be admins.**
+   - **First-run bootstrap**: when `users` has no admin, anyone can call `/auth/signup` and the new account becomes admin. After that, signup requires an authenticated admin session (returns 403 otherwise) so the instance is closed to public registration.
+   - The login page auto-detects bootstrap state via `/api/config` (`needsBootstrap`) and switches to a "create the first admin" form.
+2. **Authentik OIDC (optional)** — when `AUTHENTIK_ISSUER` / `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` / `PUBLIC_URL` are all set, the login page also shows a "Continue with Authentik" button. Authentik users are **always non-admin** (admin rights are intentionally restricted to local accounts so the IdP can't grant them). Endpoints: `GET /api/auth/oidc/login`, `GET /api/auth/callback`. Configure Authentik with a Confidential OAuth2/OpenID Provider, redirect URI `${PUBLIC_URL}/api/auth/callback`, scopes `openid profile email`.
+- Sessions: `express-session` + `connect-pg-simple` storing in the `user_sessions` table. Cookie `studiopm.sid`, `httpOnly`, `sameSite=lax`, `secure` in production, 7-day TTL, signed with `SESSION_SECRET`. **The session table is NOT auto-created** (esbuild bundle drops the upstream `table.sql` asset) — `pnpm --filter @workspace/db run push` creates it via the Drizzle schema, or run the DDL in `src/lib/session.ts` comments manually.
+- Members-only: every `/api/*` data route requires a session via `requireAuth` (gate lives in `routes/index.ts`). No more guest mode — local accounts make auth always-on. Unauthenticated allow-list: `/api/healthz`, `/api/config`, `/api/auth/*`, `/api/wopi/*` (Collabora authenticates via its own HMAC tokens).
+- Privileged routes can use `requireAdmin` from `middlewares/require-auth.ts` (returns 403 for non-admin sessions).
+- Frontend: `AuthProvider` (`src/hooks/use-auth.tsx`) exposes `signInLocal`, `signUp`, `signInOidc`, `signOut`. Unauthenticated requests redirect to `/login`. The sidebar shows an "Admin" badge for admin users and a sign-out button for everyone.
 - TODO: the `/api/collab` WebSocket (Yjs collaboration) is currently only protected by reachability — add session validation on the WS upgrade handshake before exposing publicly.
 
 ## Architecture decisions
@@ -84,7 +88,8 @@ Studio Command is a general-purpose project command center (originally built for
 ## Gotchas
 
 - Auth routes must be mounted BEFORE the `requireAuth`-wrapped routers in `routes/index.ts` — otherwise sign-in itself would 401.
-- `requireAuth` passes requests through in "guest mode" when no AUTHENTIK_* env is set, so local dev works without sign-in. In production the app **refuses to boot** in guest mode unless `ALLOW_GUEST_MODE=true` is set explicitly — prevents a mistyped env var from silently exposing all data routes.
+- `connect-pg-simple`'s `createTableIfMissing: true` does NOT work in this build — esbuild doesn't bundle its `table.sql` asset, so it crashes with `ENOENT: dist/table.sql`. Keep `createTableIfMissing: false` and create `user_sessions` via `pnpm --filter @workspace/db run push`.
+- OIDC users can NEVER gain admin rights, even by editing the `users` row in Postgres and re-logging in — the OIDC upsert path explicitly does not touch `is_admin`. To promote, switch the user to a local account or `UPDATE users SET is_admin=true WHERE id=…` directly.
 - `PUBLIC_URL` (not `localhost`) must match what the browser sees and what Authentik has registered as the redirect URI — mismatches show up as `invalid redirect_uri` from Authentik.
 - Run `pnpm --filter @workspace/api-spec run codegen` after any OpenAPI spec change before touching frontend code
 - The `tasks/upcoming` endpoint uses `/tasks/upcoming` path — it must be registered BEFORE `/tasks/:id` in Express to avoid the path being captured by the param route

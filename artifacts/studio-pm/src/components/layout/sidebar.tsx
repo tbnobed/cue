@@ -59,21 +59,27 @@ export function AppSidebar() {
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium truncate">{user.name || user.email || "Member"}</div>
+              <div className="text-xs font-medium truncate flex items-center gap-1.5">
+                <span className="truncate">{user.name || user.email || "Member"}</span>
+                {user.isAdmin && (
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-primary border border-primary/40 bg-primary/10 px-1 py-0.5 rounded shrink-0">
+                    Admin
+                  </span>
+                )}
+              </div>
               {user.email && user.name && (
                 <div className="text-[10px] text-muted-foreground truncate font-mono">{user.email}</div>
               )}
             </div>
-            {auth.authEnabled && (
-              <button
-                type="button"
-                title="Sign out"
-                onClick={() => void auth.signOut()}
-                className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors shrink-0"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            )}
+            <button
+              type="button"
+              title="Sign out"
+              data-testid="button-sign-out"
+              onClick={() => void auth.signOut()}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors shrink-0"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           </div>
         </SidebarFooter>
       )}

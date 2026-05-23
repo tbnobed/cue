@@ -7,24 +7,8 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { getSessionMiddleware } from "./lib/session";
 import { requireAuth } from "./middlewares/require-auth";
-import { isAuthConfigured } from "./lib/oidc";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Fail-closed production guardrail: requireAuth lets requests through in
-// "guest mode" when AUTHENTIK_* env vars are absent (so local dev works).
-// In production a missing/mistyped env var would silently expose every data
-// route, so refuse to boot unless the operator opts in explicitly.
-if (process.env.NODE_ENV === "production" && !isAuthConfigured()) {
-  if (process.env.ALLOW_GUEST_MODE !== "true") {
-    throw new Error(
-      "Authentik OIDC is not configured (missing AUTHENTIK_ISSUER / AUTHENTIK_CLIENT_ID / AUTHENTIK_CLIENT_SECRET / PUBLIC_URL). " +
-        "Refusing to start in production with unauthenticated routes. " +
-        "Set those env vars, or set ALLOW_GUEST_MODE=true to override (NOT recommended).",
-    );
-  }
-  logger.warn("ALLOW_GUEST_MODE=true in production — all data routes are unauthenticated.");
-}
 
 const app: Express = express();
 

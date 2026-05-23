@@ -23,7 +23,10 @@ export function getSessionMiddleware(): RequestHandler {
   const store = new PgStore({
     pool,
     tableName: "user_sessions",
-    createTableIfMissing: true,
+    // The bundled `table.sql` from connect-pg-simple isn't included in our esbuild
+    // output, so auto-creation fails with ENOENT. We create `user_sessions`
+    // ourselves (see docker-compose post-install / `pnpm db push` setup).
+    createTableIfMissing: false,
   });
 
   cached = session({

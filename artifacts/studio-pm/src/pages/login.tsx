@@ -1,19 +1,60 @@
-import { useEffect } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { LogIn, ShieldAlert } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LogIn, ShieldAlert, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Login() {
   const auth = useAuth();
   const [, navigate] = useLocation();
 
-  // If we land here already signed in, bounce home
+  // If we land here already signed in, bounce to the stored returnTo or home.
   useEffect(() => {
-    if (auth.status === "authenticated") navigate("/");
+    if (auth.status === "authenticated") {
+      const stored = sessionStorage.getItem("studiopm.returnTo");
+      sessionStorage.removeItem("studiopm.returnTo");
+      navigate(stored && stored.startsWith("/") ? stored : "/");
+    }
   }, [auth.status, navigate]);
 
-  const authDisabled = auth.status !== "loading" && auth.authEnabled === false;
+  const [mode, setMode] = useState<"signin" | "bootstrap">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // Switch into bootstrap mode the moment we know no admin exists.
+  useEffect(() => {
+    if (auth.status !== "loading" && auth.config.needsBootstrap) {
+      setMode("bootstrap");
+    }
+  }, [auth.status, "config" in auth ? auth.config.needsBootstrap : null]);
+
+  const loading = auth.status === "loading";
+  const oidcEnabled = auth.status !== "loading" && auth.config.oidcEnabled;
+  const needsBootstrap = auth.status !== "loading" && auth.config.needsBootstrap;
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      if (mode === "bootstrap") {
+        await auth.signUp({ email, password, name: name || undefined });
+      } else {
+        await auth.signInLocal(email, password);
+      }
+      // refresh() inside signInLocal/signUp will flip auth.status to
+      // "authenticated" and the effect above will navigate away.
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign-in failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background p-6">
@@ -25,46 +66,94 @@ export default function Login() {
 
         <div className="border border-border bg-card rounded-lg p-8 space-y-6">
           <div className="space-y-2 text-center">
-            <h1 className="text-2xl font-semibold">Sign in</h1>
+            <h1 className="text-2xl font-semibold">
+              {mode === "bootstrap" ? "Create the first admin" : "Sign in"}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              Studio Command is members-only. Sign in with your project account to continue.
+              {mode === "bootstrap"
+                ? "No admin account exists yet. The first account you create will be the admin for this Studio Command instance."
+                : "Studio Command is members-only. Sign in with your account to continue."}
             </p>
           </div>
 
-          {authDisabled ? (
+          {needsBootstrap && mode !== "bootstrap" && (
             <div className="flex items-start gap-3 p-3 rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-200 text-sm">
               <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
-              <div>
-                <div className="font-medium mb-1">Authentication isn&rsquo;t configured</div>
-                <div className="text-xs text-amber-200/80">
-                  Set <code className="font-mono">AUTHENTIK_ISSUER</code>,{" "}
-                  <code className="font-mono">AUTHENTIK_CLIENT_ID</code>,{" "}
-                  <code className="font-mono">AUTHENTIK_CLIENT_SECRET</code>, and{" "}
-                  <code className="font-mono">PUBLIC_URL</code> on the server, then restart the app.
-                </div>
+              <div className="text-xs">
+                No admin yet — switch to <button type="button" className="underline" onClick={() => setMode("bootstrap")}>create the first admin</button>.
               </div>
             </div>
-          ) : (
-            <Button
-              size="lg"
-              className="w-full gap-2"
-              disabled={auth.status === "loading"}
-              onClick={() => {
-                const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-                const stored = sessionStorage.getItem("studiopm.returnTo");
-                sessionStorage.removeItem("studiopm.returnTo");
-                const target = stored && stored.startsWith("/") ? `${base}${stored}` : `${base}/`;
-                auth.signIn(target);
-              }}
-            >
-              <LogIn className="w-4 h-4" />
-              Continue with Authentik
-            </Button>
           )}
 
-          <p className="text-[11px] text-muted-foreground text-center font-mono">
-            You&rsquo;ll be redirected to your identity provider.
-          </p>
+          <form onSubmit={submit} className="space-y-4" data-testid="form-auth">
+            {mode === "bootstrap" && (
+              <div className="grid gap-2">
+                <Label htmlFor="auth-name">Name</Label>
+                <Input id="auth-name" autoComplete="name" value={name}
+                  onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Label htmlFor="auth-email">Email</Label>
+              <Input id="auth-email" type="email" required autoComplete="email"
+                value={email} onChange={(e) => setEmail(e.target.value)}
+                data-testid="input-email" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="auth-password">Password</Label>
+              <Input id="auth-password" type="password" required
+                autoComplete={mode === "bootstrap" ? "new-password" : "current-password"}
+                minLength={mode === "bootstrap" ? 8 : undefined}
+                value={password} onChange={(e) => setPassword(e.target.value)}
+                data-testid="input-password" />
+              {mode === "bootstrap" && (
+                <p className="text-[11px] text-muted-foreground font-mono">At least 8 characters.</p>
+              )}
+            </div>
+
+            {error && (
+              <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-md p-2" data-testid="text-auth-error">
+                {error}
+              </div>
+            )}
+
+            <Button type="submit" size="lg" className="w-full gap-2" disabled={loading || busy} data-testid="button-submit-auth">
+              {mode === "bootstrap" ? <UserPlus className="w-4 h-4" /> : <LogIn className="w-4 h-4" />}
+              {busy ? "Working…" : mode === "bootstrap" ? "Create admin account" : "Sign in"}
+            </Button>
+          </form>
+
+          {oidcEnabled && mode === "signin" && (
+            <>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+                <div className="relative flex justify-center text-[10px] uppercase tracking-wider font-mono">
+                  <span className="bg-card px-2 text-muted-foreground">or</span>
+                </div>
+              </div>
+              <Button type="button" variant="outline" size="lg" className="w-full gap-2"
+                disabled={loading}
+                onClick={() => {
+                  const stored = sessionStorage.getItem("studiopm.returnTo");
+                  sessionStorage.removeItem("studiopm.returnTo");
+                  auth.signInOidc(stored && stored.startsWith("/") ? stored : "/");
+                }}
+              >
+                <LogIn className="w-4 h-4" />
+                Continue with Authentik
+              </Button>
+              <p className="text-[11px] text-muted-foreground text-center font-mono">
+                Authentik sign-in creates a non-admin member account.
+              </p>
+            </>
+          )}
+
+          {mode === "bootstrap" && !needsBootstrap && (
+            <button type="button" className="text-xs text-muted-foreground hover:text-foreground w-full text-center"
+              onClick={() => setMode("signin")}>
+              Back to sign in
+            </button>
+          )}
         </div>
       </div>
     </div>
