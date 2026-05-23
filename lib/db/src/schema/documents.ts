@@ -12,6 +12,7 @@ export const documentsTable = pgTable("documents", {
   category: text("category").notNull().default("general"),
   uploadedBy: text("uploaded_by"),
   version: text("version"),
+  collabContent: text("collab_content"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

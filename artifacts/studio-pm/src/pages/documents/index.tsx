@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Upload, ExternalLink, Trash2, FileText, Globe, FolderOpen, X, Loader2 } from "lucide-react";
+import { Upload, ExternalLink, Trash2, FileText, Globe, FolderOpen, X, Loader2, PenLine } from "lucide-react";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 const CATEGORY_OPTIONS = ["spec", "plan", "permit", "vendor", "as_built", "safety", "general"] as const;
@@ -227,9 +228,10 @@ export default function Documents() {
   );
 }
 
-type Doc = { id: number; title: string; url: string | null; category: string; uploadedBy: string | null; version: string | null; updatedAt: string };
+type Doc = { id: number; title: string; url: string | null; category: string; uploadedBy: string | null; version: string | null; updatedAt: string; studioName?: string | null };
 
 function DocRow({ doc, idx, onDelete }: { doc: Doc; idx: number; onDelete: () => void }) {
+  const [, navigate] = useLocation();
   const cat = doc.category as DocCategory;
   const color = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.general;
   const isUploaded = doc.url?.startsWith("/api/uploads/");
@@ -253,6 +255,15 @@ function DocRow({ doc, idx, onDelete }: { doc: Doc; idx: number; onDelete: () =>
               <span className="text-[10px] text-muted-foreground font-mono">{new Date(doc.updatedAt).toLocaleDateString()}</span>
             </div>
           </div>
+
+          <Button
+            variant="ghost" size="sm"
+            className="h-7 text-xs font-mono text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0 gap-1.5 px-2"
+            onClick={() => navigate(`/documents/${doc.id}/edit`)}
+          >
+            <PenLine className="w-3 h-3" />
+            Edit
+          </Button>
 
           {doc.url && (
             <a href={doc.url} target="_blank" rel="noopener noreferrer" download={isUploaded ? doc.title : undefined}>
