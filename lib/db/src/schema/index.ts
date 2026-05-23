@@ -1,3 +1,4 @@
+export * from "./users";
 export * from "./studios";
 export * from "./milestones";
 export * from "./members";

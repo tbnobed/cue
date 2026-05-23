@@ -6,6 +6,8 @@ import { db } from "@workspace/db";
 import { collabDocsTable, documentsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger";
+import { getSessionMiddleware as sessionMiddleware } from "./session";
+import { isAuthConfigured } from "./oidc";
 
 type Room = {
   doc: Y.Doc;
@@ -102,6 +104,11 @@ async function getOrCreateRoom(roomName: string): Promise<Room> {
 
 export function attachCollabServer(httpServer: HttpServer): void {
   const wss = new WebSocketServer({ noServer: true });
+  // Lazy-imported to keep this module's side-effect surface small.
+  // Validates the session cookie on the WS upgrade handshake so anonymous
+  // sockets cannot read/write live document state when auth is enabled.
+  const sessionMw = sessionMiddleware();
+  const authEnabled = isAuthConfigured();
 
   httpServer.on("upgrade", (request: IncomingMessage, socket, head) => {
     const url = request.url ?? "";
@@ -109,8 +116,29 @@ export function attachCollabServer(httpServer: HttpServer): void {
       socket.destroy();
       return;
     }
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit("connection", ws, request);
+
+    // Run express-session against the upgrade request to populate `request.session`.
+    // We pass a stub response since session middleware only writes Set-Cookie on
+    // mutation, and we never mutate during upgrade.
+    const stubRes = {
+      getHeader() { return undefined; },
+      setHeader() { /* no-op */ },
+      end() { /* no-op */ },
+      on() { /* no-op */ },
+      once() { /* no-op */ },
+      emit() { /* no-op */ },
+    } as unknown as import("http").ServerResponse;
+
+    sessionMw(request as unknown as import("express").Request, stubRes, () => {
+      const sess = (request as unknown as { session?: { userId?: number } }).session;
+      if (authEnabled && !sess?.userId) {
+        socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+        socket.destroy();
+        return;
+      }
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit("connection", ws, request);
+      });
     });
   });
 

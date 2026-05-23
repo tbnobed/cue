@@ -10,19 +10,28 @@ import documentsRouter from "./documents";
 import collabRouter from "./collab";
 import wopiRouter from "./wopi";
 import configRouter from "./config";
+import authRouter from "./auth";
+import { requireAuth } from "../middlewares/require-auth";
 
 const router: IRouter = Router();
 
+// --- Unauthenticated routes ---
+// healthz: liveness probe; config: tells frontend whether Collabora/auth are configured;
+// auth: the sign-in flow itself; wopi: Collabora calls these with its own HMAC access tokens.
 router.use(healthRouter);
 router.use(configRouter);
-router.use(studiosRouter);
-router.use(milestonesRouter);
-router.use(tasksRouter);
-router.use(commentsRouter);
-router.use(membersRouter);
-router.use(dashboardRouter);
-router.use(documentsRouter);
-router.use(collabRouter);
+router.use(authRouter);
 router.use(wopiRouter);
+
+// --- Authenticated routes ---
+// All product data routes require a signed-in user.
+router.use(requireAuth, studiosRouter);
+router.use(requireAuth, milestonesRouter);
+router.use(requireAuth, tasksRouter);
+router.use(requireAuth, commentsRouter);
+router.use(requireAuth, membersRouter);
+router.use(requireAuth, dashboardRouter);
+router.use(requireAuth, documentsRouter);
+router.use(requireAuth, collabRouter);
 
 export default router;

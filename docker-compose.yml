@@ -50,6 +50,13 @@ services:
       COLLABORA_URL: ${COLLABORA_URL:-http://localhost:9980}
       # URL Collabora uses to call back into this app over the internal docker network.
       WOPI_PUBLIC_URL: ${WOPI_PUBLIC_URL:-http://app:5000}
+      # --- Authentik (OIDC) ---
+      # Public URL of this app, used to build the OIDC redirect URI and post-logout URL.
+      # Example: https://studio.your-domain.tld
+      PUBLIC_URL: ${PUBLIC_URL:?set PUBLIC_URL in your .env (e.g. https://studio.your-domain.tld)}
+      AUTHENTIK_ISSUER: ${AUTHENTIK_ISSUER:?set AUTHENTIK_ISSUER in your .env (e.g. https://auth.your-domain.tld/application/o/studio-command/)}
+      AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:?set AUTHENTIK_CLIENT_ID in your .env}
+      AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET:?set AUTHENTIK_CLIENT_SECRET in your .env}
     volumes:
       - uploads:/app/artifacts/api-server/uploads
     depends_on:
