@@ -9,7 +9,6 @@ import Dashboard from "@/pages/dashboard";
 import ProjectsList from "@/pages/projects";
 import ProjectDetail from "@/pages/projects/detail";
 import Tasks from "@/pages/tasks";
-import Timeline from "@/pages/timeline";
 import Team from "@/pages/team";
 import Documents from "@/pages/documents";
 import DocumentEditor from "@/pages/documents/editor";
@@ -53,7 +52,6 @@ function Routes() {
             <Route path="/projects" component={ProjectsList} />
             <Route path="/projects/:id" component={ProjectDetail} />
             <Route path="/tasks" component={Tasks} />
-            <Route path="/timeline" component={Timeline} />
             <Route path="/team" component={Team} />
             <Route path="/documents" component={Documents} />
             <Route path="/documents/:id/edit" component={DocumentEditor} />

@@ -1,6 +1,6 @@
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Video, CheckSquare, CalendarDays, Users, FolderOpen, LogOut } from "lucide-react";
+import { LayoutDashboard, Video, CheckSquare, Users, FolderOpen, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export function AppSidebar() {
@@ -18,7 +18,6 @@ export function AppSidebar() {
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Projects", href: "/projects", icon: Video },
     { name: "Tasks", href: "/tasks", icon: CheckSquare },
-    { name: "Timeline", href: "/timeline", icon: CalendarDays },
     { name: "Team", href: "/team", icon: Users },
     { name: "Documents", href: "/documents", icon: FolderOpen },
   ];

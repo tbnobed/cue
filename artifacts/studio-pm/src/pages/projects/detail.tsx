@@ -134,6 +134,9 @@ export default function ProjectDetail() {
 // ─── OVERVIEW ────────────────────────────────────────────────────────────────
 
 function OverviewTab({ projectId }: { projectId: number }) {
+  const { data: project } = useGetProject(projectId, {
+    query: { enabled: !!projectId, queryKey: getGetProjectQueryKey(projectId) },
+  });
   const { data: progress, isLoading: isLoadingProgress } = useGetProjectProgress(projectId, {
     query: { enabled: !!projectId, queryKey: getGetProjectProgressQueryKey(projectId) },
   });
@@ -142,7 +145,8 @@ function OverviewTab({ projectId }: { projectId: number }) {
   });
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
       <Panel className="md:col-span-2" title="Deployment Progress">
         {isLoadingProgress ? <Skeleton className="h-4 w-full" /> : (
           <div className="space-y-6">
@@ -174,6 +178,212 @@ function OverviewTab({ projectId }: { projectId: number }) {
         milestones={milestones ?? []}
         isLoading={isLoadingMilestones}
       />
+      </div>
+
+      <GanttChart
+        milestones={milestones ?? []}
+        isLoading={isLoadingMilestones}
+        projectStart={project?.startDate ?? null}
+        projectTarget={project?.targetDate ?? null}
+      />
+    </div>
+  );
+}
+
+// ─── GANTT CHART ─────────────────────────────────────────────────────────────
+
+const GANTT_COLOR_BAR: Record<string, string> = {
+  blue:    "bg-blue-500/70 ring-blue-400/60",
+  violet:  "bg-violet-500/70 ring-violet-400/60",
+  amber:   "bg-amber-500/70 ring-amber-400/60",
+  teal:    "bg-teal-500/70 ring-teal-400/60",
+  emerald: "bg-emerald-500/70 ring-emerald-400/60",
+  red:     "bg-red-500/70 ring-red-400/60",
+  pink:    "bg-pink-500/70 ring-pink-400/60",
+};
+
+function GanttChart({
+  milestones, isLoading, projectStart, projectTarget,
+}: {
+  milestones: MilestoneItem[]; isLoading: boolean;
+  projectStart: string | null; projectTarget: string | null;
+}) {
+  const dated = milestones.filter(m => m.dueDate);
+
+  // Compute timeline range
+  const range = (() => {
+    const dates: number[] = [];
+    if (projectStart) dates.push(new Date(projectStart).getTime());
+    if (projectTarget) dates.push(new Date(projectTarget).getTime());
+    for (const m of dated) dates.push(new Date(m.dueDate!).getTime());
+    if (dates.length === 0) return null;
+    let min = Math.min(...dates);
+    let max = Math.max(...dates);
+    if (min === max) {
+      min -= 1000 * 60 * 60 * 24 * 7;
+      max += 1000 * 60 * 60 * 24 * 7;
+    }
+    // Pad 5% each side
+    const pad = (max - min) * 0.05;
+    return { min: min - pad, max: max + pad };
+  })();
+
+  const pct = (iso: string | null | undefined) => {
+    if (!iso || !range) return 0;
+    const t = new Date(iso).getTime();
+    return Math.max(0, Math.min(100, ((t - range.min) / (range.max - range.min)) * 100));
+  };
+
+  // Month tick marks
+  const ticks: { pct: number; label: string }[] = [];
+  if (range) {
+    const start = new Date(range.min);
+    const end = new Date(range.max);
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    if (cursor.getTime() < start.getTime()) cursor.setMonth(cursor.getMonth() + 1);
+    const span = range.max - range.min;
+    const stepMonths = span > 1000 * 60 * 60 * 24 * 365 * 1.5 ? 3 : span > 1000 * 60 * 60 * 24 * 180 ? 2 : 1;
+    while (cursor.getTime() <= end.getTime()) {
+      const p = ((cursor.getTime() - range.min) / span) * 100;
+      ticks.push({ pct: p, label: format(cursor, "MMM yyyy") });
+      cursor.setMonth(cursor.getMonth() + stepMonths);
+    }
+  }
+
+  const todayPct = range && Date.now() >= range.min && Date.now() <= range.max ? pct(new Date().toISOString()) : null;
+
+  return (
+    <div className="surface-card ring-hairline border border-border/70 rounded-2xl">
+      <div className="px-5 pt-4 pb-3 border-b border-border/50 flex items-center justify-between">
+        <h2 className="text-[13px] font-semibold tracking-tight">Project Gantt</h2>
+        <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+          {dated.length} milestone{dated.length === 1 ? "" : "s"}
+        </div>
+      </div>
+      <div className="p-5">
+        {isLoading ? (
+          <Skeleton className="h-40 w-full" />
+        ) : dated.length === 0 || !range ? (
+          <div className="text-center py-8 text-sm text-muted-foreground font-mono">
+            Add milestones with due dates to see the Gantt chart.
+          </div>
+        ) : (
+          <div className="flex">
+            {/* Row labels */}
+            <div className="w-44 shrink-0 pr-3 space-y-2">
+              <div className="h-6" />
+              {dated.map(m => (
+                <div key={m.id} className="h-7 flex items-center text-xs truncate text-foreground/80" title={m.name}>
+                  {m.name}
+                </div>
+              ))}
+            </div>
+
+            {/* Chart area */}
+            <div className="flex-1 min-w-0 relative">
+              {/* Top axis */}
+              <div className="h-6 relative border-b border-border/50">
+                {ticks.map((t, i) => (
+                  <div key={i} className="absolute top-0 bottom-0 flex items-end pb-1" style={{ left: `${t.pct}%` }}>
+                    <div className="text-[9.5px] font-mono text-muted-foreground -translate-x-1/2 whitespace-nowrap">
+                      {t.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Grid + rows */}
+              <div className="relative pt-2 space-y-2">
+                {/* Vertical grid lines */}
+                <div className="absolute inset-0 pointer-events-none">
+                  {ticks.map((t, i) => (
+                    <div key={i} className="absolute top-0 bottom-0 w-px bg-border/30" style={{ left: `${t.pct}%` }} />
+                  ))}
+                </div>
+
+                {/* Project range band */}
+                {projectStart && projectTarget && (() => {
+                  const a = pct(projectStart);
+                  const b = pct(projectTarget);
+                  return (
+                    <div
+                      className="absolute top-0 bottom-0 bg-primary/[0.04] border-x border-dashed border-primary/30"
+                      style={{ left: `${Math.min(a, b)}%`, width: `${Math.max(0.5, Math.abs(b - a))}%` }}
+                      title={`Project range: ${format(new Date(projectStart), "MMM d")} → ${format(new Date(projectTarget), "MMM d")}`}
+                    />
+                  );
+                })()}
+
+                {/* Today line */}
+                {todayPct != null && (
+                  <div
+                    className="absolute top-0 bottom-0 w-px bg-primary/70 z-10"
+                    style={{ left: `${todayPct}%` }}
+                  >
+                    <div className="absolute -top-1 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary glow-primary" />
+                  </div>
+                )}
+
+                {/* Bars */}
+                {dated.map((m, idx) => {
+                  const endPct = pct(m.dueDate);
+                  const startPct = idx === 0 ? pct(projectStart ?? dated[0].dueDate) : pct(dated[idx - 1].dueDate);
+                  const left = Math.min(startPct, endPct);
+                  const width = Math.max(1.5, Math.abs(endPct - startPct));
+                  const colorClass = GANTT_COLOR_BAR[m.color ?? "blue"] ?? GANTT_COLOR_BAR.blue;
+                  const completed = m.status === "completed";
+                  const missed = m.status === "missed";
+                  return (
+                    <div key={m.id} className="h-7 relative">
+                      <div
+                        className={`absolute top-1/2 -translate-y-1/2 h-3 rounded-sm ring-1 ring-inset ${colorClass} ${
+                          completed ? "opacity-100" : missed ? "opacity-60 ring-red-500/70 bg-red-500/40" : "opacity-70"
+                        }`}
+                        style={{ left: `${left}%`, width: `${width}%` }}
+                        title={`${m.name} · due ${format(new Date(m.dueDate!), "MMM d, yyyy")}`}
+                      />
+                      {/* End-of-bar diamond marker */}
+                      <div
+                        className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rotate-45 ${
+                          completed ? "bg-emerald-400" : missed ? "bg-red-400" : "bg-foreground/70"
+                        } ring-1 ring-background z-[1]`}
+                        style={{ left: `${endPct}%` }}
+                      />
+                      {/* Date label after diamond */}
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 text-[9.5px] font-mono tabular-nums text-muted-foreground whitespace-nowrap pointer-events-none"
+                        style={{ left: `calc(${endPct}% + 8px)` }}
+                      >
+                        {format(new Date(m.dueDate!), "MMM d")}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Legend */}
+              <div className="flex items-center gap-4 pt-4 mt-3 border-t border-border/40 text-[10px] font-mono text-muted-foreground">
+                {todayPct != null && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1 h-3 bg-primary/70" /> Today
+                  </div>
+                )}
+                {projectStart && projectTarget && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-primary/[0.04] border border-dashed border-primary/30" /> Project range
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rotate-45 bg-emerald-400" /> Completed
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rotate-45 bg-red-400" /> Missed
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
