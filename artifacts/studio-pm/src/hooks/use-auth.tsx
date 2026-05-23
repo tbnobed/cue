@@ -10,7 +10,6 @@ export type AuthUser = {
 
 export type AuthConfig = {
   oidcEnabled: boolean;
-  needsBootstrap: boolean;
 };
 
 type AuthState =
@@ -38,10 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function refresh() {
     try {
       const cfgRes = await fetch("/api/config");
-      const cfgRaw = cfgRes.ok ? await cfgRes.json() : { oidcEnabled: false, needsBootstrap: false };
+      const cfgRaw = cfgRes.ok ? await cfgRes.json() : { oidcEnabled: false };
       const config: AuthConfig = {
         oidcEnabled: !!cfgRaw.oidcEnabled,
-        needsBootstrap: !!cfgRaw.needsBootstrap,
       };
       const meRes = await fetch("/api/auth/me");
       if (meRes.ok) {
@@ -51,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setState({ status: "unauthenticated", config });
       }
     } catch {
-      setState({ status: "unauthenticated", config: { oidcEnabled: false, needsBootstrap: false } });
+      setState({ status: "unauthenticated", config: { oidcEnabled: false } });
     }
   }
 

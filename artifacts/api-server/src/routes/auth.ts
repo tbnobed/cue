@@ -52,14 +52,6 @@ function publicUser(u: { id: number; email: string | null; name: string | null; 
   return { id: u.id, email: u.email, name: u.name, picture: u.picture, isAdmin: u.isAdmin };
 }
 
-async function anyAdminExists(): Promise<boolean> {
-  const [row] = await db.select({ id: usersTable.id })
-    .from(usersTable)
-    .where(eq(usersTable.isAdmin, true))
-    .limit(1);
-  return !!row;
-}
-
 async function getSessionUser(userId: number | undefined) {
   if (!userId) return null;
   const [u] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
@@ -262,5 +254,4 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
   });
 });
 
-export { anyAdminExists };
 export default router;

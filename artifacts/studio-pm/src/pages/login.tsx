@@ -3,14 +3,13 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, ShieldAlert } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Login() {
   const auth = useAuth();
   const [, navigate] = useLocation();
 
-  // If we land here already signed in, bounce to the stored returnTo or home.
   useEffect(() => {
     if (auth.status === "authenticated") {
       const stored = sessionStorage.getItem("studiopm.returnTo");
@@ -26,7 +25,6 @@ export default function Login() {
 
   const loading = auth.status === "loading";
   const oidcEnabled = auth.status !== "loading" && auth.config.oidcEnabled;
-  const needsBootstrap = auth.status !== "loading" && auth.config.needsBootstrap;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -35,7 +33,12 @@ export default function Login() {
     try {
       await auth.signInLocal(email, password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign-in failed");
+      // Use a single generic error message regardless of cause — never reveal
+      // whether the email exists, whether the server is unprovisioned, etc.
+      setError("Invalid email or password.");
+      // Log the real cause for the developer console only.
+      // eslint-disable-next-line no-console
+      console.warn("sign-in failed:", err);
     } finally {
       setBusy(false);
     }
@@ -56,25 +59,6 @@ export default function Login() {
               Studio Command is members-only. Sign in with your account to continue.
             </p>
           </div>
-
-          {needsBootstrap && (
-            <div className="flex items-start gap-3 p-3 rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-200 text-sm" data-testid="banner-needs-bootstrap">
-              <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
-              <div className="space-y-2">
-                <div className="font-medium">No admin account exists yet</div>
-                <div className="text-xs text-amber-200/80">
-                  For security, the first admin must be created on the server, not from this page.
-                  Ask the operator to run:
-                </div>
-                <pre className="text-[11px] font-mono bg-black/40 text-amber-100 p-2 rounded border border-amber-500/30 whitespace-pre-wrap break-all">{`docker compose exec app \\
-  pnpm --filter @workspace/scripts create-admin \\
-  --email you@example.com --password '…'`}</pre>
-                <div className="text-[11px] text-amber-200/70 font-mono">
-                  Then reload this page and sign in.
-                </div>
-              </div>
-            </div>
-          )}
 
           <form onSubmit={submit} className="space-y-4" data-testid="form-signin">
             <div className="grid gap-2">
@@ -122,9 +106,6 @@ export default function Login() {
                 <LogIn className="w-4 h-4" />
                 Continue with Authentik
               </Button>
-              <p className="text-[11px] text-muted-foreground text-center font-mono">
-                Authentik sign-in creates a non-admin member account.
-              </p>
             </>
           )}
         </div>
