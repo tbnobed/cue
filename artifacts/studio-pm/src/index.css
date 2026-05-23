@@ -112,7 +112,7 @@
   --app-font-sans: 'Inter', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: 'Space Mono', Menlo, monospace;
-  --radius: .5rem;
+  --radius: .75rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
@@ -147,49 +147,52 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 220 30% 6%;
+  /* Refined cool-black palette with subtle blue undertone for depth. */
+  --background: 222 24% 5%;
   --foreground: 210 40% 98%;
-  --border: 220 20% 14%;
-  --card: 220 25% 8%;
+  --border: 220 14% 16%;
+  --card: 222 20% 8%;
   --card-foreground: 210 40% 98%;
-  --card-border: 220 20% 14%;
-  --sidebar: 220 28% 7%;
+  --card-border: 220 14% 16%;
+  --sidebar: 222 24% 5%;
   --sidebar-foreground: 210 40% 98%;
-  --sidebar-border: 220 20% 14%;
-  --sidebar-primary: 35 100% 50%;
+  --sidebar-border: 220 14% 14%;
+  --sidebar-primary: 30 100% 55%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 220 20% 14%;
+  --sidebar-accent: 220 16% 12%;
   --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-ring: 35 100% 50%;
-  --popover: 220 25% 8%;
+  --sidebar-ring: 30 100% 55%;
+  --popover: 222 20% 9%;
   --popover-foreground: 210 40% 98%;
-  --popover-border: 220 20% 14%;
-  --primary: 35 100% 50%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 220 20% 14%;
+  --popover-border: 220 14% 18%;
+  /* Warmer orange — closer to amber, less neon, softer on the eye. */
+  --primary: 30 100% 55%;
+  --primary-foreground: 222 24% 5%;
+  --secondary: 220 16% 12%;
   --secondary-foreground: 210 40% 98%;
-  --muted: 220 20% 14%;
-  --muted-foreground: 215 20% 65%;
-  --accent: 220 20% 14%;
+  --muted: 220 16% 12%;
+  --muted-foreground: 215 16% 60%;
+  --accent: 220 16% 12%;
   --accent-foreground: 210 40% 98%;
-  --destructive: 0 84% 60%;
+  --destructive: 0 72% 55%;
   --destructive-foreground: 0 0% 100%;
-  --input: 220 20% 18%;
-  --ring: 35 100% 50%;
-  --chart-1: 35 100% 50%;
-  --chart-2: 142 71% 45%;
-  --chart-3: 200 90% 50%;
-  --chart-4: 280 80% 60%;
-  --chart-5: 340 70% 60%;
+  --input: 220 14% 16%;
+  --ring: 30 100% 55%;
+  --chart-1: 30 100% 55%;
+  --chart-2: 142 60% 50%;
+  --chart-3: 200 85% 55%;
+  --chart-4: 270 70% 65%;
+  --chart-5: 340 70% 62%;
 
-  --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+  /* Real shadows for actual depth (the previous values were all transparent). */
+  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.45), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.55), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+  --shadow-2xl: 0 35px 60px -15px rgba(0, 0, 0, 0.85);
 }
 
 @layer base {
@@ -199,6 +202,36 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01", "ss03";
+  }
+
+  /* Subtle ambient glow on the page background (dark mode only). Two soft
+   * radial gradients give the flat black canvas a sense of depth without
+   * adding any actual chrome. */
+  .dark body {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, hsl(30 100% 55% / 0.06), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 100%, hsl(220 80% 50% / 0.04), transparent 60%);
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  /* Subtle gradient card surface — gives flat cards a hint of depth. */
+  .surface-card {
+    background-image: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(222 22% 7%) 100%);
+  }
+
+  /* Hairline top edge that catches light — used on cards/headers for a sense
+   * of physical surface against the dark background. */
+  .ring-hairline {
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  }
+
+  /* Glow ring for the primary accent — used sparingly on the brand logo and
+   * critical active states. */
+  .glow-primary {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.5), 0 0 24px hsl(var(--primary) / 0.35);
   }
 }
 

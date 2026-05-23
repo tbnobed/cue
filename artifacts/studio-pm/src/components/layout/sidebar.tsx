@@ -24,23 +24,47 @@ export function AppSidebar() {
   ];
 
   return (
-    <Sidebar variant="sidebar" className="border-r border-border bg-card">
-      <SidebarHeader className="p-4 border-b border-border flex items-center justify-between">
-        <div className="flex items-center gap-2 text-primary font-bold text-lg tracking-tight uppercase">
-          <div className="w-4 h-4 bg-primary rounded-sm animate-pulse" />
-          Studio CMD
+    <Sidebar variant="sidebar" className="border-r border-border/60 bg-sidebar">
+      <SidebarHeader className="px-4 pt-5 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-primary glow-primary flex items-center justify-center shrink-0">
+            <div className="w-1.5 h-1.5 rounded-[1px] bg-primary-foreground/90" />
+          </div>
+          <div className="flex flex-col min-w-0 leading-tight">
+            <div className="text-[13px] font-semibold tracking-tight truncate">Studio Command</div>
+            <div className="text-[9px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+              Production · v1
+            </div>
+          </div>
         </div>
       </SidebarHeader>
-      <SidebarContent className="p-2">
-        <SidebarMenu>
+      <div className="px-4">
+        <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground px-2 mb-1.5">
+          Navigation
+        </div>
+      </div>
+      <SidebarContent className="px-3">
+        <SidebarMenu className="gap-0.5">
           {navItems.map((item) => {
             const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
             return (
               <SidebarMenuItem key={item.name}>
-                <SidebarMenuButton asChild isActive={isActive} tooltip={item.name}>
-                  <Link href={item.href} className="flex items-center gap-3">
-                    <item.icon className="w-5 h-5" />
-                    <span>{item.name}</span>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive}
+                  tooltip={item.name}
+                  className={`h-9 rounded-lg transition-colors ${
+                    isActive
+                      ? "bg-primary/12 text-primary hover:bg-primary/15 data-[active=true]:bg-primary/12 data-[active=true]:text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60"
+                  }`}
+                >
+                  <Link href={item.href} className="flex items-center gap-3 relative">
+                    {isActive && (
+                      <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-full bg-primary" />
+                    )}
+                    <item.icon className="w-[18px] h-[18px] shrink-0" />
+                    <span className="text-[13px] font-medium">{item.name}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -49,26 +73,26 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       {user && (
-        <SidebarFooter className="border-t border-border p-3">
-          <div className="flex items-center gap-2 min-w-0">
+        <SidebarFooter className="border-t border-border/60 p-3">
+          <div className="flex items-center gap-2.5 min-w-0 p-1.5 rounded-lg hover:bg-sidebar-accent/40 transition-colors">
             {user.picture ? (
-              <img src={user.picture} alt="" className="w-8 h-8 rounded-full shrink-0 border border-border" />
+              <img src={user.picture} alt="" className="w-8 h-8 rounded-full shrink-0 ring-1 ring-border" />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-primary/15 text-primary border border-primary/40 flex items-center justify-center text-[11px] font-mono font-bold shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 text-primary ring-1 ring-primary/30 flex items-center justify-center text-[11px] font-mono font-semibold shrink-0">
                 {initials || "?"}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium truncate flex items-center gap-1.5">
+              <div className="text-[12px] font-medium truncate flex items-center gap-1.5">
                 <span className="truncate">{user.name || user.email || "Member"}</span>
                 {user.isAdmin && (
-                  <span className="text-[9px] font-mono uppercase tracking-wider text-primary border border-primary/40 bg-primary/10 px-1 py-0.5 rounded shrink-0">
+                  <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-primary border border-primary/30 bg-primary/10 px-1.5 py-0.5 rounded-md shrink-0 leading-none">
                     Admin
                   </span>
                 )}
               </div>
               {user.email && user.name && (
-                <div className="text-[10px] text-muted-foreground truncate font-mono">{user.email}</div>
+                <div className="text-[10.5px] text-muted-foreground truncate font-mono">{user.email}</div>
               )}
             </div>
             <button
