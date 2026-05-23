@@ -1,13 +1,29 @@
 import { Router } from "express";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import { db } from "@workspace/db";
 import { documentsTable, studiosTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
-  CreateDocumentBody,
   UpdateDocumentParams,
   UpdateDocumentBody,
   DeleteDocumentParams,
 } from "@workspace/api-zod";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadsDir = path.join(__dirname, "..", "..", "uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const safe = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+    cb(null, `${Date.now()}_${safe}`);
+  },
+});
+const upload = multer({ storage, limits: { fileSize: 100 * 1024 * 1024 } });
 
 const router = Router();
 
@@ -16,30 +32,36 @@ router.get("/documents", async (req, res): Promise<void> => {
   const studios = await db.select().from(studiosTable);
   const studioMap = Object.fromEntries(studios.map(s => [s.id, s.name]));
 
-  let filtered = docs;
-
+  let filtered = [...docs];
   const { studioId, global: globalOnly, category } = req.query;
-
-  if (globalOnly === "true") {
-    filtered = filtered.filter(d => d.studioId === null);
-  } else if (studioId !== undefined) {
-    const sid = parseInt(String(studioId), 10);
-    filtered = filtered.filter(d => d.studioId === sid);
-  }
-
-  if (category !== undefined) {
-    filtered = filtered.filter(d => d.category === String(category));
-  }
+  if (globalOnly === "true") filtered = filtered.filter(d => d.studioId === null);
+  else if (studioId !== undefined) filtered = filtered.filter(d => d.studioId === parseInt(String(studioId)));
+  if (category !== undefined) filtered = filtered.filter(d => d.category === String(category));
 
   res.json(filtered.map(d => fmt(d, studioMap)));
 });
 
-router.post("/documents", async (req, res): Promise<void> => {
-  const parsed = CreateDocumentBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+router.post("/documents/upload", upload.single("file"), async (req, res): Promise<void> => {
   const studios = await db.select().from(studiosTable);
   const studioMap = Object.fromEntries(studios.map(s => [s.id, s.name]));
-  const [doc] = await db.insert(documentsTable).values(parsed.data).returning();
+
+  const title = (req.body.title as string | undefined)?.trim() || req.file?.originalname || "Untitled";
+  const studioId = req.body.studioId ? parseInt(req.body.studioId) : null;
+  const category = (req.body.category as string | undefined) || "general";
+  const uploadedBy = (req.body.uploadedBy as string | undefined) || null;
+  const version = (req.body.version as string | undefined) || null;
+
+  const fileUrl = req.file ? `/api/uploads/${req.file.filename}` : null;
+
+  const [doc] = await db.insert(documentsTable).values({
+    title,
+    studioId: studioId ?? undefined,
+    category,
+    url: fileUrl ?? undefined,
+    uploadedBy: uploadedBy ?? undefined,
+    version: version ?? undefined,
+  }).returning();
+
   res.status(201).json(fmt(doc, studioMap));
 });
 
@@ -59,6 +81,12 @@ router.patch("/documents/:id", async (req, res): Promise<void> => {
 
 router.delete("/documents/:id", async (req, res): Promise<void> => {
   const { id } = DeleteDocumentParams.parse(req.params);
+  const [doc] = await db.select().from(documentsTable).where(eq(documentsTable.id, id));
+  if (doc?.url?.startsWith("/api/uploads/")) {
+    const filename = doc.url.replace("/api/uploads/", "");
+    const filePath = path.join(uploadsDir, filename);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  }
   await db.delete(documentsTable).where(eq(documentsTable.id, id));
   res.status(204).send();
 });
