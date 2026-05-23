@@ -2,7 +2,6 @@ import { Router } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
 import { db } from "@workspace/db";
 import { documentsTable, documentFoldersTable, projectsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -13,9 +12,7 @@ import {
 } from "@workspace/api-zod";
 import { buildEditSession } from "../lib/wopi-token";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadsDir = path.join(__dirname, "..", "..", "uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+import { uploadsDir } from "../lib/uploads-dir.js";
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),

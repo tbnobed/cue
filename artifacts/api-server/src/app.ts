@@ -1,14 +1,11 @@
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
-import path from "path";
-import { fileURLToPath } from "url";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { getSessionMiddleware } from "./lib/session";
 import { requireAuth } from "./middlewares/require-auth";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { uploadsDir } from "./lib/uploads-dir.js";
 
 const app: Express = express();
 
@@ -41,7 +38,7 @@ app.use(getSessionMiddleware());
 
 // Uploaded files contain potentially sensitive project docs — gate behind session.
 // Collabora fetches files via the separate /api/wopi/* HMAC-signed channel, not here.
-app.use("/api/uploads", requireAuth, express.static(path.join(__dirname, "..", "uploads")));
+app.use("/api/uploads", requireAuth, express.static(uploadsDir));
 app.use("/api", router);
 
 // Centralised error handler so async failures don't crash the worker silently

@@ -1,13 +1,11 @@
 import { Router, raw } from "express";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import { db, documentsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { verifyWopiToken } from "../lib/wopi-token";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadsDir = path.join(__dirname, "..", "..", "uploads");
+import { uploadsDir } from "../lib/uploads-dir.js";
 
 const router = Router();
 
