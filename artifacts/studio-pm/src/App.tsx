@@ -10,6 +10,8 @@ import Tasks from "@/pages/tasks";
 import Timeline from "@/pages/timeline";
 import Team from "@/pages/team";
 import Documents from "@/pages/documents";
+import CollabDocs from "@/pages/collab";
+import CollabEditor from "@/pages/collab/editor";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -25,6 +27,8 @@ function Router() {
         <Route path="/timeline" component={Timeline} />
         <Route path="/team" component={Team} />
         <Route path="/documents" component={Documents} />
+        <Route path="/collab" component={CollabDocs} />
+        <Route path="/collab/:id" component={CollabEditor} />
         <Route component={NotFound} />
       </Switch>
     </AppShell>

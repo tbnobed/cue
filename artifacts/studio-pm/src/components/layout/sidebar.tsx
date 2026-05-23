@@ -1,6 +1,6 @@
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Video, CheckSquare, CalendarDays, Users, FolderOpen } from "lucide-react";
+import { LayoutDashboard, Video, CheckSquare, CalendarDays, Users, FolderOpen, PenSquare } from "lucide-react";
 
 export function AppSidebar() {
   const [location] = useLocation();
@@ -12,6 +12,7 @@ export function AppSidebar() {
     { name: "Timeline", href: "/timeline", icon: CalendarDays },
     { name: "Team", href: "/team", icon: Users },
     { name: "Documents", href: "/documents", icon: FolderOpen },
+    { name: "Collab", href: "/collab", icon: PenSquare },
   ];
 
   return (

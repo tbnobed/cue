@@ -313,3 +313,70 @@
     inset: -1px;
   }
 }
+
+/* ── TipTap / ProseMirror editor styles ─────────────────────────────────── */
+.ProseMirror {
+  outline: none;
+  caret-color: hsl(var(--primary));
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+.ProseMirror h1 { @apply text-2xl font-bold mt-6 mb-3; }
+.ProseMirror h2 { @apply text-xl font-bold mt-5 mb-2; }
+.ProseMirror h3 { @apply text-lg font-semibold mt-4 mb-2; }
+.ProseMirror p  { @apply leading-7 mb-2; }
+.ProseMirror ul { @apply list-disc pl-6 mb-3 space-y-1; }
+.ProseMirror ol { @apply list-decimal pl-6 mb-3 space-y-1; }
+.ProseMirror li p { @apply mb-0; }
+.ProseMirror strong { @apply font-bold; }
+.ProseMirror em { @apply italic; }
+.ProseMirror hr { @apply border-border my-5; }
+.ProseMirror blockquote {
+  @apply border-l-4 border-primary/40 pl-4 italic text-muted-foreground my-4;
+}
+.ProseMirror code {
+  @apply bg-muted text-primary font-mono text-sm px-1.5 py-0.5 rounded;
+}
+.ProseMirror pre {
+  @apply bg-muted rounded-lg p-4 my-4 overflow-x-auto;
+}
+.ProseMirror pre code {
+  @apply bg-transparent p-0 text-sm;
+}
+
+/* Table styles */
+.ProseMirror table {
+  @apply w-full border-collapse my-4 text-sm;
+}
+.ProseMirror th {
+  @apply border border-border bg-muted font-semibold text-left px-3 py-2;
+}
+.ProseMirror td {
+  @apply border border-border px-3 py-2;
+}
+.ProseMirror .selectedCell::after {
+  background: hsl(var(--primary) / 0.15);
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+.ProseMirror .column-resize-handle {
+  background-color: hsl(var(--primary));
+  bottom: -2px;
+  pointer-events: none;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 4px;
+}
+.ProseMirror .tableWrapper { overflow-x: auto; }
+.ProseMirror.resize-cursor { cursor: col-resize; }

@@ -5,3 +5,4 @@ export * from "./tasks";
 export * from "./comments";
 export * from "./activity";
 export * from "./documents";
+export * from "./collab_docs";
