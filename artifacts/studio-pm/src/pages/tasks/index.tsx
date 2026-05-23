@@ -92,6 +92,16 @@ export default function Tasks() {
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: getListTasksQueryKey() });
     queryClient.invalidateQueries({ queryKey: getListTasksQueryKey(params as any) });
+    // Any task change can shift completion counts on the project's progress
+    // card. We don't know which project the affected task belongs to (could
+    // even have moved between projects), so invalidate every cached
+    // `/projects/:id/progress` query in one shot via predicate.
+    queryClient.invalidateQueries({
+      predicate: (q) => {
+        const k = q.queryKey[0];
+        return typeof k === "string" && k.startsWith("/projects/") && k.endsWith("/progress");
+      },
+    });
   }
 
   function resetForm() {

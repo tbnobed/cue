@@ -707,7 +707,14 @@ function TasksTab({ projectId }: { projectId: number }) {
   function invalidate() {
     qc.invalidateQueries({ queryKey: getListTasksQueryKey() });
     qc.invalidateQueries({ queryKey: getListTasksQueryKey(params) });
-    qc.invalidateQueries({ queryKey: getGetProjectProgressQueryKey(projectId) });
+    // Invalidate progress for any affected project (a task may have moved
+    // across projects via edit), not just the one currently being viewed.
+    qc.invalidateQueries({
+      predicate: (q) => {
+        const k = q.queryKey[0];
+        return typeof k === "string" && k.startsWith("/projects/") && k.endsWith("/progress");
+      },
+    });
   }
 
   function resetForm() {
