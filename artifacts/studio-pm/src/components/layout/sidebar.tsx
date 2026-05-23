@@ -24,7 +24,7 @@ export function AppSidebar() {
   ];
 
   return (
-    <Sidebar variant="sidebar" className="border-r border-border/60 bg-sidebar">
+    <Sidebar variant="sidebar" className="border-r border-white/[0.085] glass-rail !bg-transparent">
       <SidebarHeader className="px-4 pt-5 pb-4">
         <div className="flex items-center gap-2.5">
           <img src={cueMark} alt="Cue" className="w-9 h-9 rounded-[10px] shrink-0 shadow-[0_8px_24px_-8px_rgba(109,92,255,0.7)]" />

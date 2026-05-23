@@ -43,18 +43,23 @@ export default function Login() {
   }
 
   return (
-    <div className="dark min-h-screen w-full bg-background text-foreground relative overflow-hidden flex items-center justify-center p-6">
-      {/* Ambient background mesh */}
+    <div className="dark min-h-screen w-full text-foreground relative overflow-hidden flex items-center justify-center p-6">
+      {/* Ambient aurora — three big blobs + faint grid, sitting above the
+       * body atmosphere for a layered, glowing canvas. */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div
-          className="absolute -top-40 -right-32 h-[640px] w-[680px] rounded-full blur-3xl opacity-50"
-          style={{ background: "radial-gradient(closest-side, #5b3dff, transparent 68%)" }}
+          className="absolute -top-56 -right-40 h-[760px] w-[800px] rounded-full blur-[110px] opacity-55"
+          style={{ background: "radial-gradient(closest-side, #5b3dff, transparent 70%)" }}
         />
         <div
-          className="absolute -bottom-48 -left-32 h-[580px] w-[620px] rounded-full blur-3xl opacity-40"
-          style={{ background: "radial-gradient(closest-side, #0fb89e, transparent 68%)" }}
+          className="absolute -bottom-64 -left-40 h-[700px] w-[740px] rounded-full blur-[110px] opacity-40"
+          style={{ background: "radial-gradient(closest-side, #0fb89e, transparent 70%)" }}
         />
-        <div className="absolute inset-0 opacity-[0.04]"
+        <div
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[500px] w-[600px] rounded-full blur-[130px] opacity-25"
+          style={{ background: "radial-gradient(closest-side, #2a5cff, transparent 70%)" }}
+        />
+        <div className="absolute inset-0 opacity-[0.05]"
           style={{ backgroundImage: "linear-gradient(hsl(0 0% 100%) 1px, transparent 1px), linear-gradient(90deg, hsl(0 0% 100%) 1px, transparent 1px)", backgroundSize: "44px 44px" }} />
       </div>
 
@@ -69,7 +74,7 @@ export default function Login() {
         </div>
 
         {/* Card */}
-        <div className="surface-card ring-hairline border border-border rounded-2xl shadow-xl p-7 space-y-6">
+        <div className="glass-card glow-aurora rounded-2xl p-7 space-y-6">
           <div className="space-y-1.5">
             <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
             <p className="text-sm text-muted-foreground">

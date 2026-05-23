@@ -207,42 +207,112 @@
     font-feature-settings: "cv11", "ss01", "ss03";
   }
 
-  /* Subtle ambient glow on the page background (dark mode only). Two soft
-   * radial gradients give the flat black canvas a sense of depth without
-   * adding any actual chrome. */
-  .dark body {
+  /* Aurora ambient atmosphere — animated violet+cyan+blue blobs and grain
+   * overlay live on fixed pseudo elements so they bleed through translucent
+   * panels but never scroll with content. The app is dark-mode-only, so these
+   * are unconditional (the `.dark` class lives on a wrapper div, not body). */
+  html, body {
+    background-color: hsl(234 38% 5%);
+  }
+  body {
+    position: relative;
+  }
+  /* Aurora blob layer — soft violet/cyan/blue bloom drifting slowly. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
     background-image:
-      radial-gradient(ellipse 60% 45% at 85% -8%, hsl(252 100% 62% / 0.18), transparent 60%),
-      radial-gradient(ellipse 55% 45% at 12% 105%, hsl(170 84% 39% / 0.12), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 50% 50%, hsl(225 100% 58% / 0.05), transparent 70%);
-    background-attachment: fixed;
+      radial-gradient(620px 620px at 88% -10%, rgba(91, 61, 255, 0.4) 0%, transparent 65%),
+      radial-gradient(560px 560px at 6% 110%, rgba(15, 184, 158, 0.22) 0%, transparent 65%),
+      radial-gradient(520px 520px at 48% 50%, rgba(42, 92, 255, 0.18) 0%, transparent 70%);
+    filter: blur(40px);
+    animation: aurora-drift 26s ease-in-out infinite alternate;
+  }
+  /* Grain overlay — high-frequency noise softened by overlay blend. */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* App content sits above the backdrop layers. */
+  #root {
+    position: relative;
+    z-index: 2;
+  }
+  @keyframes aurora-drift {
+    0%   { transform: translate3d(0, 0, 0) scale(1); }
+    50%  { transform: translate3d(-30px, 40px, 0) scale(1.04); }
+    100% { transform: translate3d(40px, -20px, 0) scale(1.02); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body::before { animation: none; }
   }
 }
 
 @layer utilities {
-  /* Subtle gradient card surface — glassy depth on the aurora canvas. */
+  /* Glass card surface — translucent so the aurora bleeds through, with a
+   * hairline highlight on top and a soft drop shadow. This is what every
+   * Panel/section now sits on. */
   .surface-card {
-    background-image: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(232 30% 6%) 100%);
+    background-color: rgba(255, 255, 255, 0.035);
+    background-image: linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.01) 100%);
+    backdrop-filter: blur(18px) saturate(1.1);
+    -webkit-backdrop-filter: blur(18px) saturate(1.1);
+    border-color: rgba(255, 255, 255, 0.085) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 1px 0 rgba(0, 0, 0, 0.4),
+      0 24px 50px -30px rgba(0, 0, 0, 0.8);
   }
 
-  /* Hairline top edge that catches light — used on cards/headers for a sense
-   * of physical surface against the dark background. */
+  /* Hairline top edge that catches light. */
   .ring-hairline {
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
   }
 
-  /* Aurora glow — used on the brand mark and critical active states. */
+  /* Aurora glow — used on the brand mark, primary buttons, active states. */
   .glow-primary {
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.45), 0 8px 28px hsl(247 100% 68% / 0.45);
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.5),
+      0 0 24px hsl(247 100% 68% / 0.45),
+      0 8px 32px hsl(247 100% 50% / 0.4);
   }
 
-  /* Translucent glass panel — borrowed from the Cue brand reference. */
+  /* Translucent glass panel — for hero-level surfaces. */
   .glass-card {
     background: rgba(255, 255, 255, 0.035);
     border: 1px solid rgba(255, 255, 255, 0.085);
     backdrop-filter: blur(16px);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05),
-                0 18px 40px -24px rgba(0, 0, 0, 0.7);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 24px 50px -30px rgba(0, 0, 0, 0.8);
+  }
+
+  /* Card-edge aurora glow — a soft violet/cyan halo behind a card. Apply on
+   * the card itself; uses an outset shadow that reads as ambient bloom. */
+  .glow-aurora {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 0 60px -10px rgba(109, 92, 255, 0.35),
+      0 0 80px -20px rgba(47, 222, 208, 0.18),
+      0 20px 50px -25px rgba(0, 0, 0, 0.8);
+  }
+
+  /* Sidebar and topbar use a vertical glassy wash that reads as frosted
+   * panel against the aurora. */
+  .glass-rail {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.008));
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
   }
 
   /* Aurora text — gradient wash for headings and the wordmark. */
