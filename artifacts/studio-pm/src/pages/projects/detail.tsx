@@ -690,10 +690,10 @@ function DocumentsTab({ projectId }: { projectId: number }) {
             </div>
           ) : null
         ) : (
-          <div className="surface-card ring-hairline border border-border/70 rounded-2xl overflow-hidden divide-y divide-border/40">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             <AnimatePresence initial={false}>
               {docs.map((doc, i) => (
-                <DocRow
+                <DocTile
                   key={doc.id}
                   doc={doc}
                   idx={i}
@@ -797,7 +797,7 @@ const EXT_META: Record<string, { icon: React.ReactNode; tone: string }> = {
 };
 const COLLABORA_EXTS = new Set(["csv","tsv","txt","md","markdown","rtf","doc","docx","odt","xls","xlsx","ods","ppt","pptx","odp"]);
 
-function DocRow({
+function DocTile({
   doc, idx, collaboraEnabled, onDelete,
 }: {
   doc: { id: number; title: string; url?: string | null; category: string; uploadedBy?: string | null; version?: string | null; updatedAt?: string };
@@ -808,11 +808,10 @@ function DocRow({
   const [, navigate] = useLocation();
   const tone = CATEGORY_TONE[doc.category] ?? CATEGORY_TONE.general;
   const ext = (doc.url ?? "").split(".").pop()?.toUpperCase() ?? "";
-  const meta = EXT_META[ext] ?? { icon: <FileText className="w-4 h-4" />, tone: "text-muted-foreground bg-muted/40 ring-border/60" };
+  const meta = EXT_META[ext] ?? { icon: <FileText className="w-7 h-7" />, tone: "text-muted-foreground bg-muted/40 ring-border/60" };
   const useCollabora = collaboraEnabled && COLLABORA_EXTS.has(ext.toLowerCase());
-  const isUploaded = doc.url?.startsWith("/api/uploads/");
 
-  function handleEdit() {
+  function handleOpen() {
     if (useCollabora) {
       const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       const url = `${base}/collabora-launcher.html?docId=${doc.id}&base=${encodeURIComponent(base)}`;
@@ -826,41 +825,43 @@ function DocRow({
     <motion.div
       initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
       transition={{ delay: Math.min(idx * 0.02, 0.15) }}
-      className="group flex items-center gap-3 px-4 py-3 hover:bg-background/40 transition-colors"
+      className="group relative surface-card ring-hairline border border-border/70 rounded-xl p-3 flex flex-col items-center text-center gap-2 hover:border-border hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer"
+      onDoubleClick={handleOpen}
+      onClick={handleOpen}
+      title={doc.title}
+      data-testid={`doc-tile-${doc.id}`}
     >
-      <div className={`shrink-0 w-10 h-10 rounded-lg flex flex-col items-center justify-center ring-1 ring-inset ${meta.tone} gap-0.5`}>
-        {meta.icon}
+      <Button
+        variant="ghost" size="icon"
+        className="absolute top-1 right-1 h-6 w-6 text-muted-foreground hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+      >
+        <Trash2 className="w-3 h-3" />
+      </Button>
+      <div className={`mt-2 w-14 h-14 rounded-xl flex flex-col items-center justify-center ring-1 ring-inset ${meta.tone} gap-0.5`}>
+        <div className="[&>svg]:w-6 [&>svg]:h-6">{meta.icon}</div>
         {ext && <span className="text-[8px] font-bold font-mono leading-none">{ext}</span>}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium truncate">{doc.title}</span>
-          {doc.version && <span className="text-[10px] font-mono text-muted-foreground border border-border/70 rounded px-1.5 py-0.5">{doc.version}</span>}
+      <div className="w-full min-w-0 space-y-1">
+        <div className="text-[12.5px] font-medium leading-snug line-clamp-2 break-words" title={doc.title}>
+          {doc.title}
         </div>
-        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap text-[11px] font-mono text-muted-foreground">
-          <span className={`text-[10px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-md ring-1 ring-inset ${tone}`}>
+        <div className="flex items-center justify-center gap-1 flex-wrap">
+          <span className={`text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-md ring-1 ring-inset ${tone}`}>
             {doc.category.replace("_", " ")}
           </span>
-          {doc.uploadedBy && <><span className="text-border">·</span><span>{doc.uploadedBy}</span></>}
-          {doc.updatedAt && <><span className="text-border">·</span><span className="tabular-nums">{format(new Date(doc.updatedAt), "MMM dd, yyyy")}</span></>}
+          {doc.version && (
+            <span className="text-[9px] font-mono text-muted-foreground border border-border/70 rounded px-1 py-0.5">
+              {doc.version}
+            </span>
+          )}
         </div>
+        {doc.updatedAt && (
+          <div className="text-[10px] font-mono text-muted-foreground tabular-nums">
+            {format(new Date(doc.updatedAt), "MMM dd, yyyy")}
+          </div>
+        )}
       </div>
-      <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 gap-1.5 px-2" onClick={handleEdit}>
-        <PenLine className="w-3 h-3" />
-        {useCollabora ? "Open" : "Edit"}
-      </Button>
-      {doc.url && (
-        <a href={doc.url} target="_blank" rel="noopener noreferrer" download={isUploaded ? doc.title : undefined}>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary">
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Button>
-        </a>
-      )}
-      <Button variant="ghost" size="icon"
-        className="h-7 w-7 text-muted-foreground hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={onDelete}>
-        <Trash2 className="w-3.5 h-3.5" />
-      </Button>
     </motion.div>
   );
 }
