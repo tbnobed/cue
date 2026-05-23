@@ -13,8 +13,10 @@ router.get("/config", async (_req, res): Promise<void> => {
     // that still inspect this flag.
     authEnabled: true,
     oidcEnabled: isAuthConfigured(),
-    // True when no admin account exists yet — the login page shows the
-    // first-run bootstrap form instead of the sign-in form.
+    // True when no admin account exists yet — the login page shows an
+    // "ask the operator to run `pnpm create-admin`" message. We do NOT
+    // expose a bootstrap form here: doing so would let whoever finds the
+    // URL first claim the admin account.
     needsBootstrap,
   });
 });

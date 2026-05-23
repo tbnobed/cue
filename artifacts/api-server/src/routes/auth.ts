@@ -30,9 +30,11 @@ function regenerateSession(req: Request): Promise<void> {
 // ─── Local accounts (email + password) ────────────────────────────────────────
 //
 // Only LOCAL accounts may be admins. OIDC users are always non-admin.
-// First-run bootstrap: when the users table has no admin yet, anyone can call
-// /auth/signup and they become the first admin. After that, only an existing
-// admin may create new local accounts (via the same endpoint).
+// Signup is NEVER exposed publicly — every call requires an existing admin
+// session. The first admin must be created from the server using the
+// `pnpm create-admin` CLI (see scripts/src/create-admin.ts). This closes the
+// "anyone-who-finds-the-URL-first-becomes-admin" window that an open
+// bootstrap form would leave open between deploy and first sign-in.
 
 const SignupBody = z.object({
   email: z.string().email().max(254),
@@ -64,15 +66,17 @@ async function getSessionUser(userId: number | undefined) {
   return u ?? null;
 }
 
-// Arbitrary fixed key for the Postgres advisory lock that serializes signup
-// attempts. Prevents two concurrent first-run requests from both becoming admin.
-const SIGNUP_ADVISORY_LOCK = 4242;
-
-// POST /api/auth/signup
-// - If no admin exists yet: open bootstrap — caller becomes the first admin.
-// - Otherwise: requires an authenticated admin session. The new account is
-//   admin only if the request explicitly asks for it.
+// POST /api/auth/signup — admin-only account creation.
+// First-run admin must be created via the `pnpm create-admin` CLI on the server
+// — there is no public bootstrap form. This endpoint refuses everyone who is
+// not already an admin (including all unauthenticated callers).
 router.post("/auth/signup", async (req, res): Promise<void> => {
+  const actor = await getSessionUser(req.session.userId);
+  if (!actor?.isAdmin) {
+    res.status(403).json({ error: "Only an admin can create new accounts." });
+    return;
+  }
+
   const parsed = SignupBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input", details: parsed.error.flatten() });
@@ -80,72 +84,26 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   }
   const email = parsed.data.email.toLowerCase().trim();
   const name = parsed.data.name?.trim() || email.split("@")[0];
+  const makeAdmin = parsed.data.isAdmin === true;
 
-  // Hash up-front, outside the transaction (bcrypt is slow and we don't want
-  // to hold a DB transaction open for ~300ms).
+  const existing = await db.select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(eq(sql`lower(${usersTable.email})`, email), isNotNull(usersTable.passwordHash)));
+  if (existing.length > 0) {
+    res.status(409).json({ error: "An account with that email already exists." });
+    return;
+  }
+
   const passwordHash = await bcrypt.hash(parsed.data.password, BCRYPT_COST);
-
-  // Pre-read actor admin state outside the lock to keep the critical section
-  // small. We re-check `anyAdminExists` inside the locked transaction.
-  const actorIsAdmin = !!(await getSessionUser(req.session.userId))?.isAdmin;
-
-  let result:
-    | { kind: "created"; user: { id: number; email: string | null; name: string | null; picture: string | null; isAdmin: boolean }; bootstrap: boolean }
-    | { kind: "error"; status: number; error: string };
-
-  try {
-    result = await db.transaction(async (tx) => {
-      // Serialize all signup attempts so the bootstrap check + insert is atomic.
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(${SIGNUP_ADVISORY_LOCK})`);
-
-      const adminRows = await tx.select({ id: usersTable.id })
-        .from(usersTable).where(eq(usersTable.isAdmin, true)).limit(1);
-      const bootstrap = adminRows.length === 0;
-
-      let makeAdmin: boolean;
-      if (bootstrap) {
-        makeAdmin = true;
-      } else {
-        if (!actorIsAdmin) {
-          return { kind: "error" as const, status: 403, error: "Only an admin can create new accounts." };
-        }
-        makeAdmin = parsed.data.isAdmin === true;
-      }
-
-      const existing = await tx.select({ id: usersTable.id })
-        .from(usersTable)
-        .where(and(eq(sql`lower(${usersTable.email})`, email), isNotNull(usersTable.passwordHash)));
-      if (existing.length > 0) {
-        return { kind: "error" as const, status: 409, error: "An account with that email already exists." };
-      }
-
-      const [user] = await tx.insert(usersTable)
-        .values({ email, name, passwordHash, isAdmin: makeAdmin, lastLoginAt: new Date() })
-        .returning({
-          id: usersTable.id, email: usersTable.email, name: usersTable.name,
-          picture: usersTable.picture, isAdmin: usersTable.isAdmin,
-        });
-      return { kind: "created" as const, user: user!, bootstrap };
+  const [user] = await db.insert(usersTable)
+    .values({ email, name, passwordHash, isAdmin: makeAdmin, lastLoginAt: new Date() })
+    .returning({
+      id: usersTable.id, email: usersTable.email, name: usersTable.name,
+      picture: usersTable.picture, isAdmin: usersTable.isAdmin,
     });
-  } catch (err) {
-    req.log.error({ err }, "signup transaction failed");
-    res.status(500).json({ error: "Failed to create account" });
-    return;
-  }
 
-  if (result.kind === "error") {
-    res.status(result.status).json({ error: result.error });
-    return;
-  }
-
-  // Bootstrap admin is auto-signed-in. Other admin-created accounts are NOT,
-  // so the admin's session stays intact.
-  if (result.bootstrap) {
-    await regenerateSession(req);
-    req.session.userId = result.user.id;
-    await saveSession(req);
-  }
-  res.status(201).json(publicUser(result.user));
+  // The new account is NOT signed in — we keep the admin's session intact.
+  res.status(201).json(publicUser(user!));
 });
 
 // POST /api/auth/login — local email + password
