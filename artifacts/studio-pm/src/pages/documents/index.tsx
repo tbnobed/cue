@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Upload, ExternalLink, Trash2, FileText, Globe, FolderOpen, X, Loader2, PenLine } from "lucide-react";
+import { Upload, ExternalLink, Trash2, FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Globe, FolderOpen, X, Loader2, PenLine } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
@@ -230,24 +230,56 @@ export default function Documents() {
 
 type Doc = { id: number; title: string; url: string | null; category: string; uploadedBy: string | null; version: string | null; updatedAt: string; studioName?: string | null };
 
+const EXT_META: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
+  CSV:  { icon: <FileSpreadsheet className="w-4 h-4" />, color: "text-emerald-400", bg: "bg-emerald-400/15 border-emerald-400/30" },
+  XLSX: { icon: <FileSpreadsheet className="w-4 h-4" />, color: "text-emerald-400", bg: "bg-emerald-400/15 border-emerald-400/30" },
+  XLS:  { icon: <FileSpreadsheet className="w-4 h-4" />, color: "text-emerald-400", bg: "bg-emerald-400/15 border-emerald-400/30" },
+  PDF:  { icon: <FileText className="w-4 h-4" />,        color: "text-red-400",     bg: "bg-red-400/15 border-red-400/30" },
+  DOC:  { icon: <FileText className="w-4 h-4" />,        color: "text-blue-400",    bg: "bg-blue-400/15 border-blue-400/30" },
+  DOCX: { icon: <FileText className="w-4 h-4" />,        color: "text-blue-400",    bg: "bg-blue-400/15 border-blue-400/30" },
+  PNG:  { icon: <FileImage className="w-4 h-4" />,       color: "text-pink-400",    bg: "bg-pink-400/15 border-pink-400/30" },
+  JPG:  { icon: <FileImage className="w-4 h-4" />,       color: "text-pink-400",    bg: "bg-pink-400/15 border-pink-400/30" },
+  JPEG: { icon: <FileImage className="w-4 h-4" />,       color: "text-pink-400",    bg: "bg-pink-400/15 border-pink-400/30" },
+  SVG:  { icon: <FileImage className="w-4 h-4" />,       color: "text-purple-400",  bg: "bg-purple-400/15 border-purple-400/30" },
+  DWG:  { icon: <FileCode className="w-4 h-4" />,        color: "text-orange-400",  bg: "bg-orange-400/15 border-orange-400/30" },
+  DXF:  { icon: <FileCode className="w-4 h-4" />,        color: "text-orange-400",  bg: "bg-orange-400/15 border-orange-400/30" },
+  ZIP:  { icon: <FileArchive className="w-4 h-4" />,     color: "text-yellow-400",  bg: "bg-yellow-400/15 border-yellow-400/30" },
+  RAR:  { icon: <FileArchive className="w-4 h-4" />,     color: "text-yellow-400",  bg: "bg-yellow-400/15 border-yellow-400/30" },
+};
+const DEFAULT_EXT_META = { icon: <FileText className="w-4 h-4" />, color: "text-muted-foreground", bg: "bg-muted/20 border-border" };
+
+function FileTypeBadge({ url }: { url: string | null }) {
+  if (!url) return (
+    <div className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center bg-muted/20 border border-border text-muted-foreground/40">
+      <FileText className="w-4 h-4" />
+    </div>
+  );
+  const ext = url.split(".").pop()?.toUpperCase() ?? "";
+  const meta = EXT_META[ext] ?? DEFAULT_EXT_META;
+  return (
+    <div className={`shrink-0 w-9 h-9 rounded-lg flex flex-col items-center justify-center border ${meta.bg} ${meta.color} gap-0.5`}>
+      {meta.icon}
+      {ext && <span className="text-[8px] font-black font-mono leading-none">{ext}</span>}
+    </div>
+  );
+}
+
 function DocRow({ doc, idx, onDelete }: { doc: Doc; idx: number; onDelete: () => void }) {
   const [, navigate] = useLocation();
   const cat = doc.category as DocCategory;
   const color = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.general;
   const isUploaded = doc.url?.startsWith("/api/uploads/");
-  const ext = doc.url ? doc.url.split(".").pop()?.toUpperCase() : null;
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ delay: idx * 0.03 }}>
       <Card className="border-border bg-card hover:bg-card/80 transition-colors">
         <CardContent className="p-3 flex items-center gap-3">
-          <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+          <FileTypeBadge url={doc.url} />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium truncate">{doc.title}</span>
               {doc.version && <span className="text-[10px] font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5">{doc.version}</span>}
-              {isUploaded && ext && <span className="text-[10px] font-mono text-muted-foreground">{ext}</span>}
             </div>
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               <Badge variant="outline" className={`text-[10px] font-mono uppercase border ${color}`}>{doc.category.replace("_", " ")}</Badge>
