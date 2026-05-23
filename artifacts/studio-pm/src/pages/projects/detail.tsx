@@ -3,8 +3,10 @@ import {
   useListTasks, useCreateTask, useUpdateTask, useDeleteTask,
   useListMembers, useListDocuments, useDeleteDocument,
   useListFolders, useCreateFolder, useDeleteFolder,
+  useUpdateProject, useDeleteProject,
   getGetProjectQueryKey, getGetProjectProgressQueryKey, getListMilestonesQueryKey,
   getListTasksQueryKey, getListDocumentsQueryKey, getListFoldersQueryKey,
+  getListProjectsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
@@ -17,14 +19,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Upload, FolderPlus, Folder, FolderOpen, ChevronRight,
   Trash2, ExternalLink, PenLine, Loader2, Circle, Loader, Eye, CheckCircle2, AlertTriangle,
-  FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Home,
+  FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Home, Settings,
 } from "lucide-react";
 
 const STATUS_TONE: Record<string, string> = {
@@ -70,21 +76,35 @@ export default function ProjectDetail() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-7">
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-[10px] font-mono uppercase tracking-[0.12em] px-2 py-1 rounded-md ring-1 ring-inset ${tone}`}>
-            {project.status.replace("_", " ")}
-          </span>
-          {project.phase && (
-            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
-              · {project.phase}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="space-y-3 min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-[10px] font-mono uppercase tracking-[0.12em] px-2 py-1 rounded-md ring-1 ring-inset ${tone}`}>
+              {project.status.replace("_", " ")}
             </span>
+            {project.phase && (
+              <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                · {project.phase}
+              </span>
+            )}
+            {project.location && (
+              <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                · {project.location}
+              </span>
+            )}
+          </div>
+          <h1 className="text-4xl font-semibold tracking-tight">{project.name}</h1>
+          {project.description && (
+            <p className="text-muted-foreground max-w-2xl leading-relaxed">{project.description}</p>
           )}
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] font-mono text-muted-foreground tabular-nums pt-1">
+            {project.startDate && <span>Start: <span className="text-foreground/80">{format(new Date(project.startDate), "MMM dd, yyyy")}</span></span>}
+            {project.targetDate && <span>Target: <span className="text-foreground/80">{format(new Date(project.targetDate), "MMM dd, yyyy")}</span></span>}
+            {project.completedDate && <span>Completed: <span className="text-foreground/80">{format(new Date(project.completedDate), "MMM dd, yyyy")}</span></span>}
+            {project.budget != null && <span>Budget: <span className="text-foreground/80">${Number(project.budget).toLocaleString()}</span></span>}
+          </div>
         </div>
-        <h1 className="text-4xl font-semibold tracking-tight">{project.name}</h1>
-        {project.description && (
-          <p className="text-muted-foreground max-w-2xl leading-relaxed">{project.description}</p>
-        )}
+        <EditProjectButton project={project} />
       </div>
 
       <Tabs defaultValue="overview" className="space-y-5">
@@ -867,6 +887,241 @@ function DocTile({
 }
 
 // ─── PRIMITIVES ──────────────────────────────────────────────────────────────
+
+// ─── EDIT PROJECT ────────────────────────────────────────────────────────────
+
+const PROJECT_STATUSES = ["planning", "in_progress", "on_hold", "completed"] as const;
+
+type ProjectFormState = {
+  name: string;
+  description: string;
+  location: string;
+  status: string;
+  phase: string;
+  startDate: string;
+  targetDate: string;
+  completedDate: string;
+  budget: string;
+};
+
+function EditProjectButton({ project }: {
+  project: {
+    id: number; name: string; description?: string | null; location?: string | null;
+    status: string; phase?: string | null; startDate?: string | null;
+    targetDate?: string | null; completedDate?: string | null; budget?: number | null;
+  };
+}) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+
+  const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [form, setForm] = useState<ProjectFormState>({
+    name: project.name,
+    description: project.description ?? "",
+    location: project.location ?? "",
+    status: project.status,
+    phase: project.phase ?? "",
+    startDate: project.startDate ?? "",
+    targetDate: project.targetDate ?? "",
+    completedDate: project.completedDate ?? "",
+    budget: project.budget != null ? String(project.budget) : "",
+  });
+
+  function openDialog() {
+    setForm({
+      name: project.name,
+      description: project.description ?? "",
+      location: project.location ?? "",
+      status: project.status,
+      phase: project.phase ?? "",
+      startDate: project.startDate ?? "",
+      targetDate: project.targetDate ?? "",
+      completedDate: project.completedDate ?? "",
+      budget: project.budget != null ? String(project.budget) : "",
+    });
+    setOpen(true);
+  }
+
+  const updateMutation = useUpdateProject();
+  const deleteMutation = useDeleteProject();
+
+  function invalidate() {
+    qc.invalidateQueries({ queryKey: getGetProjectQueryKey(project.id) });
+    qc.invalidateQueries({ queryKey: getListProjectsQueryKey() });
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim()) {
+      toast({ title: "Name is required", variant: "destructive" });
+      return;
+    }
+    const budgetNum = form.budget.trim() ? Number(form.budget) : undefined;
+    if (form.budget.trim() && !Number.isFinite(budgetNum)) {
+      toast({ title: "Budget must be a number", variant: "destructive" });
+      return;
+    }
+    try {
+      await updateMutation.mutateAsync({
+        id: project.id,
+        data: {
+          name: form.name.trim(),
+          description: form.description.trim() || undefined,
+          location: form.location.trim() || undefined,
+          status: form.status as any,
+          phase: form.phase.trim() || undefined,
+          startDate: form.startDate || undefined,
+          targetDate: form.targetDate || undefined,
+          completedDate: form.completedDate || undefined,
+          budget: Number.isFinite(budgetNum) ? budgetNum : undefined,
+        },
+      });
+      toast({ title: "Project updated" });
+      invalidate();
+      setOpen(false);
+    } catch (err) {
+      toast({ title: "Update failed", description: String(err), variant: "destructive" });
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      await deleteMutation.mutateAsync({ id: project.id });
+      toast({ title: "Project deleted" });
+      qc.invalidateQueries({ queryKey: getListProjectsQueryKey() });
+      navigate("/projects");
+    } catch (err) {
+      toast({ title: "Delete failed", description: String(err), variant: "destructive" });
+    }
+  }
+
+  return (
+    <>
+      <Button
+        variant="outline" size="sm"
+        className="gap-2 h-9 shrink-0"
+        onClick={openDialog}
+        data-testid="button-edit-project"
+      >
+        <Settings className="w-3.5 h-3.5" />
+        Edit project
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+          <form onSubmit={handleSave}>
+            <DialogHeader>
+              <DialogTitle>Edit project</DialogTitle>
+              <DialogDescription>Update project details, timeline, and budget.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-1.5">
+                <Label htmlFor="ep-name" className="text-xs">Name *</Label>
+                <Input id="ep-name" required value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  data-testid="input-edit-project-name" />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="ep-desc" className="text-xs">Description / goals</Label>
+                <Textarea id="ep-desc" rows={4} value={form.description}
+                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder="What does this project aim to accomplish?" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="ep-location" className="text-xs">Location</Label>
+                  <Input id="ep-location" value={form.location}
+                    onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="ep-phase" className="text-xs">Phase</Label>
+                  <Input id="ep-phase" value={form.phase}
+                    onChange={e => setForm(f => ({ ...f, phase: e.target.value }))}
+                    placeholder="e.g. Design, Build, Commissioning" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="ep-status" className="text-xs">Status</Label>
+                  <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                    <SelectTrigger id="ep-status"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PROJECT_STATUSES.map(s => (
+                        <SelectItem key={s} value={s} className="capitalize">{s.replace("_", " ")}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="ep-budget" className="text-xs">Budget ($)</Label>
+                  <Input id="ep-budget" type="number" inputMode="decimal" value={form.budget}
+                    onChange={e => setForm(f => ({ ...f, budget: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="ep-start" className="text-xs">Start date</Label>
+                  <Input id="ep-start" type="date" value={form.startDate}
+                    onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="ep-target" className="text-xs">Target date</Label>
+                  <Input id="ep-target" type="date" value={form.targetDate}
+                    onChange={e => setForm(f => ({ ...f, targetDate: e.target.value }))} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="ep-done" className="text-xs">Completed</Label>
+                  <Input id="ep-done" type="date" value={form.completedDate}
+                    onChange={e => setForm(f => ({ ...f, completedDate: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="flex sm:justify-between gap-2">
+              <Button
+                type="button" variant="ghost"
+                className="text-red-400 hover:text-red-300 hover:bg-red-400/10 gap-2"
+                onClick={() => setConfirmDelete(true)}
+                data-testid="button-delete-project"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete project
+              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={updateMutation.isPending || !form.name.trim()} className="gap-2">
+                  {updateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Save changes
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes <span className="font-medium text-foreground">{project.name}</span> and all of its milestones, tasks, documents, and folders. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Delete project
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
 
 function Panel({ className = "", title, children }: { className?: string; title: string; children: React.ReactNode }) {
   return (
