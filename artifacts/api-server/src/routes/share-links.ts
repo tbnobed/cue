@@ -77,6 +77,22 @@ router.post("/share-links", async (req, res): Promise<void> => {
     return;
   }
 
+  // Dedupe: if the caller didn't ask for a custom expiry and an active link
+  // already exists for this resource, return it instead of minting a duplicate.
+  // Clicking "Create new link" twice should not pile up identical share URLs.
+  if (!body.expiresAt) {
+    const existing = await db
+      .select()
+      .from(shareLinksTable)
+      .where(and(
+        eq(shareLinksTable.resourceType, body.resourceType),
+        eq(shareLinksTable.resourceId, body.resourceId),
+      ))
+      .orderBy(desc(shareLinksTable.createdAt));
+    const reusable = existing.find(l => isActive(l) && l.expiresAt == null);
+    if (reusable) { res.status(200).json(formatLink(reusable)); return; }
+  }
+
   const token = crypto.randomBytes(24).toString("base64url");
   const userId = (req.session as { userId?: number } | undefined)?.userId ?? null;
   const [row] = await db.insert(shareLinksTable).values({
