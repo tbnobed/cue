@@ -230,7 +230,7 @@ router.post("/documents/:id/edit-session", async (req, res): Promise<void> => {
   const pid = await documentProjectId(doc);
   if (pid != null) { if (!(await requireProjectAccess(req, res, pid))) return; }
   else if (!req.authUser!.isAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
-  const session = buildEditSession(id);
+  const session = buildEditSession(id, doc.url);
   if (!session) {
     res.status(503).json({
       error: "Collabora editor not configured",

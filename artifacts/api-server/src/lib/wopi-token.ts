@@ -134,14 +134,46 @@ export function isCollaboraConfigured(): boolean {
   return !!(resolvePublicCollaboraUrl() && process.env.WOPI_PUBLIC_URL);
 }
 
+/**
+ * Filter-option string passed to LibreOffice when opening a CSV. Without this,
+ * LibreOffice pops its "Text Import" dialog every time the user opens the
+ * file. Field meanings (semicolon-separated would be wrong — must be commas):
+ *   44   = field separator (comma)
+ *   34   = text-quote character (double quote)
+ *   76   = character set (76 = UTF-8 in LO's CharSet enum)
+ *   1    = start at row 1
+ *   ""   = column formats (auto-detect)
+ *   1033 = language identifier (en-US) for number parsing
+ *   false= quoted field as text (off — keep numbers numeric)
+ *   true = detect special numbers (dates, scientific)
+ *   false= skip empty lines
+ *   false= remove space
+ * See: https://wiki.documentfoundation.org/Documentation/DevGuide/Spreadsheet_Documents#Filter_Options_for_the_CSV_Filter
+ */
+const CSV_FILTER_OPTIONS = "44,34,76,1,,1033,false,true,false,false";
+
+function filterOptionsForUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const ext = url.split("?")[0]?.split(".").pop()?.toLowerCase() ?? "";
+  if (ext === "csv" || ext === "tsv") {
+    return ext === "tsv"
+      ? CSV_FILTER_OPTIONS.replace(/^44,/, "9,") // 9 = TAB
+      : CSV_FILTER_OPTIONS;
+  }
+  return null;
+}
+
 export function buildEditSession(
   fileId: number,
+  fileUrl?: string | null,
 ): { actionUrl: string; wopiSrc: string; accessToken: string; accessTokenTtl: number } | null {
   const collaboraUrl = resolvePublicCollaboraUrl();
   const WOPI_PUBLIC_URL = process.env.WOPI_PUBLIC_URL;
   if (!collaboraUrl || !WOPI_PUBLIC_URL) return null;
   const { token, ttlMs } = signWopiToken(fileId, true);
   const wopiSrc = `${WOPI_PUBLIC_URL.replace(/\/$/, "")}/api/wopi/files/${fileId}`;
-  const actionUrl = `${collaboraUrl}/browser/dist/cool.html?WOPISrc=${encodeURIComponent(wopiSrc)}`;
+  let actionUrl = `${collaboraUrl}/browser/dist/cool.html?WOPISrc=${encodeURIComponent(wopiSrc)}`;
+  const opts = filterOptionsForUrl(fileUrl ?? null);
+  if (opts) actionUrl += `&options=${encodeURIComponent(opts)}`;
   return { actionUrl, wopiSrc, accessToken: token, accessTokenTtl: ttlMs };
 }
