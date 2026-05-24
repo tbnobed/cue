@@ -65,6 +65,12 @@ COPY lib/api-zod/tsconfig.json lib/api-zod/
 COPY lib/db/package.json lib/db/
 COPY lib/db/tsconfig.json lib/db/
 COPY artifacts/api-server/package.json artifacts/api-server/
+# studio-pm + mockup-sandbox are declared in pnpm-workspace.yaml (artifacts/*),
+# so `pnpm install --frozen-lockfile` requires their manifests on disk to
+# validate the lockfile, even though their node_modules aren't needed at
+# runtime (the built dist/ is copied from the base stage below).
+COPY artifacts/studio-pm/package.json artifacts/studio-pm/
+COPY artifacts/mockup-sandbox/package.json artifacts/mockup-sandbox/
 COPY scripts/package.json scripts/
 COPY scripts/tsconfig.json scripts/
 
