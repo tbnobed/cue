@@ -716,6 +716,10 @@ folderId?: number;
  * Filter to documents attached to a specific task
  */
 taskId?: number;
+/**
+ * When combined with projectId, also include documents attached to any task within that project.
+ */
+includeTasks?: boolean;
 };
 
 export type ListFoldersParams = {
@@ -728,6 +732,10 @@ global?: boolean;
  * Filter to folders attached to a specific task
  */
 taskId?: number;
+/**
+ * When combined with projectId, also include folders attached to any task within that project.
+ */
+includeTasks?: boolean;
 };
 
 export type ListShareLinksParams = {

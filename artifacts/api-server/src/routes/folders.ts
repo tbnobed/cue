@@ -1,25 +1,54 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { documentFoldersTable, documentsTable } from "@workspace/db";
+import { documentFoldersTable, documentsTable, tasksTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const router = Router();
 
 router.get("/folders", async (req, res): Promise<void> => {
-  const { projectId, global: globalOnly, taskId } = req.query;
+  const { projectId, global: globalOnly, taskId, includeTasks } = req.query;
+  // If both projectId and taskId are supplied, require the task to belong to the project.
+  if (taskId !== undefined && projectId !== undefined) {
+    const tid = parseInt(String(taskId));
+    const pid = parseInt(String(projectId));
+    const [t] = await db.select({ projectId: tasksTable.projectId }).from(tasksTable).where(eq(tasksTable.id, tid));
+    if (!t || t.projectId !== pid) { res.status(400).json({ error: "Task does not belong to the given project" }); return; }
+  }
   let folders = await db.select().from(documentFoldersTable).orderBy(documentFoldersTable.name);
   if (taskId !== undefined) folders = folders.filter(f => f.taskId === parseInt(String(taskId)));
   else if (globalOnly === "true") folders = folders.filter(f => f.projectId === null && f.taskId === null);
-  else if (projectId !== undefined) folders = folders.filter(f => f.projectId === parseInt(String(projectId)) && f.taskId === null);
+  else if (projectId !== undefined) {
+    const pid = parseInt(String(projectId));
+    if (includeTasks === "true") {
+      const projectTasks = await db.select({ id: tasksTable.id })
+        .from(tasksTable).where(eq(tasksTable.projectId, pid));
+      const taskIds = new Set(projectTasks.map(t => t.id));
+      folders = folders.filter(f =>
+        (f.projectId === pid && f.taskId === null) ||
+        (f.taskId !== null && taskIds.has(f.taskId))
+      );
+    } else {
+      folders = folders.filter(f => f.projectId === pid && f.taskId === null);
+    }
+  }
   res.json(folders.map(fmt));
 });
 
 router.post("/folders", async (req, res): Promise<void> => {
   const name = String(req.body?.name ?? "").trim();
   if (!name) { res.status(400).json({ error: "name required" }); return; }
-  const projectId = req.body?.projectId != null ? Number(req.body.projectId) : null;
+  let projectId  = req.body?.projectId != null ? Number(req.body.projectId) : null;
   const taskId    = req.body?.taskId    != null ? Number(req.body.taskId)    : null;
   const parentId  = req.body?.parentId  != null ? Number(req.body.parentId)  : null;
+  // If taskId is supplied, the task must exist; if projectId is also supplied they must match.
+  if (taskId != null) {
+    const [t] = await db.select({ projectId: tasksTable.projectId }).from(tasksTable).where(eq(tasksTable.id, taskId));
+    if (!t) { res.status(400).json({ error: "Task not found" }); return; }
+    if (projectId != null && t.projectId !== projectId) {
+      res.status(400).json({ error: "Task does not belong to the given project" }); return;
+    }
+    projectId = null; // task-attached folders are scoped via taskId; projectId stays NULL.
+  }
   if (parentId != null) {
     const [parent] = await db.select().from(documentFoldersTable).where(eq(documentFoldersTable.id, parentId));
     if (!parent) { res.status(400).json({ error: "Parent folder not found" }); return; }

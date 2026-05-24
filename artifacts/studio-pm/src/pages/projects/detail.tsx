@@ -31,7 +31,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Upload, FolderPlus, Folder, FolderOpen, ChevronRight,
   Trash2, ExternalLink, PenLine, Pencil, Loader2, Circle, Loader, Eye, CheckCircle2, AlertTriangle,
-  FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Home, Settings,
+  FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Home, Settings, ListChecks,
 } from "lucide-react";
 import { ShareDialog } from "@/components/share-dialog";
 import { TaskDetailDialog } from "@/components/task-detail-dialog";
@@ -1033,15 +1033,52 @@ function DocumentsTab({ projectId }: { projectId: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
+  // When non-null, we're browsing the document tree attached to a specific task
+  // (rendered as a virtual "Task: <name>" folder at the project root).
+  const [currentTaskId, setCurrentTaskId] = useState<number | null>(null);
   const [uploadCategory, setUploadCategory] = useState("general");
   const [uploading, setUploading] = useState(false);
 
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
 
-  const { data: folders, isLoading: foldersLoading } = useListFolders({ projectId });
+  // Fetch ALL folders/docs for this project including those attached to its tasks,
+  // so we can render virtual task folders at the root and also satisfy task-scope drills.
+  const { data: allFolders, isLoading: foldersLoading } = useListFolders({ projectId, includeTasks: true } as any);
+  const { data: allDocs, isLoading: docsLoading } = useListDocuments({ projectId, includeTasks: true } as any);
+  const { data: projectTasks } = useListTasks({ projectId } as any);
+
+  // Folders visible in the sidebar tree are project-scoped only (taskId === null).
+  // Task-scoped folders are reached via the virtual "Task: <name>" folder at root.
+  const folders = useMemo(
+    () => (allFolders ?? []).filter(f => (currentTaskId == null ? f.taskId == null : f.taskId === currentTaskId)),
+    [allFolders, currentTaskId],
+  );
+
   const docFolderQuery = currentFolderId === null ? 0 : currentFolderId;
-  const { data: docs, isLoading: docsLoading } = useListDocuments({ projectId, folderId: docFolderQuery });
+  const docs = useMemo(() => {
+    const all = allDocs ?? [];
+    if (currentTaskId != null) {
+      return all.filter(d => d.taskId === currentTaskId && (docFolderQuery === 0 ? d.folderId == null : d.folderId === docFolderQuery));
+    }
+    return all.filter(d => d.projectId === projectId && d.taskId == null && (docFolderQuery === 0 ? d.folderId == null : d.folderId === docFolderQuery));
+  }, [allDocs, currentTaskId, projectId, docFolderQuery]);
+
+  // Virtual task folders shown at root: tasks of this project that have ≥1 doc or folder attached.
+  const taskFolderEntries = useMemo(() => {
+    if (currentTaskId != null) return [];
+    const counts = new Map<number, number>();
+    for (const d of (allDocs ?? [])) if (d.taskId != null) counts.set(d.taskId, (counts.get(d.taskId) ?? 0) + 1);
+    for (const f of (allFolders ?? [])) if (f.taskId != null && (f.parentId ?? null) == null) counts.set(f.taskId, (counts.get(f.taskId) ?? 0) + 1);
+    return (projectTasks ?? [])
+      .filter(t => counts.has(t.id))
+      .map(t => ({ id: t.id, name: t.title, count: counts.get(t.id) ?? 0 }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allDocs, allFolders, projectTasks, currentTaskId]);
+
+  const currentTaskName = currentTaskId != null
+    ? (projectTasks?.find(t => t.id === currentTaskId)?.title ?? `Task ${currentTaskId}`)
+    : null;
   const { data: appConfig } = useQuery<{ collaboraEnabled: boolean }>({
     queryKey: ["app-config"],
     queryFn: async () => {
@@ -1065,7 +1102,10 @@ function DocumentsTab({ projectId }: { projectId: number }) {
     return m;
   }, [folders]);
   const breadcrumbs = useMemo(() => {
-    const out: { id: number | null; name: string }[] = [{ id: null, name: "All Documents" }];
+    const out: { id: number | null; name: string; taskScope?: boolean }[] = [{ id: null, name: "All Documents" }];
+    if (currentTaskId != null) {
+      out.push({ id: null, name: `Task: "${currentTaskName ?? ""}"`, taskScope: true });
+    }
     if (currentFolderId == null) return out;
     const chain: { id: number; name: string }[] = [];
     let cur: number | null = currentFolderId;
@@ -1076,13 +1116,14 @@ function DocumentsTab({ projectId }: { projectId: number }) {
       cur = f.parentId;
     }
     return out.concat(chain);
-  }, [currentFolderId, folderById]);
+  }, [currentFolderId, folderById, currentTaskId, currentTaskName]);
+
+  function goAllDocuments() { setCurrentTaskId(null); setCurrentFolderId(null); }
+  function goTaskRoot()     { setCurrentFolderId(null); }
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: getListDocumentsQueryKey() });
-    qc.invalidateQueries({ queryKey: getListDocumentsQueryKey({ projectId, folderId: docFolderQuery }) });
     qc.invalidateQueries({ queryKey: getListFoldersQueryKey() });
-    qc.invalidateQueries({ queryKey: getListFoldersQueryKey({ projectId }) });
   }
 
   async function handleFiles(files: FileList | null) {
@@ -1094,7 +1135,8 @@ function DocumentsTab({ projectId }: { projectId: number }) {
       fd.append("file", file);
       fd.append("title", file.name.replace(/\.[^.]+$/, "").replace(/[_-]/g, " "));
       fd.append("category", uploadCategory);
-      fd.append("projectId", String(projectId));
+      if (currentTaskId != null) fd.append("taskId", String(currentTaskId));
+      else fd.append("projectId", String(projectId));
       if (currentFolderId != null) fd.append("folderId", String(currentFolderId));
       try {
         const res = await fetch("/api/documents/upload", { method: "POST", body: fd });
@@ -1112,9 +1154,13 @@ function DocumentsTab({ projectId }: { projectId: number }) {
   async function handleCreateFolder() {
     if (!newFolderName.trim()) return;
     try {
-      await createFolderMutation.mutateAsync({
-        data: { projectId, parentId: currentFolderId ?? undefined, name: newFolderName.trim() },
-      });
+      const payload: any = {
+        parentId: currentFolderId ?? undefined,
+        name: newFolderName.trim(),
+      };
+      if (currentTaskId != null) payload.taskId = currentTaskId;
+      else payload.projectId = projectId;
+      await createFolderMutation.mutateAsync({ data: payload });
       toast({ title: "Folder created" });
       setNewFolderName("");
       setFolderDialogOpen(false);
@@ -1157,14 +1203,25 @@ function DocumentsTab({ projectId }: { projectId: number }) {
           </Button>
         </div>
         <button
-          onClick={() => setCurrentFolderId(null)}
+          onClick={goAllDocuments}
           className={`w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 text-sm transition-colors ${
-            currentFolderId === null ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
+            currentTaskId == null && currentFolderId === null ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
           }`}
         >
           <Home className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">All Documents</span>
         </button>
+        {currentTaskId != null && (
+          <button
+            onClick={goTaskRoot}
+            className={`w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 text-sm transition-colors mt-0.5 ${
+              currentFolderId == null ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
+            }`}
+          >
+            <ListChecks className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+            <span className="truncate">Task: "{currentTaskName}"</span>
+          </button>
+        )}
         {foldersLoading ? (
           <Skeleton className="h-16 w-full rounded-md mt-2" />
         ) : tree.length === 0 ? (
@@ -1193,10 +1250,14 @@ function DocumentsTab({ projectId }: { projectId: number }) {
         <div className="flex flex-wrap gap-3 items-center justify-between">
           <div className="flex items-center gap-1 flex-wrap text-sm">
             {breadcrumbs.map((b, i) => (
-              <span key={`${b.id ?? "root"}-${i}`} className="flex items-center gap-1">
+              <span key={`${b.id ?? (b.taskScope ? "task" : "root")}-${i}`} className="flex items-center gap-1">
                 {i > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
                 <button
-                  onClick={() => setCurrentFolderId(b.id)}
+                  onClick={() => {
+                    if (i === 0) { goAllDocuments(); return; }
+                    if (b.taskScope) { goTaskRoot(); return; }
+                    setCurrentFolderId(b.id);
+                  }}
                   className={`hover:text-primary transition-colors ${i === breadcrumbs.length - 1 ? "text-foreground font-medium" : "text-muted-foreground"}`}
                 >
                   {b.name}
@@ -1222,6 +1283,27 @@ function DocumentsTab({ projectId }: { projectId: number }) {
           </div>
         </div>
 
+        {/* Virtual task folders — only at project root */}
+        {currentTaskId == null && currentFolderId == null && taskFolderEntries.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {taskFolderEntries.map(t => (
+              <button
+                key={`task-${t.id}`}
+                onClick={() => { setCurrentTaskId(t.id); setCurrentFolderId(null); }}
+                className="group surface-card ring-hairline border border-border/70 rounded-xl px-3 py-2.5 flex items-center gap-2 text-left hover:border-amber-400/40 hover:-translate-y-0.5 hover:shadow-md transition-all"
+                data-testid={`button-task-folder-${t.id}`}
+                title={`Documents attached to task: ${t.name}`}
+              >
+                <ListChecks className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">Task: "{t.name}"</div>
+                  <div className="text-[10px] font-mono text-muted-foreground tabular-nums">{t.count} item{t.count === 1 ? "" : "s"}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Subfolders grid */}
         {currentSubfolders.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -1243,10 +1325,12 @@ function DocumentsTab({ projectId }: { projectId: number }) {
         {docsLoading ? (
           <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}</div>
         ) : !docs || docs.length === 0 ? (
-          currentSubfolders.length === 0 ? (
+          currentSubfolders.length === 0 && (currentTaskId != null || taskFolderEntries.length === 0) ? (
             <div className="surface-card ring-hairline border border-dashed border-border/70 rounded-2xl p-12 text-center space-y-3">
               <div className="text-sm text-muted-foreground font-mono">
-                {currentFolderId == null ? "No documents in this project yet." : "This folder is empty."}
+                {currentTaskId != null
+                  ? (currentFolderId == null ? "No documents attached to this task yet." : "This folder is empty.")
+                  : (currentFolderId == null ? "No documents in this project yet." : "This folder is empty.")}
               </div>
               <div className="flex gap-2 justify-center">
                 <Button variant="outline" size="sm" onClick={() => setFolderDialogOpen(true)} className="gap-1.5">

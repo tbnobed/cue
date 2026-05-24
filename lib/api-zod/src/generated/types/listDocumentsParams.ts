@@ -21,4 +21,8 @@ folderId?: number;
  * Filter to documents attached to a specific task
  */
 taskId?: number;
+/**
+ * When combined with projectId, also include documents attached to any task within that project.
+ */
+includeTasks?: boolean;
 };

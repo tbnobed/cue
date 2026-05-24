@@ -3,7 +3,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { db } from "@workspace/db";
-import { documentsTable, documentFoldersTable, projectsTable } from "@workspace/db";
+import { documentsTable, documentFoldersTable, projectsTable, tasksTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
   UpdateDocumentParams,
@@ -51,11 +51,32 @@ router.get("/documents", async (req, res): Promise<void> => {
   const projectMap = Object.fromEntries(projects.map(s => [s.id, s.name]));
 
   let filtered = [...docs];
-  const { projectId, global: globalOnly, category, folderId, taskId } = req.query;
+  const { projectId, global: globalOnly, category, folderId, taskId, includeTasks } = req.query;
+  // If both projectId and taskId are supplied, require the task to belong to the project.
+  if (taskId !== undefined && projectId !== undefined) {
+    const tid = parseInt(String(taskId));
+    const pid = parseInt(String(projectId));
+    const [t] = await db.select({ projectId: tasksTable.projectId }).from(tasksTable).where(eq(tasksTable.id, tid));
+    if (!t || t.projectId !== pid) { res.status(400).json({ error: "Task does not belong to the given project" }); return; }
+  }
   if (taskId !== undefined) {
     filtered = filtered.filter(d => d.taskId === parseInt(String(taskId)));
   } else if (globalOnly === "true") filtered = filtered.filter(d => d.projectId === null && d.taskId === null);
-  else if (projectId !== undefined) filtered = filtered.filter(d => d.projectId === parseInt(String(projectId)) && d.taskId === null);
+  else if (projectId !== undefined) {
+    const pid = parseInt(String(projectId));
+    if (includeTasks === "true") {
+      // Include project-scoped docs (taskId NULL) AND docs attached to any task in this project.
+      const projectTasks = await db.select({ id: tasksTable.id })
+        .from(tasksTable).where(eq(tasksTable.projectId, pid));
+      const taskIds = new Set(projectTasks.map(t => t.id));
+      filtered = filtered.filter(d =>
+        (d.projectId === pid && d.taskId === null) ||
+        (d.taskId !== null && taskIds.has(d.taskId))
+      );
+    } else {
+      filtered = filtered.filter(d => d.projectId === pid && d.taskId === null);
+    }
+  }
   if (category !== undefined) filtered = filtered.filter(d => d.category === String(category));
   if (folderId !== undefined) {
     const fid = parseInt(String(folderId));
@@ -71,10 +92,20 @@ router.post("/documents/upload", upload.single("file"), async (req, res): Promis
   const projectMap = Object.fromEntries(projects.map(s => [s.id, s.name]));
 
   const title = (req.body.title as string | undefined)?.trim() || req.file?.originalname || "Untitled";
-  const projectId = req.body.projectId ? parseInt(req.body.projectId) : null;
+  let projectId = req.body.projectId ? parseInt(req.body.projectId) : null;
   const taskId = req.body.taskId ? parseInt(req.body.taskId) : null;
   const folderId = req.body.folderId ? parseInt(req.body.folderId) : null;
   const category = (req.body.category as string | undefined) || "general";
+
+  // If taskId is supplied, the task must exist; if projectId is also supplied they must match.
+  if (taskId !== null) {
+    const [t] = await db.select({ projectId: tasksTable.projectId }).from(tasksTable).where(eq(tasksTable.id, taskId));
+    if (!t) { res.status(400).json({ error: "Task not found" }); return; }
+    if (projectId !== null && t.projectId !== projectId) {
+      res.status(400).json({ error: "Task does not belong to the given project" }); return;
+    }
+    projectId = null; // task-attached docs are scoped via taskId; projectId stays NULL (matches existing rows).
+  }
 
   // Validate folder scope matches document scope (prevents cross-scope linkage).
   if (folderId !== null) {

@@ -16,4 +16,8 @@ global?: boolean;
  * Filter to folders attached to a specific task
  */
 taskId?: number;
+/**
+ * When combined with projectId, also include folders attached to any task within that project.
+ */
+includeTasks?: boolean;
 };

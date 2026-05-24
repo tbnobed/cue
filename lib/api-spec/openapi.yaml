@@ -582,6 +582,11 @@ paths:
           description: Filter to documents attached to a specific task
           schema:
             type: integer
+        - name: includeTasks
+          in: query
+          description: When combined with projectId, also include documents attached to any task within that project.
+          schema:
+            type: boolean
       responses:
         "200":
           description: Documents
@@ -668,6 +673,11 @@ paths:
           description: Filter to folders attached to a specific task
           schema:
             type: integer
+        - name: includeTasks
+          in: query
+          description: When combined with projectId, also include folders attached to any task within that project.
+          schema:
+            type: boolean
       responses:
         "200":
           description: Folders

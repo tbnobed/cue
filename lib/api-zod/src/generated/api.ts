@@ -556,7 +556,8 @@ export const ListDocumentsQueryParams = zod.object({
   "global": zod.coerce.boolean().optional().describe('If true, return only global (non-project) documents'),
   "category": zod.coerce.string().optional(),
   "folderId": zod.coerce.number().optional().describe('Filter to documents inside this folder (use 0 for root of the given scope)'),
-  "taskId": zod.coerce.number().optional().describe('Filter to documents attached to a specific task')
+  "taskId": zod.coerce.number().optional().describe('Filter to documents attached to a specific task'),
+  "includeTasks": zod.coerce.boolean().optional().describe('When combined with projectId, also include documents attached to any task within that project.')
 })
 
 export const ListDocumentsResponseItem = zod.object({
@@ -650,7 +651,8 @@ export const DeleteDocumentParams = zod.object({
 export const ListFoldersQueryParams = zod.object({
   "projectId": zod.coerce.number().optional(),
   "global": zod.coerce.boolean().optional().describe('If true, return only global (non-project) folders'),
-  "taskId": zod.coerce.number().optional().describe('Filter to folders attached to a specific task')
+  "taskId": zod.coerce.number().optional().describe('Filter to folders attached to a specific task'),
+  "includeTasks": zod.coerce.boolean().optional().describe('When combined with projectId, also include folders attached to any task within that project.')
 })
 
 export const ListFoldersResponseItem = zod.object({
