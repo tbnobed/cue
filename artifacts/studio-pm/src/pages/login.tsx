@@ -133,8 +133,7 @@ export default function Login() {
                 }}
                 data-testid="button-signin-oidc"
               >
-                <span>Sign in with SSO</span>
-                <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">via Authentik</span>
+                Sign in with SSO
               </Button>
             </>
           )}
