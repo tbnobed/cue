@@ -322,7 +322,7 @@ async function handleOidcCallback(provider: ProviderId, req: Request, res: Respo
     const claims = tokenSet.claims();
     const rawSub = String(claims.sub);
     const email = claims.email ? String(claims.email).toLowerCase().trim() : null;
-    const emailVerified = claims.email_verified !== false; // treat missing as verified (Authentik often omits)
+    const emailVerifiedClaim = claims.email_verified !== false; // treat missing as verified (Authentik often omits)
     const name = claims.name ? String(claims.name) : (claims.preferred_username ? String(claims.preferred_username) : null);
     const picture = claims.picture ? String(claims.picture) : null;
     const hd = typeof claims.hd === "string" ? claims.hd : null;
@@ -331,10 +331,27 @@ async function handleOidcCallback(provider: ProviderId, req: Request, res: Respo
     // up to a Google account using someone else's address (Google itself
     // blocks this for gmail.com but custom-domain emails can pass through
     // unverified in some edge cases).
-    if (!emailVerified) {
+    //
+    // Escape hatch for self-hosted Authentik: Authentik has no built-in
+    // "verify-on-signup" flow, so accounts created by an admin land with
+    // `email_verified: false` (or omitted) and there is no UX to flip it
+    // short of editing the user's YAML attributes by hand. When the operator
+    // controls Authentik and enrollment is admin-only, the verification check
+    // is redundant — the admin already vouched for the address when they
+    // created the account. Set `OIDC_TRUST_UNVERIFIED_EMAIL=true` to skip
+    // this gate. Per-provider override also accepted:
+    // `AUTHENTIK_TRUST_UNVERIFIED_EMAIL=true` only skips for Authentik,
+    // keeps Google strict (since Google's claim is reliable).
+    const trustGlobal = process.env.OIDC_TRUST_UNVERIFIED_EMAIL === "true";
+    const trustAuthentik = process.env.AUTHENTIK_TRUST_UNVERIFIED_EMAIL === "true";
+    const skipVerifyCheck = trustGlobal || (provider === "authentik" && trustAuthentik);
+    if (!emailVerifiedClaim && !skipVerifyCheck) {
       req.log.warn({ provider, sub: rawSub }, "OIDC sign-in rejected: email not verified");
       loginRedirect(res, "email_unverified");
       return;
+    }
+    if (!emailVerifiedClaim && skipVerifyCheck) {
+      req.log.warn({ provider, sub: rawSub }, "Accepting unverified OIDC email per OIDC_TRUST_UNVERIFIED_EMAIL / AUTHENTIK_TRUST_UNVERIFIED_EMAIL");
     }
 
     // Google-only Workspace gate. The `hd` query param above is UX; this is

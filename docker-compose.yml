@@ -64,6 +64,8 @@ services:
       AUTHENTIK_ISSUER: ${AUTHENTIK_ISSUER:-}
       AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:-}
       AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET:-}
+      AUTHENTIK_TRUST_UNVERIFIED_EMAIL: ${AUTHENTIK_TRUST_UNVERIFIED_EMAIL:-}
+      OIDC_TRUST_UNVERIFIED_EMAIL: ${OIDC_TRUST_UNVERIFIED_EMAIL:-}
       # --- Google (OIDC) — OPTIONAL ---
       # When CLIENT_ID + CLIENT_SECRET are both set, the login page also shows
       # "Continue with Google". New Google sign-ins are INVITE-ONLY: an admin
