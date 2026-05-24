@@ -15,6 +15,7 @@ import { db, documentsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { uploadsDir } from "../lib/uploads-dir.js";
 import { requireProjectAccess } from "../lib/access.js";
+import { friendlyDownloadName } from "./public-shares.js";
 
 const router = Router();
 
@@ -47,6 +48,11 @@ router.get("/uploads/:filename", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Not found" }); return;
   }
   if (!fs.existsSync(resolved)) { res.status(404).json({ error: "File missing" }); return; }
+  const downloadName = friendlyDownloadName(doc.title, filename);
+  res.setHeader(
+    "Content-Disposition",
+    `inline; filename="${downloadName.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "")}"; filename*=UTF-8''${encodeURIComponent(downloadName)}`,
+  );
   res.sendFile(resolved);
 });
 

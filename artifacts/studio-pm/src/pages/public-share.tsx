@@ -848,6 +848,21 @@ function DocumentView({ document, projectName, fileUrl, fileMimeType }:
   { document: any; projectName?: string; fileUrl?: string; fileMimeType?: string }) {
   const isImage = fileMimeType?.startsWith("image/");
   const isPdf = fileMimeType === "application/pdf";
+  // Derive a friendly download name = document title + original extension.
+  // The doc.url for uploaded files is `/api/uploads/<ts>_<safeOriginal>`, so
+  // the ext lives at the end of that path. Falls back gracefully for links.
+  const storedExt = (() => {
+    const u = (document.url ?? "") as string;
+    const m = u.match(/\.([A-Za-z0-9]+)$/);
+    return m ? `.${m[1]}` : "";
+  })();
+  const titleBase = (document.title ?? "").trim();
+  const downloadName = (() => {
+    const base = titleBase.toLowerCase().endsWith(storedExt.toLowerCase())
+      ? titleBase.slice(0, -storedExt.length) : titleBase;
+    const safe = base.replace(/[\\/:*?"<>|\x00-\x1f]/g, "_").trim();
+    return storedExt ? `${safe || "file"}${storedExt}` : (safe || "file");
+  })();
   return (
     <motion.article initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="flex items-start gap-3">
@@ -870,12 +885,14 @@ function DocumentView({ document, projectName, fileUrl, fileMimeType }:
         </div>
       )}
       {fileUrl && !isPdf && !isImage && (
-        <a href={fileUrl} download
+        <a href={fileUrl} download={downloadName}
           className="surface-card ring-hairline rounded-xl p-4 flex items-center gap-3 hover:border-primary/40 transition">
-          <FileText className="w-8 h-8 text-primary" />
-          <div className="flex-1">
-            <div className="text-sm font-medium">Download file</div>
-            <div className="text-xs text-muted-foreground">{fileMimeType ?? "Binary file"}</div>
+          <DocIcon mime={fileMimeType} className="w-8 h-8 text-primary" />
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium">Download {downloadName}</div>
+            <div className="text-xs text-muted-foreground font-mono truncate">
+              {fileMimeType ?? "Binary file"}
+            </div>
           </div>
         </a>
       )}

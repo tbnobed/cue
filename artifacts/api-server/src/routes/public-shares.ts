@@ -183,9 +183,35 @@ async function streamDoc(docId: number, res: import("express").Response) {
 
   const ext = path.extname(filename).toLowerCase();
   const mime = MIME[ext] ?? "application/octet-stream";
+  const downloadName = friendlyDownloadName(doc.title, filename);
   res.setHeader("Content-Type", mime);
-  res.setHeader("Content-Disposition", `inline; filename="${path.basename(filename)}"`);
+  // Inline so image/PDF previews still render in-browser; the friendly name
+  // is what shows up if the user hits "Save as".
+  res.setHeader(
+    "Content-Disposition",
+    `inline; filename="${asciiFallback(downloadName)}"; filename*=UTF-8''${encodeURIComponent(downloadName)}`,
+  );
   fs.createReadStream(filePath).pipe(res);
+}
+
+/**
+ * Derive a human-friendly download filename from a document.
+ * Strategy: use the document title (what the user named it in the UI) and
+ * preserve the original extension from the stored multer filename.
+ * Falls back to the original-name half of the multer filename if title is empty.
+ */
+export function friendlyDownloadName(title: string | null | undefined, multerFilename: string): string {
+  const ext = path.extname(multerFilename); // includes the dot, "" if none
+  const stripped = (title ?? "").trim();
+  // Strip a trailing duplicated extension if the user named it "Foo.docx".
+  const base = stripped.toLowerCase().endsWith(ext.toLowerCase()) ? stripped.slice(0, -ext.length) : stripped;
+  const safe = base.replace(/[\\/:*?"<>|\x00-\x1f]/g, "_").trim() || multerFilename.replace(/^\d+_/, "");
+  return ext ? `${safe}${ext}` : safe;
+}
+
+function asciiFallback(name: string): string {
+  // RFC 6266 ASCII filename; strip non-ASCII for the unquoted filename= value.
+  return name.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "");
 }
 
 function formatMilestone(m: typeof milestonesTable.$inferSelect) {
