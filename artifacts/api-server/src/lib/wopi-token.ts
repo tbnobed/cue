@@ -70,18 +70,59 @@ export function verifyWopiToken(token: string): WopiClaims | null {
   }
 }
 
+/**
+ * Resolves the public Collabora URL the browser should hit.
+ *
+ * Order of precedence:
+ *   1. COLLABORA_URL env var IF it is a real public URL (not localhost / 127.0.0.1 / 0.0.0.0).
+ *      `localhost` from a browser means the user's own machine, so it's never
+ *      a usable value in production — it's a leftover from local dev defaults
+ *      that operators commonly forget to update. We refuse to send it to the
+ *      browser even if explicitly set, because the resulting "Unable to
+ *      connect to localhost:9980" error is impossible to debug for the end
+ *      user.
+ *   2. `${PUBLIC_URL}/collabora` — the auto-proxy mounted by collabora-proxy.ts.
+ *      This is the zero-config path and works behind any TLS-terminating
+ *      reverse proxy that already fronts the app (NPM, Caddy, Traefik, nginx).
+ *   3. null — Collabora is unconfigured; the frontend falls back to in-app editors.
+ */
+function resolvePublicCollaboraUrl(): string | null {
+  const raw = process.env.COLLABORA_URL?.trim();
+  if (raw) {
+    try {
+      const u = new URL(raw);
+      const host = u.hostname.toLowerCase();
+      const isLoopback = host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0";
+      if (!isLoopback) return raw.replace(/\/$/, "");
+      // Stale loopback value — fall through to auto-proxy, warn so operators
+      // can clean it up.
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[collabora] COLLABORA_URL is set to a loopback address (" + raw +
+          ") which is unreachable from end-user browsers. Ignoring and using PUBLIC_URL/collabora auto-proxy instead. Remove COLLABORA_URL from your .env to silence this warning.",
+      );
+    } catch {
+      // eslint-disable-next-line no-console
+      console.warn("[collabora] COLLABORA_URL is not a valid URL: " + raw + ". Falling back to auto-proxy.");
+    }
+  }
+  const pub = process.env.PUBLIC_URL?.trim();
+  if (pub) return pub.replace(/\/$/, "") + "/collabora";
+  return null;
+}
+
 export function isCollaboraConfigured(): boolean {
-  return !!(process.env.COLLABORA_URL && process.env.WOPI_PUBLIC_URL);
+  return !!(resolvePublicCollaboraUrl() && process.env.WOPI_PUBLIC_URL);
 }
 
 export function buildEditSession(
   fileId: number,
 ): { actionUrl: string; wopiSrc: string; accessToken: string; accessTokenTtl: number } | null {
-  const COLLABORA_URL = process.env.COLLABORA_URL;
+  const collaboraUrl = resolvePublicCollaboraUrl();
   const WOPI_PUBLIC_URL = process.env.WOPI_PUBLIC_URL;
-  if (!COLLABORA_URL || !WOPI_PUBLIC_URL) return null;
+  if (!collaboraUrl || !WOPI_PUBLIC_URL) return null;
   const { token, ttlMs } = signWopiToken(fileId, true);
   const wopiSrc = `${WOPI_PUBLIC_URL.replace(/\/$/, "")}/api/wopi/files/${fileId}`;
-  const actionUrl = `${COLLABORA_URL.replace(/\/$/, "")}/browser/dist/cool.html?WOPISrc=${encodeURIComponent(wopiSrc)}`;
+  const actionUrl = `${collaboraUrl}/browser/dist/cool.html?WOPISrc=${encodeURIComponent(wopiSrc)}`;
   return { actionUrl, wopiSrc, accessToken: token, accessTokenTtl: ttlMs };
 }
