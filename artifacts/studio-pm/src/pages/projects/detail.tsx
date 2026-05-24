@@ -34,7 +34,7 @@ import {
   Plus, Upload, Link2, FolderPlus, Folder, FolderOpen, ChevronRight,
   Trash2, ExternalLink, PenLine, Pencil, Loader2, Circle, Loader, Eye, CheckCircle2, AlertTriangle,
   FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Home, Settings, ListChecks,
-  Users, UserPlus, X,
+  Users, UserPlus, X, ChevronDown, Phone, Mail, StickyNote,
 } from "lucide-react";
 import { ShareDialog } from "@/components/share-dialog";
 import { TaskDetailDialog } from "@/components/task-detail-dialog";
@@ -1963,11 +1963,28 @@ function TeamTab({ projectId }: { projectId: number }) {
   const [addOpen, setAddOpen] = useState(false);
   const [pendingMemberId, setPendingMemberId] = useState<string>("");
   const [projectRole, setProjectRole] = useState("");
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { data: assigned, isLoading } = useListProjectMembers(projectId, {
     query: { enabled: !!projectId, queryKey: getListProjectMembersQueryKey(projectId) },
   });
   const { data: allMembers } = useListMembers();
+  const { data: projectTasksAll } = useListTasks({ projectId } as any);
+  const tasksByMember = useMemo(() => {
+    const m = new Map<number, Array<{ id: number; title: string; status: string }>>();
+    for (const t of (projectTasksAll ?? [])) {
+      if (t.assigneeId == null) continue;
+      const arr = m.get(t.assigneeId) ?? [];
+      arr.push({ id: t.id, title: t.title, status: t.status });
+      m.set(t.assigneeId, arr);
+    }
+    return m;
+  }, [projectTasksAll]);
+  const fullMemberById = useMemo(() => {
+    const m = new Map<number, any>();
+    for (const x of (allMembers ?? [])) m.set(x.id, x);
+    return m;
+  }, [allMembers]);
 
   const addMutation = useAddProjectMember();
   const removeMutation = useRemoveProjectMember();
@@ -2042,67 +2059,192 @@ function TeamTab({ projectId }: { projectId: number }) {
             const initials = (m.name || "?")
               .split(/\s+/).filter(Boolean).slice(0, 2)
               .map(w => w[0]?.toUpperCase()).join("");
+            const expanded = expandedId === m.memberId;
+            const full = fullMemberById.get(m.memberId);
+            const memberTasks = tasksByMember.get(m.memberId) ?? [];
+            const openTasks = memberTasks.filter(t => t.status !== "done");
+            const doneTasks = memberTasks.filter(t => t.status === "done");
             return (
               <motion.div
                 key={m.id}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.03 }}
-                className="group surface-card ring-hairline border border-border/70 rounded-2xl p-4 flex items-center gap-3 relative"
+                className={`group surface-card ring-hairline border rounded-2xl relative transition-colors ${
+                  expanded ? "border-primary/40" : "border-border/70 hover:border-border"
+                }`}
                 data-testid={`project-member-${m.memberId}`}
               >
-                {m.avatarUrl ? (
-                  <img src={m.avatarUrl} alt="" className="w-11 h-11 rounded-full ring-1 ring-border shrink-0" />
-                ) : (
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/30 to-primary/5 ring-1 ring-primary/30 text-primary flex items-center justify-center text-sm font-mono font-semibold shrink-0">
-                    {initials || "?"}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="text-[14px] font-semibold tracking-tight truncate">{m.name}</div>
-                  <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5 font-mono">
-                    <span className="capitalize">{m.projectRole || m.role}</span>
-                    {m.department && (
-                      <>
-                        <span className="w-0.5 h-0.5 rounded-full bg-border" />
-                        <span>{m.department}</span>
-                      </>
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(expanded ? null : m.memberId)}
+                  className="w-full text-left p-4 flex items-center gap-3 rounded-2xl"
+                  aria-expanded={expanded}
+                  data-testid={`button-expand-member-${m.memberId}`}
+                >
+                  {m.avatarUrl ? (
+                    <img src={m.avatarUrl} alt="" className="w-11 h-11 rounded-full ring-1 ring-border shrink-0" />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/30 to-primary/5 ring-1 ring-primary/30 text-primary flex items-center justify-center text-sm font-mono font-semibold shrink-0">
+                      {initials || "?"}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14px] font-semibold tracking-tight truncate">{m.name}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5 font-mono">
+                      <span className="capitalize">{m.projectRole || m.role}</span>
+                      {m.department && (
+                        <>
+                          <span className="w-0.5 h-0.5 rounded-full bg-border" />
+                          <span>{m.department}</span>
+                        </>
+                      )}
+                    </div>
+                    {m.email && (
+                      <div className="text-[11px] text-muted-foreground/70 truncate mt-0.5">{m.email}</div>
                     )}
                   </div>
-                  {m.email && (
-                    <div className="text-[11px] text-muted-foreground/70 truncate mt-0.5">{m.email}</div>
-                  )}
-                </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove from project"
-                      data-testid={`button-remove-member-${m.memberId}`}
+                  <ChevronDown
+                    className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${expanded ? "rotate-180 text-primary" : ""}`}
+                  />
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {expanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.18 }}
+                      className="overflow-hidden border-t border-border/60"
                     >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remove {m.name} from this project?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        They'll stay in your team roster and can be re-added later. Tasks already assigned to them won't be reassigned.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-red-500 hover:bg-red-500/90 text-white"
-                        onClick={() => handleRemove(m.memberId, m.name)}
-                      >
-                        Remove
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                      <div className="p-4 space-y-3 text-sm">
+                        {/* Contact */}
+                        <div className="space-y-1.5 text-xs">
+                          {m.email && (
+                            <a
+                              href={`mailto:${m.email}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+                            >
+                              <Mail className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{m.email}</span>
+                            </a>
+                          )}
+                          {full?.phone && (
+                            <a
+                              href={`tel:${full.phone}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+                            >
+                              <Phone className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{full.phone}</span>
+                            </a>
+                          )}
+                          {!m.email && !full?.phone && (
+                            <div className="text-[11px] font-mono text-muted-foreground/60">No contact info on file.</div>
+                          )}
+                        </div>
+
+                        {/* Project role / global role split */}
+                        {m.projectRole && m.projectRole !== m.role && (
+                          <div className="flex items-start gap-2 text-xs font-mono text-muted-foreground">
+                            <Users className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                            <span>
+                              <span className="text-foreground">{m.projectRole}</span>{" "}
+                              <span className="text-muted-foreground/60">on this project</span>{" "}
+                              <span className="text-muted-foreground/60">— roster role:</span>{" "}
+                              <span className="capitalize text-foreground/80">{m.role}</span>
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Tasks on this project */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                            <ListChecks className="w-3 h-3" />
+                            Tasks on this project
+                            <span className="text-foreground/70 tabular-nums">
+                              {memberTasks.length === 0
+                                ? "(none)"
+                                : `(${openTasks.length} open, ${doneTasks.length} done)`}
+                            </span>
+                          </div>
+                          {memberTasks.length > 0 && (
+                            <ul className="space-y-1">
+                              {memberTasks.slice(0, 6).map(t => (
+                                <li key={t.id} className="flex items-center gap-2 text-xs text-foreground/80">
+                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                    t.status === "done"        ? "bg-emerald-400"
+                                    : t.status === "blocked"   ? "bg-red-400"
+                                    : t.status === "in_progress" ? "bg-sky-400"
+                                    : t.status === "review"    ? "bg-violet-400"
+                                                                : "bg-muted-foreground/60"
+                                  }`} />
+                                  <span className="truncate flex-1">{t.title}</span>
+                                  <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted-foreground shrink-0">
+                                    {t.status.replace("_", " ")}
+                                  </span>
+                                </li>
+                              ))}
+                              {memberTasks.length > 6 && (
+                                <li className="text-[11px] font-mono text-muted-foreground/70 pl-3.5">
+                                  +{memberTasks.length - 6} more
+                                </li>
+                              )}
+                            </ul>
+                          )}
+                        </div>
+
+                        {/* Notes */}
+                        {full?.notes && (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                              <StickyNote className="w-3 h-3" />
+                              Notes
+                            </div>
+                            <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">{full.notes}</p>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-end pt-1">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-muted-foreground hover:text-red-400 hover:bg-red-400/10 gap-1.5"
+                                onClick={(e) => e.stopPropagation()}
+                                data-testid={`button-remove-member-${m.memberId}`}
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                Remove from project
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove {m.name} from this project?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  They'll stay in your team roster and can be re-added later. Tasks already assigned to them won't be reassigned.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-red-500 hover:bg-red-500/90 text-white"
+                                  onClick={() => handleRemove(m.memberId, m.name)}
+                                >
+                                  Remove
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             );
           })}
