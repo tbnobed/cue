@@ -1211,23 +1211,14 @@ function DocumentsTab({ projectId }: { projectId: number }) {
           <Home className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">All Documents</span>
         </button>
-        {currentTaskId != null && (
-          <button
-            onClick={goTaskRoot}
-            className={`w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 text-sm transition-colors mt-0.5 ${
-              currentFolderId == null ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
-            }`}
-          >
-            <ListChecks className="w-3.5 h-3.5 shrink-0 text-amber-400" />
-            <span className="truncate">Task: "{currentTaskName}"</span>
-          </button>
-        )}
         {foldersLoading ? (
           <Skeleton className="h-16 w-full rounded-md mt-2" />
         ) : tree.length === 0 ? (
-          <div className="text-[11px] font-mono text-muted-foreground/70 px-2 py-3 text-center">
-            No folders yet
-          </div>
+          currentTaskId == null && taskFolderEntries.length === 0 ? (
+            <div className="text-[11px] font-mono text-muted-foreground/70 px-2 py-3 text-center">
+              No folders yet
+            </div>
+          ) : null
         ) : (
           <div className="mt-1 space-y-0.5">
             {tree.map(node => (
@@ -1241,6 +1232,46 @@ function DocumentsTab({ projectId }: { projectId: number }) {
               />
             ))}
           </div>
+        )}
+
+        {/* Task-attached virtual folders */}
+        {currentTaskId == null && taskFolderEntries.length > 0 && (
+          <>
+            <div className="mt-3 px-2 py-1.5 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+              Task Attachments
+            </div>
+            <div className="space-y-0.5">
+              {taskFolderEntries.map(t => (
+                <button
+                  key={`task-${t.id}`}
+                  onClick={() => { setCurrentTaskId(t.id); setCurrentFolderId(null); }}
+                  className="w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 text-sm transition-colors hover:bg-background/60 text-foreground/80"
+                  data-testid={`button-task-folder-${t.id}`}
+                  title={`Documents attached to task: ${t.name}`}
+                >
+                  <ListChecks className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                  <span className="truncate flex-1">Task: "{t.name}"</span>
+                  <span className="text-[10px] font-mono text-muted-foreground tabular-nums shrink-0">{t.count}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {currentTaskId != null && (
+          <>
+            <div className="mt-3 px-2 py-1.5 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+              Task Attachments
+            </div>
+            <button
+              onClick={goTaskRoot}
+              className={`w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 text-sm transition-colors ${
+                currentFolderId == null ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
+              }`}
+            >
+              <ListChecks className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+              <span className="truncate">Task: "{currentTaskName}"</span>
+            </button>
+          </>
         )}
       </div>
 
@@ -1283,27 +1314,6 @@ function DocumentsTab({ projectId }: { projectId: number }) {
           </div>
         </div>
 
-        {/* Virtual task folders — only at project root */}
-        {currentTaskId == null && currentFolderId == null && taskFolderEntries.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {taskFolderEntries.map(t => (
-              <button
-                key={`task-${t.id}`}
-                onClick={() => { setCurrentTaskId(t.id); setCurrentFolderId(null); }}
-                className="group surface-card ring-hairline border border-border/70 rounded-xl px-3 py-2.5 flex items-center gap-2 text-left hover:border-amber-400/40 hover:-translate-y-0.5 hover:shadow-md transition-all"
-                data-testid={`button-task-folder-${t.id}`}
-                title={`Documents attached to task: ${t.name}`}
-              >
-                <ListChecks className="w-4 h-4 text-amber-400 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">Task: "{t.name}"</div>
-                  <div className="text-[10px] font-mono text-muted-foreground tabular-nums">{t.count} item{t.count === 1 ? "" : "s"}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-
         {/* Subfolders grid */}
         {currentSubfolders.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -1325,7 +1335,7 @@ function DocumentsTab({ projectId }: { projectId: number }) {
         {docsLoading ? (
           <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}</div>
         ) : !docs || docs.length === 0 ? (
-          currentSubfolders.length === 0 && (currentTaskId != null || taskFolderEntries.length === 0) ? (
+          currentSubfolders.length === 0 ? (
             <div className="surface-card ring-hairline border border-dashed border-border/70 rounded-2xl p-12 text-center space-y-3">
               <div className="text-sm text-muted-foreground font-mono">
                 {currentTaskId != null
