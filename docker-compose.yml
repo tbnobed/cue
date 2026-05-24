@@ -132,7 +132,14 @@ services:
       # (artifacts/api-server/src/lib/collabora-proxy.ts) rewrites the CSP
       # `frame-ancestors` header on the fly using the actual request host,
       # so the editor iframe is always embeddable regardless of the domain.
-      extra_params: --o:ssl.enable=false --o:ssl.termination=true --o:net.service_root=/collabora
+      # `--o:mount_jail_tree=false` disables COOL's FUSE bind-mount jails.
+      # Without it, the in-container `coolmount` helper needs CAP_SYS_ADMIN +
+      # AppArmor unconfined to set up per-document jails; on hosts where that
+      # isn't granted (most stock docker setups), `coolmount: Operation not
+      # permitted` fires, the kit process is SIGKILLed mid-load, and COOL
+      # silently falls back to opening the document **read-only**. Copy-based
+      # jails are a bit slower to spawn but work with zero extra privileges.
+      extra_params: --o:ssl.enable=false --o:ssl.termination=true --o:net.service_root=/collabora --o:mount_jail_tree=false
       username: ${COLLABORA_ADMIN_USER:?set COLLABORA_ADMIN_USER in your .env}
       password: ${COLLABORA_ADMIN_PASSWORD:?set COLLABORA_ADMIN_PASSWORD to a strong random string in your .env}
       dictionaries: en_US
