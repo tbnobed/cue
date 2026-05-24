@@ -63,7 +63,7 @@ function UsersAdminInner({ currentUserId }: { currentUserId: number }) {
           <h1 className="text-3xl font-semibold tracking-tight">Users</h1>
           <p className="text-sm text-muted-foreground max-w-2xl">
             Sign-in accounts for Cue. Local accounts use email + password and may be promoted to admin.
-            OIDC accounts (Authentik / Google) sign in via an external IdP and land in <em className="text-foreground/80 not-italic">Pending approval</em> until you activate them.
+            OIDC accounts (OBTV SSO / Google) sign in via an external IdP and land in <em className="text-foreground/80 not-italic">Pending approval</em> until you activate them.
           </p>
         </div>
         <Button onClick={() => setAddOpen(true)} data-testid="button-add-user">
@@ -105,7 +105,7 @@ function UsersAdminInner({ currentUserId }: { currentUserId: number }) {
 
           <Section
             title="OIDC accounts"
-            subtitle="Signed in via Authentik or Google. Cannot hold admin rights."
+            subtitle="Signed in via OBTV SSO or Google. Cannot hold admin rights."
             icon={<Globe className="w-3 h-3" />}
             count={oidcs.length}
           >

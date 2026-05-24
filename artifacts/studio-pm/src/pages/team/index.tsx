@@ -527,7 +527,7 @@ function MemberFormDialog({ open, onOpenChange, mode, member }: {
                     Pre-authorize sign-in
                   </Label>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Skip the admin approval step the first time this person signs in via Google or Authentik.
+                    Skip the admin approval step the first time this person signs in via Google or OBTV SSO.
                     They still must be on the roster with a matching email. Leave off and you'll approve them
                     in <span className="font-mono">/admin/users</span> after their first sign-in.
                   </p>

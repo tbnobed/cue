@@ -297,7 +297,7 @@ async function issueAndSendVerificationEmail(
   });
 
   const verifyUrl = appUrl(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
-  const providerLabel = provider === "google" ? "Google" : "Authentik";
+  const providerLabel = provider === "google" ? "Google" : "OBTV SSO";
   const subject = "[Cue] Verify your email address";
   const text = `You're almost in.\n\nYou recently signed in to Cue using ${providerLabel}. Cue needs to confirm you control this email address before granting access.\n\nClick the link below to verify (expires in 24 hours):\n\n${verifyUrl}\n\nIf you didn't try to sign in, you can safely ignore this message.\n\n— Cue`;
   const html = renderEmailShell({

@@ -45,7 +45,7 @@ const OIDC_ERROR_COPY: Record<string, { title: string; body: string; tone?: "inf
 };
 
 const PROVIDER_LABEL: Record<OidcProvider, string> = {
-  authentik: "Sign in with SSO",
+  authentik: "Sign in with OBTV SSO",
   google: "Continue with Google",
 };
 

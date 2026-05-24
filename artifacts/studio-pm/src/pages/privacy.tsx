@@ -70,7 +70,7 @@ export default function Privacy() {
             <ul className="list-disc pl-5 space-y-2">
               <li>
                 <strong className="text-foreground">Identity:</strong> when you sign in with an identity
-                provider (Authentik or Google), we receive your name, email address, and (if you have one)
+                provider (OBTV SSO or Google), we receive your name, email address, and (if you have one)
                 profile picture from that provider. We do not receive your password.
               </li>
               <li>
@@ -118,7 +118,7 @@ export default function Privacy() {
                 in the PostgreSQL database and file storage attached to this self-hosted deployment.
               </li>
               <li>
-                <strong className="text-foreground">Your identity provider</strong> (Authentik or Google,
+                <strong className="text-foreground">Your identity provider</strong> (OBTV SSO or Google,
                 if enabled). The OIDC handshake exchanges your name, email, and verified-email status.
                 Google's handling of this data is governed by Google's own privacy policy.
               </li>

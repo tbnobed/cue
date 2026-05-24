@@ -122,7 +122,7 @@ router.post("/members/:id/invite", requireAdmin, async (req, res): Promise<void>
   const bodyHtml = `
     <p style="margin:0 0 12px">Hi ${greetingName},</p>
     <p style="margin:0 0 12px">You've been added to <strong>Cue</strong> as a ${role}. Sign in to start collaborating on projects, milestones, and tasks with your team.</p>
-    <p style="margin:0 0 12px">You can sign in with Google, Authentik, or a local account if your administrator has set one up for you. Your access has been pre-approved — you'll land in the app immediately on first sign-in.</p>
+    <p style="margin:0 0 12px">You can sign in with Google, OBTV SSO, or a local account if your administrator has set one up for you. Your access has been pre-approved — you'll land in the app immediately on first sign-in.</p>
   `;
   const text = `Hi ${member.name.split(/\s+/)[0] || member.name},
 
