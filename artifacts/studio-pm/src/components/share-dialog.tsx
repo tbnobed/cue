@@ -192,11 +192,11 @@ export function ShareDialog({
             ) : (
               <ul className="space-y-2">
                 {activeLinks.map(link => (
-                  <li key={link.id} className="surface-card ring-hairline rounded-lg p-2.5 space-y-1.5">
-                    <div className="flex items-center gap-2">
+                  <li key={link.id} className="surface-card ring-hairline rounded-lg p-2.5 space-y-1.5 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
                       <Input
                         readOnly value={link.url}
-                        className="h-8 text-xs font-mono bg-background/40"
+                        className="h-8 text-xs font-mono bg-background/40 flex-1 min-w-0"
                         onFocus={(e) => e.currentTarget.select()}
                         data-testid={`input-share-link-${link.id}`}
                       />
