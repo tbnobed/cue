@@ -41,6 +41,41 @@ import { logger } from "./logger.js";
 const PREFIX = "/collabora";
 const DEFAULT_UPSTREAM = "http://collabora:9980";
 
+/**
+ * Replaces the `frame-ancestors` directive in any CSP header on the proxied
+ * response with one that allows `allowedOrigin`, and strips X-Frame-Options
+ * (which would otherwise win against frame-ancestors in some browsers).
+ * Mutates the headers object in place.
+ */
+function rewriteFrameAncestors(
+  headers: import("http").IncomingHttpHeaders,
+  allowedOrigin: string,
+): void {
+  // X-Frame-Options can't express multi-origin allow lists — just drop it
+  // and rely on CSP frame-ancestors below.
+  delete headers["x-frame-options"];
+
+  const cspKey = Object.keys(headers).find((k) => k.toLowerCase() === "content-security-policy");
+  const replacement = `frame-ancestors 'self' ${allowedOrigin}`;
+  if (!cspKey) {
+    headers["content-security-policy"] = replacement;
+    return;
+  }
+  const raw = headers[cspKey];
+  const current = Array.isArray(raw) ? raw.join("; ") : (raw ?? "");
+  const directives = current.split(";").map((d) => d.trim()).filter(Boolean);
+  let found = false;
+  const rewritten = directives.map((d) => {
+    if (/^frame-ancestors\b/i.test(d)) {
+      found = true;
+      return replacement;
+    }
+    return d;
+  });
+  if (!found) rewritten.push(replacement);
+  headers[cspKey] = rewritten.join("; ");
+}
+
 function upstream(): string {
   // COLLABORA_UPSTREAM_URL = the in-network URL the *server* uses to reach
   // Collabora (docker compose service name). Distinct from COLLABORA_URL,
@@ -61,6 +96,18 @@ function getProxy(): ReturnType<typeof httpProxy.createProxyServer> {
     proxyTimeout: 0,
     timeout: 0,
     xfwd: true,
+  });
+  // Rewrite Collabora's CSP/X-Frame-Options so the editor iframe is always
+  // embeddable by whatever host the operator's reverse proxy is using.
+  // Collabora by default emits `frame-ancestors 'self'` which blocks embedding
+  // in the parent app (different origin from Collabora's POV). Without this
+  // rewrite, operators would have to set --o:net.frame_ancestors=<their host>
+  // in docker-compose for every deployment.
+  proxyInstance.on("proxyRes", (proxyRes: import("http").IncomingMessage, req: import("http").IncomingMessage) => {
+    const host = (req.headers["x-forwarded-host"] || req.headers.host || "") as string;
+    const proto = ((req.headers["x-forwarded-proto"] as string) || "https").split(",")[0]?.trim() || "https";
+    const allow = host ? `${proto}://${host}` : "*";
+    rewriteFrameAncestors(proxyRes.headers, allow);
   });
   proxyInstance.on("error", (err, _req, res) => {
     logger.error({ err: err.message }, "collabora proxy error");
