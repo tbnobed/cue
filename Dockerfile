@@ -1,4 +1,10 @@
-FROM node:24-alpine AS base
+# node:24-slim (Debian, glibc) instead of node:24-alpine (musl).
+# pnpm-workspace.yaml's `overrides` block strips out musl native binaries
+# (rollup-linux-x64-musl, lightningcss-linux-x64-musl, @tailwindcss/oxide-linux-x64-musl)
+# because the Replit dev env is glibc and ships them via the gnu variants.
+# Switching to a glibc base means we get the matching gnu binaries and the
+# Vite/rollup build works without fighting the overrides.
+FROM node:24-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -49,10 +55,14 @@ WORKDIR /app/scripts
 RUN pnpm run build
 
 # ─── Production image ────────────────────────────────────────────────────────
-FROM node:24-alpine AS runner
+# Must match the base image's libc (glibc) — see comment on the base stage.
+FROM node:24-slim AS runner
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && apk add --no-cache curl
+RUN corepack enable \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends curl \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
