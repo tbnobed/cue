@@ -88,27 +88,46 @@ export function verifyWopiToken(token: string): WopiClaims | null {
  */
 function resolvePublicCollaboraUrl(): string | null {
   const raw = process.env.COLLABORA_URL?.trim();
+  const pub = process.env.PUBLIC_URL?.trim();
+  const autoProxy = pub ? pub.replace(/\/$/, "") + "/collabora" : null;
+
   if (raw) {
     try {
       const u = new URL(raw);
       const host = u.hostname.toLowerCase();
       const isLoopback = host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0";
-      if (!isLoopback) return raw.replace(/\/$/, "");
-      // Stale loopback value — fall through to auto-proxy, warn so operators
-      // can clean it up.
+
+      // Detect "same hostname as the app, but pointing at a different port
+      // than the public TLS port" — almost always a stale env from earlier
+      // troubleshooting (e.g. `https://cue.obtv.io:9980`). The reverse proxy
+      // doesn't forward arbitrary ports, so the browser gets a hung connect.
+      let sameHostWrongOrigin = false;
+      if (!isLoopback && pub) {
+        try {
+          const pu = new URL(pub);
+          sameHostWrongOrigin = pu.hostname.toLowerCase() === host && pu.origin !== u.origin;
+        } catch { /* PUBLIC_URL is malformed; ignore the cross-check */ }
+      }
+
+      if (!isLoopback && !sameHostWrongOrigin) {
+        // Operator-supplied value looks legit (different hostname → presumably
+        // a dedicated Collabora vhost they manage).
+        return raw.replace(/\/$/, "");
+      }
+
       // eslint-disable-next-line no-console
       console.warn(
-        "[collabora] COLLABORA_URL is set to a loopback address (" + raw +
-          ") which is unreachable from end-user browsers. Ignoring and using PUBLIC_URL/collabora auto-proxy instead. Remove COLLABORA_URL from your .env to silence this warning.",
+        "[collabora] COLLABORA_URL=" + raw + " is unreachable from end-user browsers " +
+          "(" + (isLoopback ? "loopback address" : "same host as PUBLIC_URL but different port — that port isn't proxied") +
+          "). Ignoring and using the in-app auto-proxy at " + (autoProxy ?? "<PUBLIC_URL>/collabora") +
+          " instead. Remove COLLABORA_URL from your .env to silence this warning.",
       );
     } catch {
       // eslint-disable-next-line no-console
       console.warn("[collabora] COLLABORA_URL is not a valid URL: " + raw + ". Falling back to auto-proxy.");
     }
   }
-  const pub = process.env.PUBLIC_URL?.trim();
-  if (pub) return pub.replace(/\/$/, "") + "/collabora";
-  return null;
+  return autoProxy;
 }
 
 export function isCollaboraConfigured(): boolean {
