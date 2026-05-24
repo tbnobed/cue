@@ -1,0 +1,26 @@
+=> CANCELED [migrate base 21/31] RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile                                                        10.5s
+ => [app runner  3/22] WORKDIR /app                                                                                                                                        0.0s
+ => [app runner  4/22] COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json tsconfig.json ./                                                            0.1s
+ => [app runner  5/22] COPY lib/api-spec/package.json lib/api-spec/                                                                                                        0.0s
+ => [app runner  6/22] COPY lib/api-client-react/package.json lib/api-client-react/                                                                                        0.0s
+ => [app runner  7/22] COPY lib/api-client-react/tsconfig.json lib/api-client-react/                                                                                       0.0s
+ => [app runner  8/22] COPY lib/api-zod/package.json lib/api-zod/                                                                                                          0.0s
+ => [app runner  9/22] COPY lib/api-zod/tsconfig.json lib/api-zod/                                                                                                         0.0s
+ => [app runner 10/22] COPY lib/db/package.json lib/db/                                                                                                                    0.0s
+ => [app runner 11/22] COPY lib/db/tsconfig.json lib/db/                                                                                                                   0.0s
+ => [app runner 12/22] COPY artifacts/api-server/package.json artifacts/api-server/                                                                                        0.0s
+ => [app runner 13/22] COPY scripts/package.json scripts/                                                                                                                  0.0s
+ => [app runner 14/22] COPY scripts/tsconfig.json scripts/                                                                                                                 0.0s
+ => ERROR [app runner 15/22] RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod                                                       8.9s
+------
+ > [app runner 15/22] RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod:
+0.530 ! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-11.3.0.tgz
+2.332 Scope: all 7 workspace projects
+2.510 ? Verifying lockfile against supply-chain policies (606 entries)...
+6.145 ✓ Lockfile passes supply-chain policies (606 entries in 3.6s)
+6.153 Lockfile is up to date, resolution step is skipped
+6.181 Progress: resolved 1, reused 0, downloaded 0, added 0
+6.225 Packages: +164
+6.225 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+7.188 Progress: resolved 164, reused 101, downloaded 56, added 25
+7.957 Progress: resolved 164, reused 101, downloaded 63, added 164, done
