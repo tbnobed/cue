@@ -825,6 +825,14 @@ export const GetPublicShareResponse = zod.object({
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })).optional(),
+  "folders": zod.array(zod.object({
+  "id": zod.number(),
+  "projectId": zod.number().nullish(),
+  "parentId": zod.number().nullish(),
+  "name": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})).optional(),
   "fileUrl": zod.string().optional(),
   "fileMimeType": zod.string().optional()
 })

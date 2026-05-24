@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Document } from './document';
+import type { DocumentFolder } from './documentFolder';
 import type { Milestone } from './milestone';
 import type { Project } from './project';
 import type { PublicShareResourceType } from './publicShareResourceType';
@@ -24,6 +25,7 @@ export interface PublicShare {
   milestones?: Milestone[];
   tasks?: Task[];
   documents?: Document[];
+  folders?: DocumentFolder[];
   fileUrl?: string;
   fileMimeType?: string;
 }

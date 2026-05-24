@@ -866,6 +866,9 @@ components:
         documents:
           type: array
           items: { $ref: "#/components/schemas/Document" }
+        folders:
+          type: array
+          items: { $ref: "#/components/schemas/DocumentFolder" }
         # For document shares: an absolute URL the public page can use to fetch
         # the file content (streams through the public file endpoint).
         fileUrl:      { type: string }

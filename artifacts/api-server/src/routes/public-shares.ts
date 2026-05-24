@@ -1,7 +1,7 @@
 import { Router } from "express";
 import path from "node:path";
 import fs from "node:fs";
-import { db, shareLinksTable, projectsTable, tasksTable, documentsTable, milestonesTable } from "@workspace/db";
+import { db, shareLinksTable, projectsTable, tasksTable, documentsTable, milestonesTable, documentFoldersTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod/v4";
 import { uploadsDir } from "../lib/uploads-dir.js";
@@ -49,10 +49,11 @@ router.get("/public/shares/:token", async (req, res): Promise<void> => {
     if (!project) { res.status(404).json({ error: "Resource no longer exists" }); return; }
     // Pull the project's children too so the public viewer can show a real
     // overview, not just project metadata.
-    const [milestones, tasks, documents] = await Promise.all([
+    const [milestones, tasks, documents, folders] = await Promise.all([
       db.select().from(milestonesTable).where(eq(milestonesTable.projectId, link.resourceId)),
       db.select().from(tasksTable).where(eq(tasksTable.projectId, link.resourceId)).orderBy(desc(tasksTable.updatedAt)),
       db.select().from(documentsTable).where(eq(documentsTable.projectId, link.resourceId)).orderBy(desc(documentsTable.updatedAt)),
+      db.select().from(documentFoldersTable).where(eq(documentFoldersTable.projectId, link.resourceId)),
     ]);
     res.json({
       ...base,
@@ -60,6 +61,7 @@ router.get("/public/shares/:token", async (req, res): Promise<void> => {
       milestones: milestones.map(formatMilestone),
       tasks: tasks.map(formatTask),
       documents: documents.map(formatDocument),
+      folders: folders.map(formatFolder),
     });
     return;
   }
@@ -102,8 +104,34 @@ router.get("/public/shares/:token/file", async (req, res): Promise<void> => {
   const { token } = TokenParam.parse(req.params);
   const link = await resolveActiveLink(token);
   if (!link || link.resourceType !== "document") { res.status(404).send("Not found"); return; }
+  await streamDoc(link.resourceId, res);
+});
 
-  const [doc] = await db.select().from(documentsTable).where(eq(documentsTable.id, link.resourceId)).limit(1);
+/**
+ * Stream a child document of a *project* share. Verifies the document belongs
+ * to the shared project so a token can't be used to enumerate other projects'
+ * files.
+ */
+router.get("/public/shares/:token/documents/:docId/file", async (req, res): Promise<void> => {
+  const { token } = TokenParam.parse(req.params);
+  const docId = Number(req.params.docId);
+  if (!Number.isInteger(docId)) { res.status(400).send("Bad id"); return; }
+  const link = await resolveActiveLink(token);
+  if (!link) { res.status(404).send("Not found"); return; }
+
+  const [doc] = await db.select().from(documentsTable).where(eq(documentsTable.id, docId)).limit(1);
+  if (!doc) { res.status(404).send("Not found"); return; }
+  // Allow if (a) the share is for this document, or (b) the share is for the
+  // project the document belongs to.
+  const allowed =
+    (link.resourceType === "document" && link.resourceId === docId) ||
+    (link.resourceType === "project" && doc.projectId === link.resourceId);
+  if (!allowed) { res.status(404).send("Not found"); return; }
+  await streamDoc(docId, res);
+});
+
+async function streamDoc(docId: number, res: import("express").Response) {
+  const [doc] = await db.select().from(documentsTable).where(eq(documentsTable.id, docId)).limit(1);
   if (!doc?.url?.startsWith("/api/uploads/")) { res.status(404).send("No file"); return; }
 
   const filename = doc.url.replace("/api/uploads/", "");
@@ -120,7 +148,7 @@ router.get("/public/shares/:token/file", async (req, res): Promise<void> => {
   res.setHeader("Content-Type", mime);
   res.setHeader("Content-Disposition", `inline; filename="${path.basename(filename)}"`);
   fs.createReadStream(filePath).pipe(res);
-});
+}
 
 function formatMilestone(m: typeof milestonesTable.$inferSelect) {
   return {
@@ -148,6 +176,13 @@ function formatTask(t: typeof tasksTable.$inferSelect) {
     dueDate: t.dueDate ?? undefined,
     completedAt: t.completedAt ? t.completedAt.toISOString() : undefined,
     createdAt: t.createdAt.toISOString(), updatedAt: t.updatedAt.toISOString(),
+  };
+}
+function formatFolder(f: typeof documentFoldersTable.$inferSelect) {
+  return {
+    id: f.id, projectId: f.projectId ?? undefined, parentId: f.parentId ?? undefined,
+    name: f.name,
+    createdAt: f.createdAt.toISOString(), updatedAt: f.updatedAt.toISOString(),
   };
 }
 function formatDocument(d: typeof documentsTable.$inferSelect) {

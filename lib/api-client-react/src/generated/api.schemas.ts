@@ -258,6 +258,17 @@ export interface Milestone {
   createdAt: string;
 }
 
+export interface DocumentFolder {
+  id: number;
+  /** @nullable */
+  projectId?: number | null;
+  /** @nullable */
+  parentId?: number | null;
+  name: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface PublicShare {
   resourceType: PublicShareResourceType;
   resourceId: number;
@@ -271,6 +282,7 @@ export interface PublicShare {
   milestones?: Milestone[];
   tasks?: Task[];
   documents?: Document[];
+  folders?: DocumentFolder[];
   fileUrl?: string;
   fileMimeType?: string;
 }
@@ -601,17 +613,6 @@ export interface DocumentUpdate {
   category?: DocumentUpdateCategory;
   uploadedBy?: string;
   version?: string;
-}
-
-export interface DocumentFolder {
-  id: number;
-  /** @nullable */
-  projectId?: number | null;
-  /** @nullable */
-  parentId?: number | null;
-  name: string;
-  createdAt: string;
-  updatedAt?: string;
 }
 
 export interface DocumentFolderInput {

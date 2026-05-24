@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useParams } from "wouter";
 import { useGetPublicShare, getGetPublicShareQueryKey } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
@@ -5,6 +6,7 @@ import { format } from "date-fns";
 import {
   AlertTriangle, Calendar, FileText, FolderKanban, ListChecks, Lock,
   Circle, Loader, Eye, CheckCircle2, FileSpreadsheet, FileImage, FileCode, FileArchive,
+  Folder, FolderOpen, Home, ChevronRight,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -60,10 +62,12 @@ export default function PublicShare() {
 
         {data?.project && (
           <ProjectView
+            token={token ?? ""}
             project={data.project}
             milestones={data.milestones ?? []}
             tasks={data.tasks ?? []}
             documents={data.documents ?? []}
+            folders={data.folders ?? []}
           />
         )}
         {data?.task && <TaskView task={data.task} projectName={data.projectName} />}
@@ -157,11 +161,13 @@ function Panel({ title, children, className }: { title: string; children: React.
 
 // ─── PROJECT VIEW (mirrors authed dashboard) ─────────────────────────────────
 
-function ProjectView({ project, milestones, tasks, documents }: {
+function ProjectView({ token, project, milestones, tasks, documents, folders }: {
+  token: string;
   project: any;
   milestones: any[];
   tasks: any[];
   documents: any[];
+  folders: any[];
 }) {
   const tone = STATUS_TONE[project.status] ?? "text-muted-foreground bg-muted/40 ring-border/60";
 
@@ -319,33 +325,232 @@ function ProjectView({ project, milestones, tasks, documents }: {
         )}
         </TabsContent>
 
-        <TabsContent value="documents" className="outline-none space-y-4">
-          <div className="text-[11px] font-mono text-muted-foreground tabular-nums">
-            {documents.length} {documents.length === 1 ? "file" : "files"} in this project
-          </div>
-          {documents.length === 0 ? (
-            <div className="surface-card ring-hairline border border-dashed border-border/70 rounded-2xl p-10 text-center text-sm text-muted-foreground font-mono">
-              No documents.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {documents.map(d => (
-                <div key={d.id} className="surface-card ring-hairline border border-border/70 rounded-xl px-3 py-3 flex items-start gap-3">
-                  <DocIcon mime={d.fileMimeType} className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate" title={d.title}>{d.title}</div>
-                    <div className="text-[11px] font-mono text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
-                      <Pill tone={CATEGORY_TONE[d.category]}>{d.category?.replace("_", " ")}</Pill>
-                      {d.fileSize && <span className="tabular-nums">{formatBytes(d.fileSize)}</span>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <TabsContent value="documents" className="outline-none">
+          <PublicDocumentsTab token={token} documents={documents} folders={folders} />
         </TabsContent>
       </Tabs>
     </motion.div>
+  );
+}
+
+// ─── DOCUMENTS TAB (folder tree + tiles, read-only) ──────────────────────────
+
+type Folder = { id: number; parentId?: number | null; name: string };
+type FolderNode = Folder & { children: FolderNode[] };
+
+function buildTree(folders: Folder[]): FolderNode[] {
+  const byId = new Map<number, FolderNode>();
+  for (const f of folders) byId.set(f.id, { ...f, children: [] });
+  const roots: FolderNode[] = [];
+  for (const node of byId.values()) {
+    if (node.parentId != null && byId.has(node.parentId)) byId.get(node.parentId)!.children.push(node);
+    else roots.push(node);
+  }
+  const sort = (ns: FolderNode[]) => { ns.sort((a, b) => a.name.localeCompare(b.name)); ns.forEach(n => sort(n.children)); };
+  sort(roots);
+  return roots;
+}
+
+function PublicDocumentsTab({ token, documents, folders }: { token: string; documents: any[]; folders: Folder[] }) {
+  const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
+  const tree = useMemo(() => buildTree(folders), [folders]);
+
+  const folderById = useMemo(() => {
+    const m = new Map<number, Folder>();
+    for (const f of folders) m.set(f.id, f);
+    return m;
+  }, [folders]);
+
+  const breadcrumbs = useMemo(() => {
+    const out: { id: number | null; name: string }[] = [{ id: null, name: "All Documents" }];
+    if (currentFolderId == null) return out;
+    const chain: { id: number; name: string }[] = [];
+    let cur: number | null = currentFolderId;
+    while (cur != null) {
+      const f = folderById.get(cur);
+      if (!f) break;
+      chain.unshift({ id: f.id, name: f.name });
+      cur = f.parentId ?? null;
+    }
+    return out.concat(chain);
+  }, [currentFolderId, folderById]);
+
+  const currentSubfolders = folders
+    .filter(f => (f.parentId ?? null) === currentFolderId)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const docsInFolder = documents.filter(d => (d.folderId ?? null) === currentFolderId);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-5">
+      <div className="surface-card ring-hairline border border-border/70 rounded-2xl p-3 self-start lg:sticky lg:top-4">
+        <div className="px-2 py-1.5 mb-1">
+          <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">Folders</span>
+        </div>
+        <button
+          onClick={() => setCurrentFolderId(null)}
+          className={`w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 text-sm transition-colors ${
+            currentFolderId === null ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
+          }`}
+        >
+          <Home className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">All Documents</span>
+        </button>
+        {tree.length === 0 ? (
+          <div className="text-[11px] font-mono text-muted-foreground/70 px-2 py-3 text-center">No folders</div>
+        ) : (
+          <div className="mt-1 space-y-0.5">
+            {tree.map(node => (
+              <PublicFolderTreeItem key={node.id} node={node} depth={0} currentId={currentFolderId} onSelect={setCurrentFolderId} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-4 min-w-0">
+        <div className="flex items-center gap-1 flex-wrap text-sm">
+          {breadcrumbs.map((b, i) => (
+            <span key={`${b.id ?? "root"}-${i}`} className="flex items-center gap-1">
+              {i > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+              <button
+                onClick={() => setCurrentFolderId(b.id)}
+                className={`hover:text-primary transition-colors ${i === breadcrumbs.length - 1 ? "text-foreground font-medium" : "text-muted-foreground"}`}
+              >
+                {b.name}
+              </button>
+            </span>
+          ))}
+        </div>
+
+        {currentSubfolders.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {currentSubfolders.map(f => (
+              <button
+                key={f.id}
+                onClick={() => setCurrentFolderId(f.id)}
+                onDoubleClick={() => setCurrentFolderId(f.id)}
+                className="group surface-card ring-hairline border border-border/70 rounded-xl px-3 py-2.5 flex items-center gap-2 text-left hover:border-border hover:-translate-y-0.5 hover:shadow-md transition-all"
+              >
+                <Folder className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-sm font-medium truncate flex-1">{f.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {docsInFolder.length === 0 ? (
+          currentSubfolders.length === 0 ? (
+            <div className="surface-card ring-hairline border border-dashed border-border/70 rounded-2xl p-10 text-center text-sm text-muted-foreground font-mono">
+              {currentFolderId == null ? "No documents in this project." : "This folder is empty."}
+            </div>
+          ) : null
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {docsInFolder.map(d => <PublicDocTile key={d.id} token={token} doc={d} />)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PublicFolderTreeItem({
+  node, depth, currentId, onSelect,
+}: { node: FolderNode; depth: number; currentId: number | null; onSelect: (id: number) => void }) {
+  const [expanded, setExpanded] = useState(true);
+  const isActive = currentId === node.id;
+  return (
+    <div>
+      <div
+        className={`group flex items-center gap-1 rounded-md text-sm transition-colors ${
+          isActive ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
+        }`}
+        style={{ paddingLeft: `${depth * 12 + 4}px` }}
+      >
+        {node.children.length > 0 ? (
+          <button onClick={() => setExpanded(e => !e)} className="p-1 text-muted-foreground hover:text-foreground">
+            <ChevronRight className={`w-3 h-3 transition-transform ${expanded ? "rotate-90" : ""}`} />
+          </button>
+        ) : <span className="w-5" />}
+        <button onClick={() => onSelect(node.id)} className="flex-1 flex items-center gap-1.5 py-1 text-left min-w-0">
+          {isActive ? <FolderOpen className="w-3.5 h-3.5 text-primary shrink-0" /> : <Folder className="w-3.5 h-3.5 text-amber-400/80 shrink-0" />}
+          <span className="truncate">{node.name}</span>
+        </button>
+      </div>
+      {expanded && node.children.length > 0 && (
+        <div>
+          {node.children.map(c => (
+            <PublicFolderTreeItem key={c.id} node={c} depth={depth + 1} currentId={currentId} onSelect={onSelect} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const EXT_META: Record<string, { icon: React.ReactNode; tone: string }> = {
+  CSV:  { icon: <FileSpreadsheet className="w-4 h-4" />, tone: "text-emerald-400 bg-emerald-500/10 ring-emerald-500/20" },
+  XLSX: { icon: <FileSpreadsheet className="w-4 h-4" />, tone: "text-emerald-400 bg-emerald-500/10 ring-emerald-500/20" },
+  PDF:  { icon: <FileText className="w-4 h-4" />,        tone: "text-red-400 bg-red-500/10 ring-red-500/20" },
+  DOC:  { icon: <FileText className="w-4 h-4" />,        tone: "text-blue-400 bg-blue-500/10 ring-blue-500/20" },
+  DOCX: { icon: <FileText className="w-4 h-4" />,        tone: "text-blue-400 bg-blue-500/10 ring-blue-500/20" },
+  PNG:  { icon: <FileImage className="w-4 h-4" />,       tone: "text-pink-400 bg-pink-500/10 ring-pink-500/20" },
+  JPG:  { icon: <FileImage className="w-4 h-4" />,       tone: "text-pink-400 bg-pink-500/10 ring-pink-500/20" },
+  JPEG: { icon: <FileImage className="w-4 h-4" />,       tone: "text-pink-400 bg-pink-500/10 ring-pink-500/20" },
+  SVG:  { icon: <FileImage className="w-4 h-4" />,       tone: "text-purple-400 bg-purple-500/10 ring-purple-500/20" },
+  DWG:  { icon: <FileCode className="w-4 h-4" />,        tone: "text-orange-400 bg-orange-500/10 ring-orange-500/20" },
+  ZIP:  { icon: <FileArchive className="w-4 h-4" />,     tone: "text-yellow-400 bg-yellow-500/10 ring-yellow-500/20" },
+};
+
+function PublicDocTile({ token, doc }: { token: string; doc: any }) {
+  const tone = CATEGORY_TONE[doc.category] ?? CATEGORY_TONE.general;
+  const ext = (doc.url ?? "").split(".").pop()?.toUpperCase() ?? "";
+  const meta = EXT_META[ext] ?? { icon: <FileText className="w-4 h-4" />, tone: "text-muted-foreground bg-muted/40 ring-border/60" };
+
+  // For uploaded files, route through the public-share streaming endpoint so
+  // we don't need auth. For external URLs, just open them directly.
+  const isUpload = typeof doc.url === "string" && doc.url.startsWith("/api/uploads/");
+  const href = isUpload
+    ? `/api/public/shares/${token}/documents/${doc.id}/file`
+    : (doc.url ?? "#");
+
+  function handleOpen() {
+    if (href === "#") return;
+    window.open(href, "_blank", "noopener,noreferrer");
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleOpen}
+      onDoubleClick={handleOpen}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleOpen(); } }}
+      title={doc.title}
+      className="group relative surface-card ring-hairline border border-border/70 rounded-xl p-3 flex flex-col items-center text-center gap-2 hover:border-border hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer"
+    >
+      <div className={`mt-2 w-14 h-14 rounded-xl flex flex-col items-center justify-center ring-1 ring-inset ${meta.tone} gap-0.5`}>
+        <div className="[&>svg]:w-6 [&>svg]:h-6">{meta.icon}</div>
+        {ext && <span className="text-[8px] font-bold font-mono leading-none">{ext}</span>}
+      </div>
+      <div className="w-full min-w-0 space-y-1">
+        <div className="text-[12.5px] font-medium leading-snug line-clamp-2 break-words">{doc.title}</div>
+        <div className="flex items-center justify-center gap-1 flex-wrap">
+          <span className={`text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-md ring-1 ring-inset ${tone}`}>
+            {doc.category?.replace("_", " ")}
+          </span>
+          {doc.version && (
+            <span className="text-[9px] font-mono text-muted-foreground border border-border/70 rounded px-1 py-0.5">
+              {doc.version}
+            </span>
+          )}
+        </div>
+        {doc.updatedAt && (
+          <div className="text-[10px] font-mono text-muted-foreground tabular-nums">
+            {format(new Date(doc.updatedAt), "MMM dd, yyyy")}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
