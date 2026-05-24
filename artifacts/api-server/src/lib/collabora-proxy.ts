@@ -81,11 +81,13 @@ function getProxy(): ReturnType<typeof httpProxy.createProxyServer> {
 /** Mounts HTTP forwarding for `/collabora/*` on the Express app. */
 export function attachCollaboraHttpProxy(app: Express): void {
   app.use(PREFIX, (req: Request, res: Response, next: NextFunction) => {
-    // Express strips the mount path from req.url. Restore the full path so
-    // Collabora sees the prefix and `--o:net.proxy_prefix=true` can extract
-    // it. (We also don't want to clobber other middleware if upstream is
-    // absent.)
-    req.url = PREFIX + (req.url === "/" ? "" : req.url);
+    // Collabora's `--o:net.proxy_prefix=true` mode requires the reverse
+    // proxy to (a) STRIP the prefix from the upstream URL and (b) advertise
+    // the original prefix in a `ProxyPrefix` request header. Collabora then
+    // uses that header to generate links/redirects that include the prefix.
+    // Express has already stripped the mount path from req.url, so we just
+    // forward req.url as-is and set the header.
+    req.headers["proxyprefix"] = PREFIX;
     getProxy().web(req, res, undefined, (err) => {
       logger.error({ err: err?.message, url: req.url }, "collabora http proxy failed");
       next(err);
@@ -107,6 +109,11 @@ export function createCollaboraUpgradeRouter(): (
   return (req, socket, head) => {
     const url = req.url ?? "";
     if (!url.startsWith(PREFIX + "/") && url !== PREFIX) return false;
+    // Strip the prefix so Collabora's WS endpoints (/cool/.../ws, /coolws,
+    // etc.) match upstream, and pass the prefix via ProxyPrefix header so
+    // it can reconstruct full URLs for the client.
+    req.url = url.slice(PREFIX.length) || "/";
+    req.headers["proxyprefix"] = PREFIX;
     // http-proxy's .ws() accepts any Duplex; Socket-typed signature is overly narrow.
     getProxy().ws(req, socket as unknown as Socket, head);
     return true;
