@@ -23,6 +23,7 @@ function fmt(u: typeof usersTable.$inferSelect) {
     name: u.name,
     picture: u.picture,
     isAdmin: u.isAdmin,
+    isActive: u.isActive,
     authProvider,
     createdAt: u.createdAt.toISOString(),
     lastLoginAt: u.lastLoginAt.toISOString(),
@@ -37,6 +38,9 @@ router.get("/admin/users", async (_req, res) => {
 
 const UpdateBody = z.object({
   isAdmin: z.boolean().optional(),
+  // Admin approval gate. New OIDC users land inactive until an admin flips
+  // this to true. Local accounts default to active.
+  isActive: z.boolean().optional(),
   // Empty-string / null on name + email means "clear it".
   name: z.string().max(120).nullable().optional(),
   email: z.string().email().max(254).nullable().optional(),
@@ -44,12 +48,14 @@ const UpdateBody = z.object({
   password: z.string().min(8).max(200).optional(),
 });
 
-// PATCH /api/admin/users/:id — currently only toggles `isAdmin`.
+// PATCH /api/admin/users/:id — toggle admin/active, edit name/email, or reset password.
 //
 // Invariants enforced here (defense-in-depth — UI also blocks these):
 //   1. You cannot demote yourself. Otherwise the last admin can accidentally
 //      strip their own rights and lock the org out of user management.
-//   2. OIDC accounts (rows with a non-null `sub`) can NEVER be promoted. This
+//   2. You cannot deactivate yourself. Same reasoning — and you'd lock
+//      yourself out mid-request.
+//   3. OIDC accounts (rows with a non-null `sub`) can NEVER be promoted. This
 //      mirrors the OIDC callback which deliberately ignores `isAdmin` on
 //      upsert — admin rights live exclusively with local accounts, so the
 //      identity provider can't grant them.
@@ -82,6 +88,14 @@ router.patch("/admin/users/:id", async (req, res): Promise<void> => {
       return;
     }
     patch.isAdmin = parsed.data.isAdmin;
+  }
+
+  if (parsed.data.isActive !== undefined) {
+    if (id === req.session.userId && parsed.data.isActive === false) {
+      res.status(400).json({ error: "You can't deactivate your own account." });
+      return;
+    }
+    patch.isActive = parsed.data.isActive;
   }
 
   if (parsed.data.name !== undefined) {

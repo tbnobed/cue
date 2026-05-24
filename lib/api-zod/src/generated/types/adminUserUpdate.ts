@@ -11,6 +11,8 @@
  */
 export interface AdminUserUpdate {
   isAdmin?: boolean;
+  /** Approve (true) or suspend (false) the account. You can't deactivate your own account. */
+  isActive?: boolean;
   /** @nullable */
   name?: string | null;
   /** @nullable */

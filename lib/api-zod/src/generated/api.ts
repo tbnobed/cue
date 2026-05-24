@@ -496,7 +496,8 @@ export const ListAdminUsersResponseItem = zod.object({
   "name": zod.string().nullish(),
   "picture": zod.string().nullish(),
   "isAdmin": zod.boolean(),
-  "authProvider": zod.enum(['local', 'oidc']).describe('`local` = email\/password, `oidc` = signed in via Authentik. Only local users can be admins.'),
+  "isActive": zod.boolean().describe('When false, the user cannot sign in or make any API call. New OIDC sign-ins land inactive and must be approved by an admin. Local accounts default to active.'),
+  "authProvider": zod.enum(['local', 'oidc']).describe('`local` = email\/password, `oidc` = signed in via an external IdP (Authentik or Google). Only local users can be admins.'),
   "createdAt": zod.string(),
   "lastLoginAt": zod.string()
 })
@@ -516,6 +517,7 @@ export const updateAdminUserBodyPasswordMin = 8;
 
 export const UpdateAdminUserBody = zod.object({
   "isAdmin": zod.boolean().optional(),
+  "isActive": zod.boolean().optional().describe('Approve (true) or suspend (false) the account. You can\'t deactivate your own account.'),
   "name": zod.string().nullish(),
   "email": zod.string().email().nullish(),
   "password": zod.string().min(updateAdminUserBodyPasswordMin).optional().describe('Admin-initiated password reset for a local account. Not allowed on OIDC accounts.')
@@ -527,7 +529,8 @@ export const UpdateAdminUserResponse = zod.object({
   "name": zod.string().nullish(),
   "picture": zod.string().nullish(),
   "isAdmin": zod.boolean(),
-  "authProvider": zod.enum(['local', 'oidc']).describe('`local` = email\/password, `oidc` = signed in via Authentik. Only local users can be admins.'),
+  "isActive": zod.boolean().describe('When false, the user cannot sign in or make any API call. New OIDC sign-ins land inactive and must be approved by an admin. Local accounts default to active.'),
+  "authProvider": zod.enum(['local', 'oidc']).describe('`local` = email\/password, `oidc` = signed in via an external IdP (Authentik or Google). Only local users can be admins.'),
   "createdAt": zod.string(),
   "lastLoginAt": zod.string()
 })

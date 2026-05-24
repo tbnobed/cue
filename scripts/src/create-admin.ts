@@ -77,13 +77,16 @@ async function main() {
     .where(and(eq(sql`lower(${usersTable.email})`, email), isNotNull(usersTable.passwordHash)));
 
   if (existing) {
+    // Recovery path: also force isActive=true so a previously-suspended admin
+    // can be unlocked by re-running the bootstrap (the whole point of this
+    // script is "I lost access, give it back to me").
     await db.update(usersTable)
-      .set({ passwordHash, isAdmin: true, name })
+      .set({ passwordHash, isAdmin: true, isActive: true, name })
       .where(eq(usersTable.id, existing.id));
-    console.log(`✓ Updated existing local account ${email} — password rotated, isAdmin=true.`);
+    console.log(`✓ Updated existing local account ${email} — password rotated, isAdmin=true, isActive=true.`);
   } else {
     const [row] = await db.insert(usersTable)
-      .values({ email, name, passwordHash, isAdmin: true, lastLoginAt: new Date() })
+      .values({ email, name, passwordHash, isAdmin: true, isActive: true, lastLoginAt: new Date() })
       .returning({ id: usersTable.id });
     console.log(`✓ Created admin account ${email} (id=${row!.id}).`);
   }

@@ -16,7 +16,9 @@ export interface AdminUser {
   /** @nullable */
   picture?: string | null;
   isAdmin: boolean;
-  /** `local` = email/password, `oidc` = signed in via Authentik. Only local users can be admins. */
+  /** When false, the user cannot sign in or make any API call. New OIDC sign-ins land inactive and must be approved by an admin. Local accounts default to active. */
+  isActive: boolean;
+  /** `local` = email/password, `oidc` = signed in via an external IdP (Authentik or Google). Only local users can be admins. */
   authProvider: AdminUserAuthProvider;
   createdAt: string;
   lastLoginAt: string;

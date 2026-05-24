@@ -8,7 +8,7 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
-      authUser?: { id: number; isAdmin: boolean };
+      authUser?: { id: number; isAdmin: boolean; isActive: boolean };
     }
   }
 }
@@ -18,9 +18,17 @@ declare global {
  *
  * In addition to checking for a `userId` on the session, we look the user up
  * in the DB on every request. This is the only safe way to revoke a session
- * server-side without invalidating every cookie: if an admin deletes the user
- * (or future code disables them), the next request fails closed and the
- * stale session is destroyed.
+ * server-side without invalidating every cookie:
+ *   • If an admin deletes the user, the next request fails closed and the
+ *     stale session is destroyed.
+ *   • If an admin flips `is_active=false`, the user is locked out immediately
+ *     without losing their session — re-enabling them brings access back on
+ *     the very next request, no re-login needed.
+ *
+ * Inactive responses use 403 + `code: "account_inactive"` so the frontend can
+ * render a "pending approval" screen instead of bouncing to /login. We do
+ * NOT destroy the session — that would erase the user's identity context and
+ * make the UX much worse on re-activation.
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const id = req.session?.userId;
@@ -29,7 +37,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return;
   }
   const [user] = await db
-    .select({ id: usersTable.id, isAdmin: usersTable.isAdmin })
+    .select({ id: usersTable.id, isAdmin: usersTable.isAdmin, isActive: usersTable.isActive })
     .from(usersTable)
     .where(eq(usersTable.id, id));
   if (!user) {
@@ -40,14 +48,22 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     });
     return;
   }
+  if (!user.isActive) {
+    res.status(403).json({
+      error: "Your account is pending administrator approval.",
+      code: "account_inactive",
+    });
+    return;
+  }
   req.authUser = user;
   next();
 }
 
 // Use to gate destructive / privileged routes. Only LOCAL admin accounts pass.
 export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
-  // `requireAuth` has already attached `authUser`. We still fall back to a
-  // direct DB read for safety in case this middleware is wired up standalone.
+  // `requireAuth` has already attached `authUser` (and verified isActive).
+  // We still fall back to a direct DB read for safety in case this middleware
+  // is wired up standalone.
   const cached = req.authUser;
   if (cached) {
     if (!cached.isAdmin) {
@@ -59,9 +75,16 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
   }
   const id = req.session?.userId;
   if (!id) { res.status(401).json({ error: "Authentication required" }); return; }
-  const [user] = await db.select({ isAdmin: usersTable.isAdmin })
+  const [user] = await db.select({ isAdmin: usersTable.isAdmin, isActive: usersTable.isActive })
     .from(usersTable).where(eq(usersTable.id, id));
-  if (!user?.isAdmin) {
+  if (!user?.isActive) {
+    res.status(403).json({
+      error: "Your account is pending administrator approval.",
+      code: "account_inactive",
+    });
+    return;
+  }
+  if (!user.isAdmin) {
     res.status(403).json({ error: "Admin access required" });
     return;
   }

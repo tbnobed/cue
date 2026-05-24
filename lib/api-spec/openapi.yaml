@@ -1327,14 +1327,15 @@ components:
     # ── Admin User (auth account) ───────────────────────────────────────────
     AdminUser:
       type: object
-      required: [id, isAdmin, authProvider, createdAt, lastLoginAt]
+      required: [id, isAdmin, isActive, authProvider, createdAt, lastLoginAt]
       properties:
         id:           { type: integer }
         email:        { type: ["string", "null"] }
         name:         { type: ["string", "null"] }
         picture:      { type: ["string", "null"] }
         isAdmin:      { type: boolean }
-        authProvider: { type: string, enum: [local, oidc], description: "`local` = email/password, `oidc` = signed in via Authentik. Only local users can be admins." }
+        isActive:     { type: boolean, description: "When false, the user cannot sign in or make any API call. New OIDC sign-ins land inactive and must be approved by an admin. Local accounts default to active." }
+        authProvider: { type: string, enum: [local, oidc], description: "`local` = email/password, `oidc` = signed in via an external IdP (Authentik or Google). Only local users can be admins." }
         createdAt:    { type: string }
         lastLoginAt:  { type: string }
 
@@ -1343,6 +1344,7 @@ components:
       description: "Partial update of an auth account. All fields optional. `password` resets the user's password and is only valid for local accounts."
       properties:
         isAdmin:  { type: boolean }
+        isActive: { type: boolean, description: "Approve (true) or suspend (false) the account. You can't deactivate your own account." }
         name:     { type: ["string", "null"] }
         email:    { type: ["string", "null"], format: email }
         password: { type: string, minLength: 8, description: "Admin-initiated password reset for a local account. Not allowed on OIDC accounts." }

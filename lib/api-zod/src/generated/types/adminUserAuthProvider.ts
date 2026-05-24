@@ -7,7 +7,7 @@
  */
 
 /**
- * `local` = email/password, `oidc` = signed in via Authentik. Only local users can be admins.
+ * `local` = email/password, `oidc` = signed in via an external IdP (Authentik or Google). Only local users can be admins.
  */
 export type AdminUserAuthProvider = typeof AdminUserAuthProvider[keyof typeof AdminUserAuthProvider];
 

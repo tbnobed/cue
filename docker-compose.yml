@@ -64,6 +64,19 @@ services:
       AUTHENTIK_ISSUER: ${AUTHENTIK_ISSUER:-}
       AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:-}
       AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET:-}
+      # --- Google (OIDC) — OPTIONAL ---
+      # When CLIENT_ID + CLIENT_SECRET are both set, the login page also shows
+      # "Continue with Google". New Google sign-ins are INVITE-ONLY: an admin
+      # must first create a /members row with that email. Even invited users
+      # land inactive — an admin must approve them in /admin/users before they
+      # can access anything.
+      # Redirect URI to register in Google Cloud Console:
+      #   ${PUBLIC_URL}/api/auth/google/callback
+      # GOOGLE_HOSTED_DOMAIN: optional. Restrict to a single Workspace domain
+      # (e.g. acme.com) — leave blank to allow any Google account.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_HOSTED_DOMAIN: ${GOOGLE_HOSTED_DOMAIN:-}
       # --- SendGrid email notifications (optional) ---
       # When SENDGRID_API_KEY + EMAIL_FROM are both set, project/task events
       # email project members and the share dialog can email share links.

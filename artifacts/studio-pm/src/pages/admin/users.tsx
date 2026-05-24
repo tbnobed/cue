@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
 import {
-  UserPlus, Shield, ShieldOff, Trash2, Loader2, KeyRound, Globe, Mail, Pencil,
+  UserPlus, Shield, ShieldOff, Trash2, Loader2, KeyRound, Globe, Mail, Pencil, Clock, CheckCircle2,
 } from "lucide-react";
 
 export default function UsersAdmin() {
@@ -46,8 +46,11 @@ function UsersAdminInner({ currentUserId }: { currentUserId: number }) {
   const { data: users, isLoading } = useListAdminUsers();
   const [addOpen, setAddOpen] = useState(false);
 
-  const locals = users?.filter(u => u.authProvider === "local") ?? [];
-  const oidcs = users?.filter(u => u.authProvider === "oidc") ?? [];
+  // Pending = invited via OIDC (member row matched) but not yet approved.
+  // Surface them first so admins can act on the queue.
+  const pending = users?.filter(u => !u.isActive) ?? [];
+  const locals = users?.filter(u => u.isActive && u.authProvider === "local") ?? [];
+  const oidcs = users?.filter(u => u.isActive && u.authProvider === "oidc") ?? [];
 
   return (
     <div className="w-full space-y-8">
@@ -60,7 +63,7 @@ function UsersAdminInner({ currentUserId }: { currentUserId: number }) {
           <h1 className="text-3xl font-semibold tracking-tight">Users</h1>
           <p className="text-sm text-muted-foreground max-w-2xl">
             Sign-in accounts for Cue. Local accounts use email + password and may be promoted to admin.
-            Accounts from Authentik appear here once they sign in for the first time and can never be admins.
+            OIDC accounts (Authentik / Google) sign in via an external IdP and land in <em className="text-foreground/80 not-italic">Pending approval</em> until you activate them.
           </p>
         </div>
         <Button onClick={() => setAddOpen(true)} data-testid="button-add-user">
@@ -75,6 +78,18 @@ function UsersAdminInner({ currentUserId }: { currentUserId: number }) {
         </div>
       ) : (
         <div className="space-y-8">
+          {pending.length > 0 && (
+            <Section
+              title="Pending approval"
+              subtitle="New sign-ins waiting for admin activation. Toggle them on to grant access."
+              icon={<Clock className="w-3 h-3 text-amber-400" />}
+              count={pending.length}
+              accent
+            >
+              <UserList users={pending} currentUserId={currentUserId} />
+            </Section>
+          )}
+
           <Section
             title="Local accounts"
             subtitle="Email + password. Only these accounts can be admins."
@@ -89,13 +104,13 @@ function UsersAdminInner({ currentUserId }: { currentUserId: number }) {
           </Section>
 
           <Section
-            title="Authentik accounts"
-            subtitle="Signed in via OIDC. Cannot hold admin rights."
+            title="OIDC accounts"
+            subtitle="Signed in via Authentik or Google. Cannot hold admin rights."
             icon={<Globe className="w-3 h-3" />}
             count={oidcs.length}
           >
             {oidcs.length === 0 ? (
-              <EmptyRow text="No Authentik users have signed in yet." />
+              <EmptyRow text="No OIDC users are active yet." />
             ) : (
               <UserList users={oidcs} currentUserId={currentUserId} />
             )}
@@ -111,19 +126,19 @@ function UsersAdminInner({ currentUserId }: { currentUserId: number }) {
 // ─── Layout helpers ─────────────────────────────────────────────────────────
 
 function Section({
-  title, subtitle, icon, count, children,
-}: { title: string; subtitle: string; icon: React.ReactNode; count: number; children: React.ReactNode }) {
+  title, subtitle, icon, count, children, accent = false,
+}: { title: string; subtitle: string; icon: React.ReactNode; count: number; children: React.ReactNode; accent?: boolean }) {
   return (
     <section className="space-y-3">
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+          <div className={`flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.18em] ${accent ? "text-amber-400" : "text-muted-foreground"}`}>
             {icon}
             {title}
           </div>
           <div className="text-xs text-muted-foreground/80 mt-0.5">{subtitle}</div>
         </div>
-        <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
+        <span className={`text-[11px] font-mono tabular-nums ${accent ? "text-amber-400" : "text-muted-foreground"}`}>
           {count} {count === 1 ? "account" : "accounts"}
         </span>
       </div>
@@ -170,14 +185,30 @@ function UserRow({ user, currentUserId, idx }: { user: AdminUser; currentUserId:
   const adminToggleTitle = isSelf
     ? "You can't remove your own admin rights."
     : user.authProvider === "oidc"
-      ? "Authentik users can never be admins."
+      ? "OIDC users can never be admins."
       : user.isAdmin ? "Demote to standard user" : "Promote to admin";
+
+  // Activation: you can't deactivate yourself (locks you out mid-session).
+  const canToggleActive = !isSelf;
+  const activeToggleTitle = isSelf
+    ? "You can't deactivate your own account."
+    : user.isActive ? "Suspend this account (immediate)" : "Activate this account";
 
   async function toggleAdmin(next: boolean) {
     try {
       await update.mutateAsync({ id: user.id, data: { isAdmin: next } });
       await qc.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
       toast({ title: next ? `${user.email ?? "User"} is now an admin` : `${user.email ?? "User"} demoted` });
+    } catch (err: any) {
+      toast({ title: "Couldn't update user", description: err?.message ?? "Unknown error", variant: "destructive" });
+    }
+  }
+
+  async function toggleActive(next: boolean) {
+    try {
+      await update.mutateAsync({ id: user.id, data: { isActive: next } });
+      await qc.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
+      toast({ title: next ? `${user.email ?? "User"} activated` : `${user.email ?? "User"} suspended` });
     } catch (err: any) {
       toast({ title: "Couldn't update user", description: err?.message ?? "Unknown error", variant: "destructive" });
     }
@@ -200,7 +231,7 @@ function UserRow({ user, currentUserId, idx }: { user: AdminUser; currentUserId:
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: idx * 0.02 }}
-        className="surface-card ring-hairline border border-border/70 rounded-2xl p-4 flex items-center gap-4"
+        className={`surface-card ring-hairline rounded-2xl p-4 flex items-center gap-4 border ${user.isActive ? "border-border/70" : "border-amber-400/30 bg-amber-400/[0.03]"}`}
         data-testid={`user-row-${user.id}`}
       >
         {user.picture ? (
@@ -211,7 +242,7 @@ function UserRow({ user, currentUserId, idx }: { user: AdminUser; currentUserId:
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <span className="text-sm font-semibold tracking-tight truncate">
               {user.name || user.email || `User #${user.id}`}
             </span>
@@ -225,6 +256,11 @@ function UserRow({ user, currentUserId, idx }: { user: AdminUser; currentUserId:
                 Admin
               </span>
             )}
+            {!user.isActive && (
+              <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-amber-400 border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 rounded-md shrink-0 leading-none">
+                Pending
+              </span>
+            )}
           </div>
           {user.email && (
             <div className="text-[11.5px] text-muted-foreground font-mono truncate">{user.email}</div>
@@ -235,6 +271,17 @@ function UserRow({ user, currentUserId, idx }: { user: AdminUser; currentUserId:
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2" title={activeToggleTitle}>
+            {user.isActive
+              ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              : <Clock className="w-3.5 h-3.5 text-amber-400" />}
+            <Switch
+              checked={user.isActive}
+              disabled={!canToggleActive || update.isPending}
+              onCheckedChange={(v) => void toggleActive(v)}
+              data-testid={`switch-active-${user.id}`}
+            />
+          </div>
           <div className="flex items-center gap-2" title={adminToggleTitle}>
             {user.isAdmin
               ? <Shield className="w-3.5 h-3.5 text-primary" />
@@ -279,7 +326,7 @@ function UserRow({ user, currentUserId, idx }: { user: AdminUser; currentUserId:
             <AlertDialogDescription>
               This permanently removes the sign-in account.
               {user.authProvider === "oidc" && (
-                <> The matching Authentik user can sign in again and a fresh account will be re-created.</>
+                <> The matching OIDC user can sign in again and a fresh account will be re-created (pending approval).</>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -376,7 +423,7 @@ function EditUserDialog({
           <DialogTitle>Edit {user.email || `user #${user.id}`}</DialogTitle>
           <DialogDescription>
             {isOidc
-              ? "Authentik manages this user's password. Name and email are overwritten from the IdP on next sign-in."
+              ? "The identity provider manages this user's password. Name and email are overwritten from the IdP on next sign-in."
               : "Rename, change the sign-in email, or reset the password. Leave the password field blank to keep it unchanged."}
           </DialogDescription>
         </DialogHeader>
@@ -480,7 +527,7 @@ function AddUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
         <DialogHeader>
           <DialogTitle>Add local user</DialogTitle>
           <DialogDescription>
-            Creates an email + password account. Share the credentials with the new user out-of-band —
+            Creates an email + password account, activated immediately. Share the credentials with the new user out-of-band —
             there's no email invite flow yet.
           </DialogDescription>
         </DialogHeader>
