@@ -7,18 +7,36 @@ import { ArrowRight } from "lucide-react";
 import { useAuth, AuthError, type OidcProvider } from "@/hooks/use-auth";
 import cueMark from "@/assets/cue-mark_1779576125630.svg";
 
-// Friendly messages for the `?error=…` codes the OIDC callback redirects with.
-// "pending" intentionally covers BOTH "you weren't invited" and "you were
-// invited but not yet approved" — the server collapses those two outcomes
-// into the same code so the public page can't be used as a membership oracle.
-const OIDC_ERROR_COPY: Record<string, { title: string; body: string }> = {
+// Banner copy keyed by the URL code the auth callback redirects with.
+// `tone: "info"` renders amber (action needed / heads-up); `tone: "ok"`
+// renders emerald (success). "pending" intentionally covers BOTH "you
+// weren't invited" and "you were invited but not yet approved" — the
+// server collapses those two outcomes into the same code so the public
+// page can't be used as a membership oracle. check_email / verify_invalid
+// / email_verified were added when Cue started sending its own
+// verification emails to cover IdPs (like Authentik) that have no
+// verify-on-signup stage.
+const OIDC_ERROR_COPY: Record<string, { title: string; body: string; tone?: "info" | "ok" }> = {
   pending: {
     title: "Access pending",
     body: "Your sign-in attempt was received. An administrator must approve your account before you can use Cue.",
   },
   email_unverified: {
     title: "Verify your email",
-    body: "Your identity provider hasn't verified this email address. Verify it there, then try again.",
+    body: "Your identity provider hasn't verified this email address, and this Cue server isn't configured to send verification emails. Verify the address with your identity provider, then try again.",
+  },
+  check_email: {
+    title: "Check your inbox",
+    body: "We sent you a verification link. Click it to confirm your email address, then sign in again. The link expires in 24 hours.",
+  },
+  verify_invalid: {
+    title: "Verification link invalid",
+    body: "That verification link is expired, already used, or unrecognised. Sign in again to receive a fresh link.",
+  },
+  email_verified: {
+    title: "Email verified",
+    body: "Thanks — your email is confirmed. Sign in again to finish.",
+    tone: "ok",
   },
   wrong_domain: {
     title: "Wrong account",
@@ -61,23 +79,26 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Surface OIDC callback errors that come back in the URL (?error=…).
-  // We read them once on mount, strip them from the URL, and render an
-  // info banner instead of the usual login error block.
-  const initialOidcError = useMemo(() => {
+  // Surface OIDC callback messages that come back in the URL — either
+  // `?error=…` (banner with the matching copy) or `?ok=…` (success
+  // banner). We read them once on mount, strip them from the URL so a
+  // refresh doesn't re-show the banner, and render the appropriate
+  // banner state.
+  const initialOidcCode = useMemo(() => {
     if (typeof window === "undefined") return null;
     const p = new URLSearchParams(window.location.search);
-    const code = p.get("error");
+    const code = p.get("error") ?? p.get("ok");
     return code && OIDC_ERROR_COPY[code] ? code : null;
   }, []);
-  const [oidcErrorCode, setOidcErrorCode] = useState<string | null>(initialOidcError);
+  const [oidcErrorCode, setOidcErrorCode] = useState<string | null>(initialOidcCode);
   useEffect(() => {
-    if (initialOidcError && typeof window !== "undefined") {
+    if (initialOidcCode && typeof window !== "undefined") {
       const u = new URL(window.location.href);
       u.searchParams.delete("error");
+      u.searchParams.delete("ok");
       window.history.replaceState({}, "", u.pathname + (u.search ? `?${u.searchParams}` : "") + u.hash);
     }
-  }, [initialOidcError]);
+  }, [initialOidcCode]);
 
   const loading = auth.status === "loading";
   const providers: OidcProvider[] = auth.status === "loading" ? [] : auth.config.oidcProviders;
@@ -147,10 +168,17 @@ export default function Login() {
           </div>
 
           {oidcBanner && (
-            <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3" data-testid="oidc-pending-banner">
-              <div className="text-[13px] font-semibold text-amber-300">{oidcBanner.title}</div>
-              <div className="text-[12.5px] text-amber-200/80 mt-1 leading-snug">{oidcBanner.body}</div>
-            </div>
+            oidcBanner.tone === "ok" ? (
+              <div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3" data-testid="oidc-pending-banner">
+                <div className="text-[13px] font-semibold text-emerald-300">{oidcBanner.title}</div>
+                <div className="text-[12.5px] text-emerald-200/80 mt-1 leading-snug">{oidcBanner.body}</div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3" data-testid="oidc-pending-banner">
+                <div className="text-[13px] font-semibold text-amber-300">{oidcBanner.title}</div>
+                <div className="text-[12.5px] text-amber-200/80 mt-1 leading-snug">{oidcBanner.body}</div>
+              </div>
+            )
           )}
 
           <form onSubmit={submit} className="space-y-4" data-testid="form-signin">

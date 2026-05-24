@@ -1,8 +1,9 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
-import { db, usersTable, membersTable } from "@workspace/db";
-import { eq, and, isNotNull, sql } from "drizzle-orm";
+import { db, usersTable, membersTable, emailVerificationsTable } from "@workspace/db";
+import { eq, and, isNotNull, isNull, gt, desc, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   generators,
@@ -13,6 +14,7 @@ import {
   type ProviderId,
 } from "../lib/oidc";
 import { linkUserToMembersByEmail } from "../lib/access";
+import { sendEmail, isEmailEnabled, renderEmailShell, appUrl, escapeHtml } from "../lib/email";
 
 const router = Router();
 
@@ -222,6 +224,85 @@ async function memberExistsForEmail(email: string | null): Promise<boolean> {
   return !!row;
 }
 
+// ─── Cue-issued email verification (fallback when IdP doesn't verify) ─────
+//
+// Authentik has no built-in verify-on-signup flow, so admin-created users
+// arrive with `email_verified: false` (or omitted). Rather than block them
+// or force the admin to edit YAML attributes, Cue mints its own one-time
+// token, emails the user a link, and treats a successful click as
+// equivalent to an IdP-asserted `email_verified: true` from then on.
+//
+// Storage: `email_verifications` table (one row per token). `verified_at`
+// nullable; non-null means the link was clicked. We never delete rows so
+// admins have an audit trail of who verified and when.
+//
+// Tokens are 32 bytes of crypto.randomBytes hex-encoded (256 bits of
+// entropy) and expire 24h after issuance. We invalidate any prior
+// unverified tokens for the same email when a new one is minted so a
+// re-trigger always supersedes the old link.
+const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
+
+async function hasCueVerifiedEmail(email: string): Promise<boolean> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return false;
+  const [row] = await db
+    .select({ id: emailVerificationsTable.id })
+    .from(emailVerificationsTable)
+    .where(and(
+      eq(sql`lower(${emailVerificationsTable.email})`, normalized),
+      isNotNull(emailVerificationsTable.verifiedAt),
+    ))
+    .limit(1);
+  return !!row;
+}
+
+async function issueAndSendVerificationEmail(
+  email: string,
+  provider: ProviderId,
+  req: Request,
+): Promise<void> {
+  const normalized = email.trim().toLowerCase();
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + VERIFICATION_TTL_MS);
+
+  // Supersede any older unverified tokens for the same address by setting
+  // their expiry to now. We keep them in the table for the audit trail.
+  await db.update(emailVerificationsTable)
+    .set({ expiresAt: new Date(0) })
+    .where(and(
+      eq(sql`lower(${emailVerificationsTable.email})`, normalized),
+      isNull(emailVerificationsTable.verifiedAt),
+      gt(emailVerificationsTable.expiresAt, new Date()),
+    ));
+
+  await db.insert(emailVerificationsTable).values({
+    email: normalized,
+    token,
+    expiresAt,
+  });
+
+  const verifyUrl = appUrl(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
+  const providerLabel = provider === "google" ? "Google" : "Authentik";
+  const subject = "[Cue] Verify your email address";
+  const text = `You're almost in.\n\nYou recently signed in to Cue using ${providerLabel}. Cue needs to confirm you control this email address before granting access.\n\nClick the link below to verify (expires in 24 hours):\n\n${verifyUrl}\n\nIf you didn't try to sign in, you can safely ignore this message.\n\n— Cue`;
+  const html = renderEmailShell({
+    preheader: "Confirm this email address to finish signing in to Cue.",
+    heading: "Verify your email",
+    bodyHtml: `
+      <p>You recently signed in to Cue using <strong>${escapeHtml(providerLabel)}</strong>. Cue needs to confirm you control <strong>${escapeHtml(normalized)}</strong> before granting access.</p>
+      <p>Click the button below to verify. The link expires in 24 hours.</p>
+    `,
+    ctaText: "Verify email",
+    ctaUrl: verifyUrl,
+    footerNote: "If you didn't try to sign in to Cue, you can safely ignore this email — no account will be created without this confirmation.",
+  });
+
+  const result = await sendEmail({ to: normalized, subject, html, text });
+  if (!result.ok && !result.skipped) {
+    req.log.error({ to: normalized, error: result.error }, "verification email send failed");
+  }
+}
+
 // Encode error codes as querystring on the login page redirect. The login
 // page reads `?error=…` and renders a friendly message. We deliberately
 // collapse "no invite" and "invited but not yet approved" into the same
@@ -345,10 +426,31 @@ async function handleOidcCallback(provider: ProviderId, req: Request, res: Respo
     const trustGlobal = process.env.OIDC_TRUST_UNVERIFIED_EMAIL === "true";
     const trustAuthentik = process.env.AUTHENTIK_TRUST_UNVERIFIED_EMAIL === "true";
     const skipVerifyCheck = trustGlobal || (provider === "authentik" && trustAuthentik);
+
     if (!emailVerifiedClaim && !skipVerifyCheck) {
-      req.log.warn({ provider, sub: rawSub }, "OIDC sign-in rejected: email not verified");
-      loginRedirect(res, "email_unverified");
-      return;
+      // Three-way fork when the IdP didn't verify the email:
+      //   (a) we've already verified this address ourselves via the Cue
+      //       verification link → proceed as if the claim were true
+      //   (b) we can send a verification email (SendGrid configured) →
+      //       mint a token, email it, redirect "check your inbox"
+      //   (c) we can't email and have no prior verification → reject
+      const cueVerified = email ? await hasCueVerifiedEmail(email) : false;
+      if (cueVerified) {
+        req.log.info({ provider, sub: rawSub, email }, "OIDC email unverified by IdP but previously verified via Cue link");
+      } else if (email && isEmailEnabled()) {
+        try {
+          await issueAndSendVerificationEmail(email, provider, req);
+          req.log.info({ provider, sub: rawSub, email }, "Sent Cue email-verification link (IdP did not verify)");
+        } catch (err) {
+          req.log.error({ err, provider, email }, "Failed to send verification email");
+        }
+        loginRedirect(res, "check_email");
+        return;
+      } else {
+        req.log.warn({ provider, sub: rawSub, sendgridConfigured: isEmailEnabled() }, "OIDC sign-in rejected: email not verified (and Cue can't send verification email)");
+        loginRedirect(res, "email_unverified");
+        return;
+      }
     }
     if (!emailVerifiedClaim && skipVerifyCheck) {
       req.log.warn({ provider, sub: rawSub }, "Accepting unverified OIDC email per OIDC_TRUST_UNVERIFIED_EMAIL / AUTHENTIK_TRUST_UNVERIFIED_EMAIL");
@@ -442,6 +544,46 @@ async function handleOidcCallback(provider: ProviderId, req: Request, res: Respo
     res.status(500).send("Sign-in failed. Please try again.");
   }
 }
+
+// GET /api/auth/verify-email?token=… — public link sent by
+// issueAndSendVerificationEmail. Marks the token's row verified and
+// redirects to /login with a success banner code. We deliberately return
+// the same `verify_invalid` code for "no such token" / "expired" /
+// "already used" so the public endpoint can't be probed to enumerate
+// which tokens have been issued or consumed.
+router.get("/auth/verify-email", async (req, res): Promise<void> => {
+  const raw = typeof req.query.token === "string" ? req.query.token : "";
+  // Defense against obviously-malformed input — also keeps the DB lookup cheap.
+  if (!raw || raw.length < 16 || raw.length > 256 || !/^[a-zA-Z0-9_-]+$/.test(raw)) {
+    res.redirect("/login?error=verify_invalid");
+    return;
+  }
+  const [row] = await db.select()
+    .from(emailVerificationsTable)
+    .where(eq(emailVerificationsTable.token, raw))
+    .limit(1);
+  if (!row) {
+    req.log.warn({ tokenPrefix: raw.slice(0, 8) }, "verify-email: token not found");
+    res.redirect("/login?error=verify_invalid");
+    return;
+  }
+  if (row.verifiedAt) {
+    // Already verified — treat as success so a user double-clicking the
+    // link still lands on a happy state.
+    res.redirect("/login?ok=email_verified");
+    return;
+  }
+  if (row.expiresAt.getTime() <= Date.now()) {
+    req.log.warn({ email: row.email, tokenPrefix: raw.slice(0, 8) }, "verify-email: token expired");
+    res.redirect("/login?error=verify_invalid");
+    return;
+  }
+  await db.update(emailVerificationsTable)
+    .set({ verifiedAt: new Date() })
+    .where(eq(emailVerificationsTable.id, row.id));
+  req.log.info({ email: row.email }, "verify-email: success");
+  res.redirect("/login?ok=email_verified");
+});
 
 // Authentik — legacy paths preserved so existing IdP registrations keep working.
 // GET /api/auth/oidc/login (start) + GET /api/auth/callback (return).
