@@ -172,7 +172,9 @@ export function buildEditSession(
   if (!collaboraUrl || !WOPI_PUBLIC_URL) return null;
   const { token, ttlMs } = signWopiToken(fileId, true);
   const wopiSrc = `${WOPI_PUBLIC_URL.replace(/\/$/, "")}/api/wopi/files/${fileId}`;
-  let actionUrl = `${collaboraUrl}/browser/dist/cool.html?WOPISrc=${encodeURIComponent(wopiSrc)}`;
+  // permission=edit is explicit — COOL otherwise falls back to readonly for
+  // some file types even when UserCanWrite=true in CheckFileInfo.
+  let actionUrl = `${collaboraUrl}/browser/dist/cool.html?WOPISrc=${encodeURIComponent(wopiSrc)}&permission=edit`;
   const opts = filterOptionsForUrl(fileUrl ?? null);
   if (opts) actionUrl += `&options=${encodeURIComponent(opts)}`;
   return { actionUrl, wopiSrc, accessToken: token, accessTokenTtl: ttlMs };

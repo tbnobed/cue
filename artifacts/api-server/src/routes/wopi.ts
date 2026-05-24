@@ -28,13 +28,28 @@ router.get("/wopi/files/:id", async (req, res): Promise<void> => {
   if (!fp || !fs.existsSync(fp)) { res.status(404).send("File missing"); return; }
   const stat = fs.statSync(fp);
 
+  // BaseFileName MUST end with an extension Collabora recognizes, otherwise
+  // it loads the file read-only. doc.title is user-supplied and may either
+  // already have the right extension, have a wrong/decorative one (e.g.
+  // "Plexall v2"), or none at all. Always coerce the trailing extension to
+  // match the actual on-disk file.
+  const onDiskExt = path.extname(fp).slice(1).toLowerCase() || "bin";
+  const titleExt = path.extname(doc.title).slice(1).toLowerCase();
+  const stem = titleExt ? doc.title.slice(0, -(titleExt.length + 1)) : doc.title;
+  const baseFileName = `${stem}.${onDiskExt}`;
+
   res.json({
-    BaseFileName: doc.title.includes(".") ? doc.title : `${doc.title}.${path.extname(fp).slice(1) || "bin"}`,
+    BaseFileName: baseFileName,
     Size: stat.size,
     OwnerId: "studiopm",
     UserId: doc.uploadedBy || "user",
     UserFriendlyName: doc.uploadedBy || "Project Member",
     UserCanWrite: claims.w === 1,
+    // COOL also looks at these top-level flags — without UserCanNotWriteRelative
+    // explicitly false, some COOL builds enter readonly mode.
+    UserCanNotWriteRelative: false,
+    UserCanRename: false,
+    ReadOnly: claims.w !== 1,
     Version: String(doc.updatedAt.getTime()),
     LastModifiedTime: doc.updatedAt.toISOString(),
     DisablePrint: false,
