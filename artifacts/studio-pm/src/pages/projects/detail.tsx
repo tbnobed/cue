@@ -1461,7 +1461,8 @@ function DocTile({
       const url = `${base}/collabora-launcher.html?docId=${doc.id}&base=${encodeURIComponent(base)}`;
       window.open(url, "_blank", "noopener,noreferrer");
     } else {
-      navigate(`/documents/${doc.id}/edit`);
+      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+      window.open(`${base}/documents/${doc.id}/edit`, "_blank", "noopener,noreferrer");
     }
   }
 
