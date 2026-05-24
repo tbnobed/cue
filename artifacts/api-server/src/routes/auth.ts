@@ -676,35 +676,47 @@ router.post("/auth/change-password", async (req, res): Promise<void> => {
   res.json({ ok: true });
 });
 
-// POST /api/auth/logout — destroy session, return Authentik end-session URL if available
+// POST /api/auth/logout — destroy session, return Authentik end-session URL
+// ONLY IF the caller actually signed in via Authentik. We must read the
+// user's auth provider BEFORE destroying the session, since the lookup
+// needs `req.session.userId`. Local accounts and Google sign-ins always
+// get `endSessionUrl: null` (Google has no RP-initiated logout; routing
+// a local/Google user through Authentik's end-session page would be a
+// confusing dead-end — exactly the bug we're fixing here).
 router.post("/auth/logout", async (req, res): Promise<void> => {
-  const sendLogout = async () => {
-    let endSessionUrl: string | null = null;
-    try {
-      // Only Authentik exposes an end-session URL; Google's flow is fire-
-      // and-forget on logout (no RP-initiated logout). If both are configured
-      // we still prefer Authentik so multi-IdP installs get IdP-level logout
-      // when they were on Authentik. (Best-effort — failures fall back to a
-      // local-session-only logout.)
-      const cfg = readOidcConfig();
-      if (cfg && cfg.provider === "authentik") {
-        const client = await getOidcClient("authentik");
-        if (typeof client.endSessionUrl === "function") {
-          endSessionUrl = client.endSessionUrl({
-            post_logout_redirect_uri: cfg.postLogoutRedirectUri,
-          });
+  let endSessionUrl: string | null = null;
+  try {
+    const userId = req.session?.userId;
+    if (userId) {
+      const user = await getSessionUser(userId);
+      // `users.sub` is `${provider}:${rawSub}` for OIDC, NULL for local.
+      const signedInViaAuthentik = !!user?.sub && user.sub.startsWith("authentik:");
+      if (signedInViaAuthentik) {
+        const cfg = readProviderConfig("authentik");
+        if (cfg) {
+          const client = await getOidcClient("authentik");
+          if (typeof client.endSessionUrl === "function") {
+            endSessionUrl = client.endSessionUrl({
+              post_logout_redirect_uri: cfg.postLogoutRedirectUri,
+            });
+          }
         }
       }
-    } catch {
-      // If we can't reach the IdP, still clear the local session
     }
+  } catch (err) {
+    // Best-effort: if we can't reach the IdP or the lookup fails, still
+    // clear the local session and let the client land on /login.
+    req.log.warn({ err }, "logout: failed to build endSessionUrl");
+  }
+
+  const finish = () => {
+    res.clearCookie("studiopm.sid");
     res.json({ endSessionUrl });
   };
-  if (!req.session) { await sendLogout(); return; }
+  if (!req.session) { finish(); return; }
   req.session.destroy((err) => {
     if (err) { req.log.error({ err }, "session destroy failed"); }
-    res.clearCookie("studiopm.sid");
-    void sendLogout();
+    finish();
   });
 });
 
