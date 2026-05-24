@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -1480,13 +1481,35 @@ function DocTile({
       title={doc.title}
       data-testid={`doc-tile-${doc.id}`}
     >
-      <Button
-        variant="ghost" size="icon"
-        className="absolute top-1 right-1 h-6 w-6 text-muted-foreground hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-      >
-        <Trash2 className="w-3 h-3" />
-      </Button>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="ghost" size="icon"
+            className="absolute top-1 right-1 h-6 w-6 text-muted-foreground hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+            onClick={(e) => e.stopPropagation()}
+            title="Delete document"
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{doc.title}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the document and its uploaded file. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-500/90 text-white"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className={`mt-2 w-14 h-14 rounded-xl flex flex-col items-center justify-center ring-1 ring-inset ${meta.tone} gap-0.5`}>
         <div className="[&>svg]:w-6 [&>svg]:h-6">{meta.icon}</div>
         {ext && <span className="text-[8px] font-bold font-mono leading-none">{ext}</span>}
