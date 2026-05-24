@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -38,12 +39,13 @@ type FormState = {
   company: string;
   avatarUrl: string;
   notes: string;
+  preApproved: boolean;
 };
 
 const EMPTY: FormState = {
   name: "", email: "", role: "engineer", department: "",
   title: "", phone: "", mobilePhone: "", location: "", company: "",
-  avatarUrl: "", notes: "",
+  avatarUrl: "", notes: "", preApproved: false,
 };
 
 function fromMember(m: Member): FormState {
@@ -59,6 +61,7 @@ function fromMember(m: Member): FormState {
     company: m.company ?? "",
     avatarUrl: m.avatarUrl ?? "",
     notes: m.notes ?? "",
+    preApproved: m.preApproved ?? false,
   };
 }
 
@@ -69,21 +72,27 @@ const OPTIONAL_KEYS = [
 
 /** For creates: drop empty strings so we don't write blanks. */
 function toCreatePayload(f: FormState): MemberInput {
-  const out = { name: f.name.trim(), role: f.role } as MemberInput & Record<string, string>;
+  const out = { name: f.name.trim(), role: f.role } as MemberInput & Record<string, string | boolean>;
   for (const k of OPTIONAL_KEYS) {
     const v = (f[k] ?? "").trim();
     if (v) out[k] = v;
   }
+  // Only send preApproved when the admin opted in — server default is false,
+  // so omitting it for the common case keeps the wire payload tight.
+  if (f.preApproved) out.preApproved = true;
   return out;
 }
 
 /** For edits: send `null` for cleared optional fields so they get unset server-side. */
 function toUpdatePayload(f: FormState): MemberUpdate {
-  const out = { name: f.name.trim(), role: f.role } as MemberUpdate & Record<string, string | null>;
+  const out = { name: f.name.trim(), role: f.role } as MemberUpdate & Record<string, string | boolean | null>;
   for (const k of OPTIONAL_KEYS) {
     const v = (f[k] ?? "").trim();
     out[k] = v ? v : null;
   }
+  // preApproved is a non-nullable boolean on the server, so always send the
+  // current state (no null sentinel).
+  out.preApproved = f.preApproved;
   return out;
 }
 
@@ -462,6 +471,34 @@ function MemberFormDialog({ open, onOpenChange, mode, member }: {
                   rows={3}
                   {...field("notes")}
                   placeholder="On-call hours, badge access, vendor PO number, anything you'd otherwise stick on a Post-it."
+                />
+              </div>
+
+              {/* Access controls — only meaningful for invited (email-having) members
+                  who will sign in via OIDC. Local accounts are admin-created and
+                  always active, so this toggle is a no-op for them. */}
+              <div className="space-y-2 md:col-span-2 pt-2 border-t border-border/40">
+                <Label className="text-[11px] uppercase tracking-[0.15em] font-mono text-muted-foreground">
+                  Access
+                </Label>
+              </div>
+              <div className="md:col-span-2 flex items-start justify-between gap-4 rounded-lg border border-border/40 bg-card/40 p-3">
+                <div className="space-y-1">
+                  <Label htmlFor="member-pre-approved" className="cursor-pointer">
+                    Pre-authorize sign-in
+                  </Label>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Skip the admin approval step the first time this person signs in via Google or Authentik.
+                    They still must be on the roster with a matching email. Leave off and you'll approve them
+                    in <span className="font-mono">/admin/users</span> after their first sign-in.
+                  </p>
+                </div>
+                <Switch
+                  id="member-pre-approved"
+                  checked={form.preApproved}
+                  onCheckedChange={(v) => setForm(f => ({ ...f, preApproved: v }))}
+                  disabled={!form.email.trim()}
+                  data-testid="switch-member-pre-approved"
                 />
               </div>
             </div>
