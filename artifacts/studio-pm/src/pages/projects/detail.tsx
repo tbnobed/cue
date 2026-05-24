@@ -30,7 +30,7 @@ import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Upload, FolderPlus, Folder, FolderOpen, ChevronRight,
-  Trash2, ExternalLink, PenLine, Loader2, Circle, Loader, Eye, CheckCircle2, AlertTriangle,
+  Trash2, ExternalLink, PenLine, Pencil, Loader2, Circle, Loader, Eye, CheckCircle2, AlertTriangle,
   FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Home, Settings,
 } from "lucide-react";
 import { ShareDialog } from "@/components/share-dialog";
@@ -724,6 +724,7 @@ function TasksTab({ projectId }: { projectId: number }) {
   });
 
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({
     title: "", description: "", milestoneId: "", assigneeId: "",
     status: "todo", priority: "medium", category: "general", dueDate: "",
@@ -748,33 +749,53 @@ function TasksTab({ projectId }: { projectId: number }) {
 
   function resetForm() {
     setForm({ title: "", description: "", milestoneId: "", assigneeId: "", status: "todo", priority: "medium", category: "general", dueDate: "" });
+    setEditingId(null);
   }
 
-  async function handleCreate() {
+  function openEdit(task: any) {
+    setEditingId(task.id);
+    setForm({
+      title: task.title ?? "",
+      description: task.description ?? "",
+      milestoneId: task.milestoneId != null ? String(task.milestoneId) : "",
+      assigneeId: task.assigneeId != null ? String(task.assigneeId) : "",
+      status: task.status ?? "todo",
+      priority: task.priority ?? "medium",
+      category: task.category ?? "general",
+      dueDate: task.dueDate ? String(task.dueDate).slice(0, 10) : "",
+    });
+    setOpen(true);
+  }
+
+  async function handleSave() {
     if (!form.title.trim()) {
       toast({ title: "Title is required", variant: "destructive" });
       return;
     }
+    const payload = {
+      projectId,
+      title: form.title.trim(),
+      description: form.description || undefined,
+      milestoneId: form.milestoneId ? parseInt(form.milestoneId) : null,
+      assigneeId: form.assigneeId ? parseInt(form.assigneeId) : null,
+      status: form.status as any,
+      priority: form.priority as any,
+      category: form.category as any,
+      dueDate: form.dueDate || null,
+    };
     try {
-      await createMutation.mutateAsync({
-        data: {
-          projectId,
-          title: form.title.trim(),
-          description: form.description || undefined,
-          milestoneId: form.milestoneId ? parseInt(form.milestoneId) : undefined,
-          assigneeId: form.assigneeId ? parseInt(form.assigneeId) : undefined,
-          status: form.status as any,
-          priority: form.priority as any,
-          category: form.category as any,
-          dueDate: form.dueDate || undefined,
-        },
-      });
-      toast({ title: "Task created" });
+      if (editingId != null) {
+        await updateMutation.mutateAsync({ id: editingId, data: payload as any });
+        toast({ title: "Task updated" });
+      } else {
+        await createMutation.mutateAsync({ data: payload as any });
+        toast({ title: "Task created" });
+      }
       setOpen(false);
       resetForm();
       invalidate();
     } catch {
-      toast({ title: "Failed to create task", variant: "destructive" });
+      toast({ title: editingId != null ? "Failed to update task" : "Failed to create task", variant: "destructive" });
     }
   }
 
@@ -855,6 +876,14 @@ function TasksTab({ projectId }: { projectId: number }) {
                     {task.priority}
                   </span>
                   <Button variant="ghost" size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => openEdit(task)}
+                    title="Edit task"
+                    data-testid={`button-edit-task-${task.id}`}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => handleDelete(task.id)}
                   >
@@ -869,7 +898,7 @@ function TasksTab({ projectId }: { projectId: number }) {
 
       <Dialog open={open} onOpenChange={o => { setOpen(o); if (!o) resetForm(); }}>
         <DialogContent className="max-w-xl">
-          <DialogHeader><DialogTitle>New task</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId != null ? "Edit task" : "New task"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs">Title *</Label>
@@ -937,9 +966,16 @@ function TasksTab({ projectId }: { projectId: number }) {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setOpen(false); resetForm(); }}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={createMutation.isPending} className="gap-2">
-              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Create task
+            <Button
+              onClick={handleSave}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="gap-2"
+              data-testid="button-save-task"
+            >
+              {(createMutation.isPending || updateMutation.isPending)
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : editingId != null ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {editingId != null ? "Save changes" : "Create task"}
             </Button>
           </DialogFooter>
         </DialogContent>
