@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Upload, Trash2, FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Globe, FolderOpen, X, Loader2, Link2 } from "lucide-react";
+import { Upload, Trash2, FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Globe, FolderOpen, X, Loader2, Link2, ExternalLink } from "lucide-react";
 import { ShareDialog } from "@/components/share-dialog";
 import { AddLinkDialog } from "@/components/add-link-dialog";
 import { useLocation } from "wouter";
@@ -318,11 +318,20 @@ function DocTile({ doc, idx, collaboraEnabled, onDelete }: { doc: Doc; idx: numb
   const [, navigate] = useLocation();
   const cat = doc.category as DocCategory;
   const tone = CATEGORY_TONE[cat] ?? CATEGORY_TONE.general;
-  const ext = (doc.url ?? "").split(".").pop()?.toUpperCase() ?? "";
-  const meta = EXT_META[ext] ?? DEFAULT_EXT_META;
-  const useCollabora = collaboraEnabled && COLLABORA_EXTS.has(ext.toLowerCase());
+  const isLink = !!doc.url && /^https?:\/\//i.test(doc.url);
+  const host = isLink ? (() => { try { return new URL(doc.url!).hostname.replace(/^www\./, ""); } catch { return "LINK"; } })() : "";
+  const rawExt = (doc.url ?? "").split(".").pop()?.toUpperCase() ?? "";
+  const ext = isLink ? "" : rawExt;
+  const meta = isLink
+    ? { icon: <Link2 className="w-4 h-4" />, tone: "text-sky-400 bg-sky-500/10 ring-sky-500/20" }
+    : (EXT_META[ext] ?? DEFAULT_EXT_META);
+  const useCollabora = !isLink && collaboraEnabled && COLLABORA_EXTS.has(ext.toLowerCase());
 
   function handleOpen() {
+    if (isLink) {
+      window.open(doc.url!, "_blank", "noopener,noreferrer");
+      return;
+    }
     if (useCollabora) {
       const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       const url = `${base}/collabora-launcher.html?docId=${doc.id}&base=${encodeURIComponent(base)}`;
@@ -338,10 +347,14 @@ function DocTile({ doc, idx, collaboraEnabled, onDelete }: { doc: Doc; idx: numb
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ delay: Math.min(idx * 0.02, 0.2) }}
-      className="group relative surface-card ring-hairline border border-border/70 rounded-xl p-3 flex flex-col items-center text-center gap-2 hover:border-border hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer"
+      className={`group relative surface-card ring-hairline rounded-xl p-3 flex flex-col items-center text-center gap-2 hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer border ${
+        isLink
+          ? "border-dashed border-sky-500/40 hover:border-sky-500/70 bg-sky-500/[0.03]"
+          : "border-border/70 hover:border-border"
+      }`}
       onClick={handleOpen}
       onDoubleClick={handleOpen}
-      title={doc.title}
+      title={isLink ? `${doc.title}\n${doc.url}` : doc.title}
       data-testid={`doc-tile-${doc.id}`}
     >
       <div className="absolute top-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -354,12 +367,22 @@ function DocTile({ doc, idx, collaboraEnabled, onDelete }: { doc: Doc; idx: numb
           <Trash2 className="w-3 h-3" />
         </Button>
       </div>
-      <div className={`mt-2 w-14 h-14 rounded-xl flex flex-col items-center justify-center ring-1 ring-inset ${meta.tone} gap-0.5`}>
+      <div className={`mt-2 w-14 h-14 rounded-xl flex flex-col items-center justify-center ring-1 ring-inset ${meta.tone} gap-0.5 relative`}>
         <div className="[&>svg]:w-6 [&>svg]:h-6">{meta.icon}</div>
         {ext && <span className="text-[8px] font-bold font-mono leading-none">{ext}</span>}
+        {isLink && (
+          <span className="absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full bg-sky-500 text-white flex items-center justify-center ring-2 ring-background">
+            <ExternalLink className="w-2.5 h-2.5" />
+          </span>
+        )}
       </div>
       <div className="w-full min-w-0 space-y-1">
         <div className="text-[12.5px] font-medium leading-snug line-clamp-2 break-words">{doc.title}</div>
+        {isLink && (
+          <div className="text-[10px] font-mono text-sky-400/90 truncate" title={doc.url ?? ""}>
+            {host}
+          </div>
+        )}
         <div className="flex items-center justify-center gap-1 flex-wrap">
           <span className={`text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-md ring-1 ring-inset ${tone}`}>
             {doc.category.replace("_", " ")}

@@ -1474,10 +1474,16 @@ function DocTile({
   onDelete: () => void;
 }) {
   const [, navigate] = useLocation();
+  void navigate;
   const tone = CATEGORY_TONE[doc.category] ?? CATEGORY_TONE.general;
-  const ext = (doc.url ?? "").split(".").pop()?.toUpperCase() ?? "";
-  const meta = EXT_META[ext] ?? { icon: <FileText className="w-7 h-7" />, tone: "text-muted-foreground bg-muted/40 ring-border/60" };
-  const useCollabora = collaboraEnabled && COLLABORA_EXTS.has(ext.toLowerCase());
+  const isLink = !!doc.url && /^https?:\/\//i.test(doc.url);
+  const host = isLink ? (() => { try { return new URL(doc.url!).hostname.replace(/^www\./, ""); } catch { return "LINK"; } })() : "";
+  const rawExt = (doc.url ?? "").split(".").pop()?.toUpperCase() ?? "";
+  const ext = isLink ? "" : rawExt;
+  const meta = isLink
+    ? { icon: <Link2 className="w-7 h-7" />, tone: "text-sky-400 bg-sky-500/10 ring-sky-500/20" }
+    : (EXT_META[ext] ?? { icon: <FileText className="w-7 h-7" />, tone: "text-muted-foreground bg-muted/40 ring-border/60" });
+  const useCollabora = !isLink && collaboraEnabled && COLLABORA_EXTS.has(ext.toLowerCase());
 
   function handleOpen() {
     if (useCollabora) {
@@ -1498,10 +1504,14 @@ function DocTile({
     <motion.div
       initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
       transition={{ delay: Math.min(idx * 0.02, 0.15) }}
-      className="group relative surface-card ring-hairline border border-border/70 rounded-xl p-3 flex flex-col items-center text-center gap-2 hover:border-border hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer"
+      className={`group relative surface-card ring-hairline rounded-xl p-3 flex flex-col items-center text-center gap-2 hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer border ${
+        isLink
+          ? "border-dashed border-sky-500/40 hover:border-sky-500/70 bg-sky-500/[0.03]"
+          : "border-border/70 hover:border-border"
+      }`}
       onDoubleClick={handleOpen}
       onClick={handleOpen}
-      title={doc.title}
+      title={isLink ? `${doc.title}\n${doc.url}` : doc.title}
       data-testid={`doc-tile-${doc.id}`}
     >
       <AlertDialog>
@@ -1533,14 +1543,24 @@ function DocTile({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <div className={`mt-2 w-14 h-14 rounded-xl flex flex-col items-center justify-center ring-1 ring-inset ${meta.tone} gap-0.5`}>
+      <div className={`mt-2 w-14 h-14 rounded-xl flex flex-col items-center justify-center ring-1 ring-inset ${meta.tone} gap-0.5 relative`}>
         <div className="[&>svg]:w-6 [&>svg]:h-6">{meta.icon}</div>
         {ext && <span className="text-[8px] font-bold font-mono leading-none">{ext}</span>}
+        {isLink && (
+          <span className="absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full bg-sky-500 text-white flex items-center justify-center ring-2 ring-background">
+            <ExternalLink className="w-2.5 h-2.5" />
+          </span>
+        )}
       </div>
       <div className="w-full min-w-0 space-y-1">
         <div className="text-[12.5px] font-medium leading-snug line-clamp-2 break-words" title={doc.title}>
           {doc.title}
         </div>
+        {isLink && (
+          <div className="text-[10px] font-mono text-sky-400/90 truncate" title={doc.url ?? ""}>
+            {host}
+          </div>
+        )}
         <div className="flex items-center justify-center gap-1 flex-wrap">
           <span className={`text-[9px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-md ring-1 ring-inset ${tone}`}>
             {doc.category.replace("_", " ")}
