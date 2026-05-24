@@ -1314,44 +1314,25 @@ function DocumentsTab({ projectId }: { projectId: number }) {
           </div>
         </div>
 
-        {/* Subfolders grid */}
-        {currentSubfolders.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {currentSubfolders.map(f => (
-              <button
-                key={f.id}
-                onDoubleClick={() => setCurrentFolderId(f.id)}
-                onClick={() => setCurrentFolderId(f.id)}
-                className="group surface-card ring-hairline border border-border/70 rounded-xl px-3 py-2.5 flex items-center gap-2 text-left hover:border-border hover:-translate-y-0.5 hover:shadow-md transition-all"
-              >
-                <Folder className="w-4 h-4 text-amber-400 shrink-0" />
-                <span className="text-sm font-medium truncate flex-1">{f.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Docs list */}
+        {/* Docs list (folders are sidebar-only) */}
         {docsLoading ? (
           <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-xl" />)}</div>
         ) : !docs || docs.length === 0 ? (
-          currentSubfolders.length === 0 ? (
-            <div className="surface-card ring-hairline border border-dashed border-border/70 rounded-2xl p-12 text-center space-y-3">
-              <div className="text-sm text-muted-foreground font-mono">
-                {currentTaskId != null
-                  ? (currentFolderId == null ? "No documents attached to this task yet." : "This folder is empty.")
-                  : (currentFolderId == null ? "No documents in this project yet." : "This folder is empty.")}
-              </div>
-              <div className="flex gap-2 justify-center">
-                <Button variant="outline" size="sm" onClick={() => setFolderDialogOpen(true)} className="gap-1.5">
-                  <FolderPlus className="w-3.5 h-3.5" /> New folder
-                </Button>
-                <Button size="sm" onClick={() => fileInputRef.current?.click()} className="gap-1.5">
-                  <Upload className="w-3.5 h-3.5" /> Upload
-                </Button>
-              </div>
+          <div className="surface-card ring-hairline border border-dashed border-border/70 rounded-2xl p-12 text-center space-y-3">
+            <div className="text-sm text-muted-foreground font-mono">
+              {currentTaskId != null
+                ? (currentFolderId == null ? "No documents attached to this task yet." : "This folder is empty.")
+                : (currentFolderId == null ? "No documents in this project yet." : "This folder is empty.")}
             </div>
-          ) : null
+            <div className="flex gap-2 justify-center">
+              <Button variant="outline" size="sm" onClick={() => setFolderDialogOpen(true)} className="gap-1.5">
+                <FolderPlus className="w-3.5 h-3.5" /> New folder
+              </Button>
+              <Button size="sm" onClick={() => fileInputRef.current?.click()} className="gap-1.5">
+                <Upload className="w-3.5 h-3.5" /> Upload
+              </Button>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             <AnimatePresence initial={false}>
