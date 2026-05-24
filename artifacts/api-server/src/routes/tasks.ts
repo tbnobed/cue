@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { tasksTable, membersTable, projectsTable, milestonesTable } from "@workspace/db";
+import { tasksTable, membersTable, projectsTable, milestonesTable, taskNotesTable } from "@workspace/db";
 import { eq, and, gte, lte } from "drizzle-orm";
 import {
   ListTasksQueryParams,
@@ -10,6 +10,7 @@ import {
   UpdateTaskBody,
   DeleteTaskParams,
 } from "@workspace/api-zod";
+import { getSessionAuthor } from "../lib/session-author.js";
 
 const router = Router();
 
@@ -58,12 +59,37 @@ router.patch("/tasks/:id", async (req, res): Promise<void> => {
   const { id } = UpdateTaskParams.parse(req.params);
   const parsed = UpdateTaskBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const updateData: Record<string, unknown> = { ...parsed.data, updatedAt: new Date() };
-  if (parsed.data.status === "done" && !parsed.data.completedAt) {
+  // `noteAuthorName` is intentionally discarded — author identity comes from the session
+  // to keep status-change/audit notes trustworthy.
+  const { note, noteAuthorName: _ignored, ...rest } = parsed.data as Record<string, unknown> & { note?: string; noteAuthorName?: string };
+  void _ignored;
+
+  const [existing] = await db.select().from(tasksTable).where(eq(tasksTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+
+  const updateData: Record<string, unknown> = { ...rest, updatedAt: new Date() };
+  if (rest.status === "done" && !rest.completedAt) {
     updateData.completedAt = new Date();
   }
   const [task] = await db.update(tasksTable).set(updateData).where(eq(tasksTable.id, id)).returning();
   if (!task) { res.status(404).json({ error: "Not found" }); return; }
+
+  const statusChanged = typeof rest.status === "string" && rest.status !== existing.status;
+  const trimmedNote = typeof note === "string" ? note.trim() : "";
+  if (statusChanged || trimmedNote.length > 0) {
+    const author = await getSessionAuthor(req);
+    await db.insert(taskNotesTable).values({
+      taskId: id,
+      body: trimmedNote.length > 0
+        ? trimmedNote
+        : `Status changed from ${existing.status} to ${rest.status}.`,
+      statusBefore: statusChanged ? existing.status : undefined,
+      statusAfter: statusChanged ? String(rest.status) : undefined,
+      authorId: author.id,
+      authorName: author.name ?? undefined,
+    });
+  }
+
   const enriched = await enrichTasks([task]);
   res.json(enriched[0]);
 });

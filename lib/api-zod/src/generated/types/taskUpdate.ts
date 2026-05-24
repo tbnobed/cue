@@ -19,4 +19,7 @@ export interface TaskUpdate {
   category?: TaskUpdateCategory;
   dueDate?: string;
   completedAt?: string;
+  /** Optional note recorded with the change. When status changes, this becomes a status-change note. */
+  note?: string;
+  noteAuthorName?: string;
 }

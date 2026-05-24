@@ -217,6 +217,8 @@ export interface Document {
   /** @nullable */
   projectName?: string | null;
   /** @nullable */
+  taskId?: number | null;
+  /** @nullable */
   folderId?: number | null;
   title: string;
   /** @nullable */
@@ -262,6 +264,8 @@ export interface DocumentFolder {
   id: number;
   /** @nullable */
   projectId?: number | null;
+  /** @nullable */
+  taskId?: number | null;
   /** @nullable */
   parentId?: number | null;
   name: string;
@@ -439,6 +443,31 @@ export interface TaskUpdate {
   category?: TaskUpdateCategory;
   dueDate?: string;
   completedAt?: string;
+  /** Optional note recorded with the change. When status changes, this becomes a status-change note. */
+  note?: string;
+  noteAuthorName?: string;
+}
+
+export interface TaskNote {
+  id: number;
+  taskId: number;
+  /** @nullable */
+  authorId?: number | null;
+  /** @nullable */
+  authorName?: string | null;
+  body: string;
+  /** @nullable */
+  statusBefore?: string | null;
+  /** @nullable */
+  statusAfter?: string | null;
+  createdAt: string;
+}
+
+export interface TaskNoteInput {
+  /** @minLength 1 */
+  body: string;
+  authorName?: string;
+  authorId?: number;
 }
 
 export interface Comment {
@@ -578,6 +607,7 @@ export const DocumentInputCategory = {
 
 export interface DocumentInput {
   projectId?: number;
+  taskId?: number;
   folderId?: number;
   /** @minLength 1 */
   title: string;
@@ -605,6 +635,8 @@ export const DocumentUpdateCategory = {
 export interface DocumentUpdate {
   projectId?: number;
   /** @nullable */
+  taskId?: number | null;
+  /** @nullable */
   folderId?: number | null;
   title?: string;
   description?: string;
@@ -617,6 +649,7 @@ export interface DocumentUpdate {
 
 export interface DocumentFolderInput {
   projectId?: number;
+  taskId?: number;
   parentId?: number;
   /** @minLength 1 */
   name: string;
@@ -662,6 +695,10 @@ milestoneId?: number;
 assigneeId?: number;
 status?: string;
 category?: string;
+/**
+ * Filter tasks attached to a parent task (reserved, unused)
+ */
+taskId?: number;
 };
 
 export type ListDocumentsParams = {
@@ -675,6 +712,10 @@ category?: string;
  * Filter to documents inside this folder (use 0 for root of the given scope)
  */
 folderId?: number;
+/**
+ * Filter to documents attached to a specific task
+ */
+taskId?: number;
 };
 
 export type ListFoldersParams = {
@@ -683,6 +724,10 @@ projectId?: number;
  * If true, return only global (non-project) folders
  */
 global?: boolean;
+/**
+ * Filter to folders attached to a specific task
+ */
+taskId?: number;
 };
 
 export type ListShareLinksParams = {

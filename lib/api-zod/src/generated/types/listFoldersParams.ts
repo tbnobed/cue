@@ -12,4 +12,8 @@ projectId?: number;
  * If true, return only global (non-project) folders
  */
 global?: boolean;
+/**
+ * Filter to folders attached to a specific task
+ */
+taskId?: number;
 };

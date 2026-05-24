@@ -6,10 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface DocumentFolderInput {
-  projectId?: number;
-  taskId?: number;
-  parentId?: number;
+export interface TaskNoteInput {
   /** @minLength 1 */
-  name: string;
+  body: string;
+  authorName?: string;
+  authorId?: number;
 }

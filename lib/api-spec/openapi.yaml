@@ -261,6 +261,11 @@ paths:
           in: query
           schema:
             type: string
+        - name: taskId
+          in: query
+          description: Filter tasks attached to a parent task (reserved, unused)
+          schema:
+            type: integer
       responses:
         "200":
           description: List of tasks
@@ -342,6 +347,50 @@ paths:
       responses:
         "204":
           description: Deleted
+
+  /tasks/{taskId}/notes:
+    get:
+      operationId: listTaskNotes
+      tags: [tasks]
+      summary: List notes (including status-change notes) for a task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskNote"
+    post:
+      operationId: createTaskNote
+      tags: [tasks]
+      summary: Add a note to a task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskNoteInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskNote"
 
   /tasks/upcoming:
     get:
@@ -528,6 +577,11 @@ paths:
           description: Filter to documents inside this folder (use 0 for root of the given scope)
           schema:
             type: integer
+        - name: taskId
+          in: query
+          description: Filter to documents attached to a specific task
+          schema:
+            type: integer
       responses:
         "200":
           description: Documents
@@ -609,6 +663,11 @@ paths:
           description: If true, return only global (non-project) folders
           schema:
             type: boolean
+        - name: taskId
+          in: query
+          description: Filter to folders attached to a specific task
+          schema:
+            type: integer
       responses:
         "200":
           description: Folders
@@ -979,6 +1038,29 @@ components:
         category:    { type: string, enum: [construction, electrical, av, it, network, acoustics, furnishing, signage, general] }
         dueDate:     { type: string }
         completedAt: { type: string }
+        note:        { type: string, description: "Optional note recorded with the change. When status changes, this becomes a status-change note." }
+        noteAuthorName: { type: string }
+
+    TaskNote:
+      type: object
+      required: [id, taskId, body, createdAt]
+      properties:
+        id:           { type: integer }
+        taskId:       { type: integer }
+        authorId:     { type: ["integer", "null"] }
+        authorName:   { type: ["string", "null"] }
+        body:         { type: string }
+        statusBefore: { type: ["string", "null"] }
+        statusAfter:  { type: ["string", "null"] }
+        createdAt:    { type: string }
+
+    TaskNoteInput:
+      type: object
+      required: [body]
+      properties:
+        body:         { type: string, minLength: 1 }
+        authorName:   { type: string }
+        authorId:     { type: integer }
 
     # ── Comment ─────────────────────────────────────────────────────────────
     Comment:
@@ -1079,6 +1161,7 @@ components:
         id:          { type: integer }
         projectId:    { type: ["integer", "null"] }
         projectName:  { type: ["string", "null"] }
+        taskId:      { type: ["integer", "null"] }
         folderId:    { type: ["integer", "null"] }
         title:       { type: string }
         description: { type: ["string", "null"] }
@@ -1095,6 +1178,7 @@ components:
       required: [title, category]
       properties:
         projectId:    { type: integer }
+        taskId:      { type: integer }
         folderId:    { type: integer }
         title:       { type: string, minLength: 1 }
         description: { type: string }
@@ -1108,6 +1192,7 @@ components:
       type: object
       properties:
         projectId:    { type: integer }
+        taskId:      { type: ["integer", "null"] }
         folderId:    { type: ["integer", "null"] }
         title:       { type: string }
         description: { type: string }
@@ -1123,6 +1208,7 @@ components:
       properties:
         id:        { type: integer }
         projectId: { type: ["integer", "null"] }
+        taskId:    { type: ["integer", "null"] }
         parentId:  { type: ["integer", "null"] }
         name:      { type: string }
         createdAt: { type: string }
@@ -1133,6 +1219,7 @@ components:
       required: [name]
       properties:
         projectId: { type: integer }
+        taskId:    { type: integer }
         parentId:  { type: integer }
         name:      { type: string, minLength: 1 }
 

@@ -51,9 +51,11 @@ router.get("/documents", async (req, res): Promise<void> => {
   const projectMap = Object.fromEntries(projects.map(s => [s.id, s.name]));
 
   let filtered = [...docs];
-  const { projectId, global: globalOnly, category, folderId } = req.query;
-  if (globalOnly === "true") filtered = filtered.filter(d => d.projectId === null);
-  else if (projectId !== undefined) filtered = filtered.filter(d => d.projectId === parseInt(String(projectId)));
+  const { projectId, global: globalOnly, category, folderId, taskId } = req.query;
+  if (taskId !== undefined) {
+    filtered = filtered.filter(d => d.taskId === parseInt(String(taskId)));
+  } else if (globalOnly === "true") filtered = filtered.filter(d => d.projectId === null && d.taskId === null);
+  else if (projectId !== undefined) filtered = filtered.filter(d => d.projectId === parseInt(String(projectId)) && d.taskId === null);
   if (category !== undefined) filtered = filtered.filter(d => d.category === String(category));
   if (folderId !== undefined) {
     const fid = parseInt(String(folderId));
@@ -70,15 +72,16 @@ router.post("/documents/upload", upload.single("file"), async (req, res): Promis
 
   const title = (req.body.title as string | undefined)?.trim() || req.file?.originalname || "Untitled";
   const projectId = req.body.projectId ? parseInt(req.body.projectId) : null;
+  const taskId = req.body.taskId ? parseInt(req.body.taskId) : null;
   const folderId = req.body.folderId ? parseInt(req.body.folderId) : null;
   const category = (req.body.category as string | undefined) || "general";
 
-  // Validate folder scope matches document scope (prevents cross-project linkage).
+  // Validate folder scope matches document scope (prevents cross-scope linkage).
   if (folderId !== null) {
     const [folder] = await db.select().from(documentFoldersTable).where(eq(documentFoldersTable.id, folderId));
     if (!folder) { res.status(400).json({ error: "Folder not found" }); return; }
-    if ((folder.projectId ?? null) !== (projectId ?? null)) {
-      res.status(400).json({ error: "Folder belongs to a different project scope" });
+    if ((folder.projectId ?? null) !== (projectId ?? null) || (folder.taskId ?? null) !== (taskId ?? null)) {
+      res.status(400).json({ error: "Folder belongs to a different scope" });
       return;
     }
   }
@@ -91,6 +94,7 @@ router.post("/documents/upload", upload.single("file"), async (req, res): Promis
   const [doc] = await db.insert(documentsTable).values({
     title,
     projectId: projectId ?? undefined,
+    taskId: taskId ?? undefined,
     folderId: folderId ?? undefined,
     category,
     url: fileUrl ?? undefined,
@@ -143,15 +147,17 @@ router.patch("/documents/:id", async (req, res): Promise<void> => {
   const parsed = UpdateDocumentBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  // Validate folder scope on move/reassign.
+  // Validate folder scope on move/reassign — must match BOTH projectId AND taskId of the doc.
   if (parsed.data.folderId !== undefined && parsed.data.folderId !== null) {
     const [existing] = await db.select().from(documentsTable).where(eq(documentsTable.id, id));
     if (!existing) { res.status(404).json({ error: "Not found" }); return; }
     const [folder] = await db.select().from(documentFoldersTable).where(eq(documentFoldersTable.id, parsed.data.folderId));
     if (!folder) { res.status(400).json({ error: "Folder not found" }); return; }
-    const newProjectId = parsed.data.projectId !== undefined ? parsed.data.projectId : existing.projectId;
-    if ((folder.projectId ?? null) !== (newProjectId ?? null)) {
-      res.status(400).json({ error: "Folder belongs to a different project scope" });
+    const data = parsed.data as { projectId?: number | null; taskId?: number | null };
+    const newProjectId = data.projectId !== undefined ? data.projectId : existing.projectId;
+    const newTaskId    = data.taskId    !== undefined ? data.taskId    : existing.taskId;
+    if ((folder.projectId ?? null) !== (newProjectId ?? null) || (folder.taskId ?? null) !== (newTaskId ?? null)) {
+      res.status(400).json({ error: "Folder belongs to a different scope" });
       return;
     }
   }
@@ -183,6 +189,7 @@ function fmt(d: typeof documentsTable.$inferSelect, projectMap: Record<number, s
     id: d.id,
     projectId: d.projectId ?? null,
     projectName: d.projectId ? (projectMap[d.projectId] ?? null) : null,
+    taskId: d.taskId ?? null,
     folderId: d.folderId ?? null,
     title: d.title,
     description: d.description ?? null,

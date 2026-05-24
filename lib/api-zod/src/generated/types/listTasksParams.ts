@@ -12,4 +12,8 @@ milestoneId?: number;
 assigneeId?: number;
 status?: string;
 category?: string;
+/**
+ * Filter tasks attached to a parent task (reserved, unused)
+ */
+taskId?: number;
 };

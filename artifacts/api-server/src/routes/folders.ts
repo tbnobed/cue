@@ -6,10 +6,11 @@ import { eq } from "drizzle-orm";
 const router = Router();
 
 router.get("/folders", async (req, res): Promise<void> => {
-  const { projectId, global: globalOnly } = req.query;
+  const { projectId, global: globalOnly, taskId } = req.query;
   let folders = await db.select().from(documentFoldersTable).orderBy(documentFoldersTable.name);
-  if (globalOnly === "true") folders = folders.filter(f => f.projectId === null);
-  else if (projectId !== undefined) folders = folders.filter(f => f.projectId === parseInt(String(projectId)));
+  if (taskId !== undefined) folders = folders.filter(f => f.taskId === parseInt(String(taskId)));
+  else if (globalOnly === "true") folders = folders.filter(f => f.projectId === null && f.taskId === null);
+  else if (projectId !== undefined) folders = folders.filter(f => f.projectId === parseInt(String(projectId)) && f.taskId === null);
   res.json(folders.map(fmt));
 });
 
@@ -17,17 +18,19 @@ router.post("/folders", async (req, res): Promise<void> => {
   const name = String(req.body?.name ?? "").trim();
   if (!name) { res.status(400).json({ error: "name required" }); return; }
   const projectId = req.body?.projectId != null ? Number(req.body.projectId) : null;
+  const taskId    = req.body?.taskId    != null ? Number(req.body.taskId)    : null;
   const parentId  = req.body?.parentId  != null ? Number(req.body.parentId)  : null;
   if (parentId != null) {
     const [parent] = await db.select().from(documentFoldersTable).where(eq(documentFoldersTable.id, parentId));
     if (!parent) { res.status(400).json({ error: "Parent folder not found" }); return; }
-    if ((parent.projectId ?? null) !== (projectId ?? null)) {
+    if ((parent.projectId ?? null) !== (projectId ?? null) || (parent.taskId ?? null) !== (taskId ?? null)) {
       res.status(400).json({ error: "Parent folder belongs to a different scope" });
       return;
     }
   }
   const [folder] = await db.insert(documentFoldersTable).values({
     projectId: projectId ?? undefined,
+    taskId: taskId ?? undefined,
     parentId: parentId ?? undefined,
     name,
   }).returning();
@@ -52,7 +55,7 @@ router.patch("/folders/:id", async (req, res): Promise<void> => {
       if (newParentId === id) { res.status(400).json({ error: "Folder cannot be its own parent" }); return; }
       const [parent] = await db.select().from(documentFoldersTable).where(eq(documentFoldersTable.id, newParentId));
       if (!parent) { res.status(400).json({ error: "Parent folder not found" }); return; }
-      if ((parent.projectId ?? null) !== (existing.projectId ?? null)) {
+      if ((parent.projectId ?? null) !== (existing.projectId ?? null) || (parent.taskId ?? null) !== (existing.taskId ?? null)) {
         res.status(400).json({ error: "Parent folder belongs to a different scope" });
         return;
       }
@@ -92,6 +95,7 @@ function fmt(f: typeof documentFoldersTable.$inferSelect) {
   return {
     id: f.id,
     projectId: f.projectId ?? null,
+    taskId: f.taskId ?? null,
     parentId: f.parentId ?? null,
     name: f.name,
     createdAt: f.createdAt.toISOString(),

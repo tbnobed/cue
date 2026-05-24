@@ -8,6 +8,7 @@ import {
   useUpdateTask,
   useDeleteTask,
   getListTasksQueryKey,
+  getListTaskNotesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -69,6 +70,8 @@ export default function Tasks() {
   // null = create mode, number = edit mode (task id being edited)
   const [editingId, setEditingId] = useState<number | null>(null);
   const [detailTask, setDetailTask] = useState<any | null>(null);
+  const [statusChange, setStatusChange] = useState<{ taskId: number; from: string; to: string } | null>(null);
+  const [statusNote, setStatusNote] = useState("");
   const [form, setForm] = useState({
     title: "", description: "", projectId: "", milestoneId: "", assigneeId: "",
     status: "todo", priority: "medium", category: "general", dueDate: "",
@@ -164,12 +167,27 @@ export default function Tasks() {
     }
   }
 
-  async function handleStatusChange(taskId: number, status: string) {
+  function handleStatusChange(taskId: number, status: string) {
+    const current = tasks?.find(t => t.id === taskId);
+    if (!current || current.status === status) return;
+    setStatusChange({ taskId, from: current.status, to: status });
+    setStatusNote("");
+  }
+
+  async function confirmStatusChange(withNote: boolean) {
+    if (!statusChange) return;
+    const payload: any = { status: statusChange.to };
+    if (withNote && statusNote.trim()) payload.note = statusNote.trim();
     try {
-      await updateMutation.mutateAsync({ id: taskId, data: { status: status as any } });
+      await updateMutation.mutateAsync({ id: statusChange.taskId, data: payload });
       invalidate();
+      // Status change writes a server-side note; refresh the Notes tab if it's open.
+      queryClient.invalidateQueries({ queryKey: getListTaskNotesQueryKey(statusChange.taskId) });
     } catch {
       toast({ title: "Failed to update status", variant: "destructive" });
+    } finally {
+      setStatusChange(null);
+      setStatusNote("");
     }
   }
 
@@ -345,6 +363,47 @@ export default function Tasks() {
           </AnimatePresence>
         </div>
       )}
+
+      {/* Status change confirmation with optional note */}
+      <Dialog open={!!statusChange} onOpenChange={o => { if (!o) { setStatusChange(null); setStatusNote(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change status?</DialogTitle>
+          </DialogHeader>
+          {statusChange && (
+            <div className="space-y-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                <span className="capitalize text-foreground/80">{statusChange.from.replace("_", " ")}</span>
+                {" → "}
+                <span className="capitalize text-foreground/80">{statusChange.to.replace("_", " ")}</span>
+              </p>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Note (optional)</Label>
+                <Textarea
+                  value={statusNote}
+                  onChange={e => setStatusNote(e.target.value)}
+                  placeholder="Why is this status changing?"
+                  className="resize-none h-24"
+                  data-testid="textarea-status-change-note"
+                  autoFocus
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => { setStatusChange(null); setStatusNote(""); }}>Cancel</Button>
+            <Button
+              onClick={() => confirmStatusChange(true)}
+              disabled={updateMutation.isPending}
+              className="gap-2"
+              data-testid="button-confirm-status-change"
+            >
+              {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              {statusNote.trim() ? "Update with note" : "Update status"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Task detail dialog (read view, opens on row click) */}
       <TaskDetailDialog

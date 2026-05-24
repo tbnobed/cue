@@ -62,6 +62,8 @@ export * from './taskInput';
 export * from './taskInputCategory';
 export * from './taskInputPriority';
 export * from './taskInputStatus';
+export * from './taskNote';
+export * from './taskNoteInput';
 export * from './taskPriority';
 export * from './taskStatus';
 export * from './taskUpdate';

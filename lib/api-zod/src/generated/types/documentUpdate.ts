@@ -10,6 +10,8 @@ import type { DocumentUpdateCategory } from './documentUpdateCategory';
 export interface DocumentUpdate {
   projectId?: number;
   /** @nullable */
+  taskId?: number | null;
+  /** @nullable */
   folderId?: number | null;
   title?: string;
   description?: string;

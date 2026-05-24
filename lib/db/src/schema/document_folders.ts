@@ -5,6 +5,7 @@ import { z } from "zod/v4";
 export const documentFoldersTable = pgTable("document_folders", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id"),
+  taskId: integer("task_id"),
   parentId: integer("parent_id").references((): AnyPgColumn => documentFoldersTable.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -231,7 +231,8 @@ export const ListTasksQueryParams = zod.object({
   "milestoneId": zod.coerce.number().optional(),
   "assigneeId": zod.coerce.number().optional(),
   "status": zod.coerce.string().optional(),
-  "category": zod.coerce.string().optional()
+  "category": zod.coerce.string().optional(),
+  "taskId": zod.coerce.number().optional().describe('Filter tasks attached to a parent task (reserved, unused)')
 })
 
 export const ListTasksResponseItem = zod.object({
@@ -317,7 +318,9 @@ export const UpdateTaskBody = zod.object({
   "priority": zod.enum(['low', 'medium', 'high', 'critical']).optional(),
   "category": zod.enum(['construction', 'electrical', 'av', 'it', 'network', 'acoustics', 'furnishing', 'signage', 'general']).optional(),
   "dueDate": zod.string().optional(),
-  "completedAt": zod.string().optional()
+  "completedAt": zod.string().optional(),
+  "note": zod.string().optional().describe('Optional note recorded with the change. When status changes, this becomes a status-change note.'),
+  "noteAuthorName": zod.string().optional()
 })
 
 export const UpdateTaskResponse = zod.object({
@@ -345,6 +348,43 @@ export const UpdateTaskResponse = zod.object({
  */
 export const DeleteTaskParams = zod.object({
   "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary List notes (including status-change notes) for a task
+ */
+export const ListTaskNotesParams = zod.object({
+  "taskId": zod.coerce.number()
+})
+
+export const ListTaskNotesResponseItem = zod.object({
+  "id": zod.number(),
+  "taskId": zod.number(),
+  "authorId": zod.number().nullish(),
+  "authorName": zod.string().nullish(),
+  "body": zod.string(),
+  "statusBefore": zod.string().nullish(),
+  "statusAfter": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const ListTaskNotesResponse = zod.array(ListTaskNotesResponseItem)
+
+
+/**
+ * @summary Add a note to a task
+ */
+export const CreateTaskNoteParams = zod.object({
+  "taskId": zod.coerce.number()
+})
+
+
+
+
+export const CreateTaskNoteBody = zod.object({
+  "body": zod.string().min(1),
+  "authorName": zod.string().optional(),
+  "authorId": zod.number().optional()
 })
 
 
@@ -515,13 +555,15 @@ export const ListDocumentsQueryParams = zod.object({
   "projectId": zod.coerce.number().optional(),
   "global": zod.coerce.boolean().optional().describe('If true, return only global (non-project) documents'),
   "category": zod.coerce.string().optional(),
-  "folderId": zod.coerce.number().optional().describe('Filter to documents inside this folder (use 0 for root of the given scope)')
+  "folderId": zod.coerce.number().optional().describe('Filter to documents inside this folder (use 0 for root of the given scope)'),
+  "taskId": zod.coerce.number().optional().describe('Filter to documents attached to a specific task')
 })
 
 export const ListDocumentsResponseItem = zod.object({
   "id": zod.number(),
   "projectId": zod.number().nullish(),
   "projectName": zod.string().nullish(),
+  "taskId": zod.number().nullish(),
   "folderId": zod.number().nullish(),
   "title": zod.string(),
   "description": zod.string().nullish(),
@@ -544,6 +586,7 @@ export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem)
 
 export const CreateDocumentBody = zod.object({
   "projectId": zod.number().optional(),
+  "taskId": zod.number().optional(),
   "folderId": zod.number().optional(),
   "title": zod.string().min(1),
   "description": zod.string().optional(),
@@ -564,6 +607,7 @@ export const UpdateDocumentParams = zod.object({
 
 export const UpdateDocumentBody = zod.object({
   "projectId": zod.number().optional(),
+  "taskId": zod.number().nullish(),
   "folderId": zod.number().nullish(),
   "title": zod.string().optional(),
   "description": zod.string().optional(),
@@ -578,6 +622,7 @@ export const UpdateDocumentResponse = zod.object({
   "id": zod.number(),
   "projectId": zod.number().nullish(),
   "projectName": zod.string().nullish(),
+  "taskId": zod.number().nullish(),
   "folderId": zod.number().nullish(),
   "title": zod.string(),
   "description": zod.string().nullish(),
@@ -604,12 +649,14 @@ export const DeleteDocumentParams = zod.object({
  */
 export const ListFoldersQueryParams = zod.object({
   "projectId": zod.coerce.number().optional(),
-  "global": zod.coerce.boolean().optional().describe('If true, return only global (non-project) folders')
+  "global": zod.coerce.boolean().optional().describe('If true, return only global (non-project) folders'),
+  "taskId": zod.coerce.number().optional().describe('Filter to folders attached to a specific task')
 })
 
 export const ListFoldersResponseItem = zod.object({
   "id": zod.number(),
   "projectId": zod.number().nullish(),
+  "taskId": zod.number().nullish(),
   "parentId": zod.number().nullish(),
   "name": zod.string(),
   "createdAt": zod.string(),
@@ -626,6 +673,7 @@ export const ListFoldersResponse = zod.array(ListFoldersResponseItem)
 
 export const CreateFolderBody = zod.object({
   "projectId": zod.number().optional(),
+  "taskId": zod.number().optional(),
   "parentId": zod.number().optional(),
   "name": zod.string().min(1)
 })
@@ -649,6 +697,7 @@ export const UpdateFolderBody = zod.object({
 export const UpdateFolderResponse = zod.object({
   "id": zod.number(),
   "projectId": zod.number().nullish(),
+  "taskId": zod.number().nullish(),
   "parentId": zod.number().nullish(),
   "name": zod.string(),
   "createdAt": zod.string(),
@@ -770,6 +819,7 @@ export const GetPublicShareResponse = zod.object({
   "id": zod.number(),
   "projectId": zod.number().nullish(),
   "projectName": zod.string().nullish(),
+  "taskId": zod.number().nullish(),
   "folderId": zod.number().nullish(),
   "title": zod.string(),
   "description": zod.string().nullish(),
@@ -814,6 +864,7 @@ export const GetPublicShareResponse = zod.object({
   "id": zod.number(),
   "projectId": zod.number().nullish(),
   "projectName": zod.string().nullish(),
+  "taskId": zod.number().nullish(),
   "folderId": zod.number().nullish(),
   "title": zod.string(),
   "description": zod.string().nullish(),
@@ -828,6 +879,7 @@ export const GetPublicShareResponse = zod.object({
   "folders": zod.array(zod.object({
   "id": zod.number(),
   "projectId": zod.number().nullish(),
+  "taskId": zod.number().nullish(),
   "parentId": zod.number().nullish(),
   "name": zod.string(),
   "createdAt": zod.string(),

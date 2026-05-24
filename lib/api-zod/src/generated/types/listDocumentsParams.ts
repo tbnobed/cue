@@ -17,4 +17,8 @@ category?: string;
  * Filter to documents inside this folder (use 0 for root of the given scope)
  */
 folderId?: number;
+/**
+ * Filter to documents attached to a specific task
+ */
+taskId?: number;
 };

@@ -6,15 +6,17 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface DocumentFolder {
+export interface TaskNote {
   id: number;
+  taskId: number;
   /** @nullable */
-  projectId?: number | null;
+  authorId?: number | null;
   /** @nullable */
-  taskId?: number | null;
+  authorName?: string | null;
+  body: string;
   /** @nullable */
-  parentId?: number | null;
-  name: string;
+  statusBefore?: string | null;
+  /** @nullable */
+  statusAfter?: string | null;
   createdAt: string;
-  updatedAt?: string;
 }

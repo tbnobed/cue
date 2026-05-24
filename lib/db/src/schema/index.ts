@@ -3,6 +3,7 @@ export * from "./projects";
 export * from "./milestones";
 export * from "./members";
 export * from "./tasks";
+export * from "./task_notes";
 export * from "./comments";
 export * from "./activity";
 export * from "./documents";

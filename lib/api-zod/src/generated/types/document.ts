@@ -14,6 +14,8 @@ export interface Document {
   /** @nullable */
   projectName?: string | null;
   /** @nullable */
+  taskId?: number | null;
+  /** @nullable */
   folderId?: number | null;
   title: string;
   /** @nullable */

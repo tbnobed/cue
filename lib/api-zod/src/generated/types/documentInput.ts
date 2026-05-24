@@ -9,6 +9,7 @@ import type { DocumentInputCategory } from './documentInputCategory';
 
 export interface DocumentInput {
   projectId?: number;
+  taskId?: number;
   folderId?: number;
   /** @minLength 1 */
   title: string;
