@@ -87,6 +87,24 @@ export default function Documents() {
     invalidate();
   }
 
+  async function handleMoveDoc(docId: number, patch: { projectId: number | null }) {
+    try {
+      const res = await fetch(`/api/documents/${docId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...patch, taskId: null, folderId: null }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast({ title: j.error || "Failed to move document", variant: "destructive" });
+        return;
+      }
+      invalidate();
+    } catch (err: any) {
+      toast({ title: err?.message || "Failed to move document", variant: "destructive" });
+    }
+  }
+
   const filtered = (allDocs ?? []).filter(d => {
     if (filterCategory && d.category !== filterCategory) return false;
     if (filterStudio === "__global__" && d.projectId !== null) return false;
@@ -232,6 +250,8 @@ export default function Documents() {
               docs={globalDocs}
               collaboraEnabled={collaboraEnabled}
               onDelete={handleDelete}
+              dropProjectId={null}
+              onDropMove={handleMoveDoc}
             />
           )}
 
@@ -246,6 +266,8 @@ export default function Documents() {
                 docs={docs}
                 collaboraEnabled={collaboraEnabled}
                 onDelete={handleDelete}
+                dropProjectId={parseInt(sid)}
+                onDropMove={handleMoveDoc}
               />
             )
           ))}
@@ -265,6 +287,7 @@ type Doc = { id: number; title: string; url?: string | null; category: string; u
 
 function DocSection({
   icon, title, accent, count, emptyMessage, docs, collaboraEnabled, onDelete,
+  dropProjectId, onDropMove,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -274,13 +297,46 @@ function DocSection({
   docs: Doc[];
   collaboraEnabled: boolean;
   onDelete: (id: number) => void;
+  dropProjectId: number | null;
+  onDropMove: (docId: number, patch: { projectId: number | null }) => void;
 }) {
+  const [dragOver, setDragOver] = useState(false);
+
+  function handleDragOver(e: React.DragEvent) {
+    if (!e.dataTransfer.types.includes("application/x-doc-id")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (!dragOver) setDragOver(true);
+  }
+  function handleDragLeave(e: React.DragEvent) {
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setDragOver(false);
+  }
+  function handleDrop(e: React.DragEvent) {
+    const idStr = e.dataTransfer.getData("application/x-doc-id");
+    setDragOver(false);
+    if (!idStr) return;
+    e.preventDefault();
+    const id = parseInt(idStr);
+    if (!Number.isFinite(id)) return;
+    const droppedFromProject = e.dataTransfer.getData("application/x-doc-project");
+    const fromProjectId = droppedFromProject === "" ? null : parseInt(droppedFromProject);
+    if (fromProjectId === dropProjectId) return;
+    onDropMove(id, { projectId: dropProjectId });
+  }
+
   return (
-    <section>
+    <section
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`rounded-2xl transition-colors ${dragOver ? "ring-2 ring-primary/60 bg-primary/[0.04] -m-1 p-1" : ""}`}
+    >
       <div className="flex items-center gap-2 mb-3 px-1">
         <span className={accent}>{icon}</span>
         <h2 className={`text-[12px] font-mono uppercase tracking-[0.18em] ${accent}`}>{title}</h2>
         <span className="text-[10px] text-muted-foreground font-mono tabular-nums">({count})</span>
+        {dragOver && <span className="text-[10px] font-mono text-primary/80 ml-2">Drop to move here</span>}
       </div>
       {docs.length === 0 && emptyMessage ? (
         <div className="border border-dashed border-border/70 rounded-2xl p-8 text-center text-muted-foreground text-sm font-mono">
@@ -326,6 +382,7 @@ const COLLABORA_EXTS = new Set([
 
 function DocTile({ doc, idx, collaboraEnabled, onDelete }: { doc: Doc; idx: number; collaboraEnabled: boolean; onDelete: () => void }) {
   const [, navigate] = useLocation();
+  const [dragging, setDragging] = useState(false);
   const cat = doc.category as DocCategory;
   const tone = CATEGORY_TONE[cat] ?? CATEGORY_TONE.general;
   const isLink = !!doc.url && /^https?:\/\//i.test(doc.url);
@@ -361,7 +418,15 @@ function DocTile({ doc, idx, collaboraEnabled, onDelete }: { doc: Doc; idx: numb
         isLink
           ? "border-dashed border-sky-500/40 hover:border-sky-500/70 bg-sky-500/[0.03]"
           : "border-border/70 hover:border-border"
-      }`}
+      } ${dragging ? "opacity-40" : ""}`}
+      draggable
+      onDragStart={((e: React.DragEvent) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("application/x-doc-id", String(doc.id));
+        e.dataTransfer.setData("application/x-doc-project", doc.projectId == null ? "" : String(doc.projectId));
+        setDragging(true);
+      }) as any}
+      onDragEnd={() => setDragging(false)}
       onClick={handleOpen}
       onDoubleClick={handleOpen}
       title={isLink ? `${doc.title}\n${doc.url}` : doc.title}

@@ -1132,6 +1132,27 @@ function DocumentsTab({ projectId }: { projectId: number }) {
   function goAllDocuments() { setCurrentTaskId(null); setCurrentFolderId(null); }
   function goTaskRoot()     { setCurrentFolderId(null); }
 
+  async function handleMoveDoc(
+    docId: number,
+    patch: { folderId: number | null; projectId?: number | null; taskId?: number | null },
+  ) {
+    try {
+      const res = await fetch(`/api/documents/${docId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast({ title: j.error || "Failed to move document", variant: "destructive" });
+        return;
+      }
+      invalidate();
+    } catch (err: any) {
+      toast({ title: err?.message || "Failed to move document", variant: "destructive" });
+    }
+  }
+
   function invalidate() {
     qc.invalidateQueries({ queryKey: getListDocumentsQueryKey() });
     qc.invalidateQueries({ queryKey: getListFoldersQueryKey() });
@@ -1213,15 +1234,18 @@ function DocumentsTab({ projectId }: { projectId: number }) {
             <FolderPlus className="w-3.5 h-3.5" />
           </Button>
         </div>
-        <button
+        <DocDropZone
+          as="button"
+          onDropDoc={(id) => handleMoveDoc(id, { projectId, taskId: null, folderId: null })}
           onClick={goAllDocuments}
           className={`w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 text-sm transition-colors ${
             currentTaskId == null && currentFolderId === null ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
           }`}
+          dragOverClassName="ring-2 ring-primary/60 bg-primary/[0.06]"
         >
           <Home className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">All Documents</span>
-        </button>
+        </DocDropZone>
         {foldersLoading ? (
           <Skeleton className="h-16 w-full rounded-md mt-2" />
         ) : tree.length === 0 ? (
@@ -1240,6 +1264,7 @@ function DocumentsTab({ projectId }: { projectId: number }) {
                 currentId={currentFolderId}
                 onSelect={setCurrentFolderId}
                 onDelete={handleDeleteFolder}
+                onDropDoc={(docId, folderId) => handleMoveDoc(docId, { folderId, projectId, taskId: currentTaskId })}
               />
             ))}
           </div>
@@ -1253,17 +1278,20 @@ function DocumentsTab({ projectId }: { projectId: number }) {
             </div>
             <div className="space-y-0.5">
               {taskFolderEntries.map(t => (
-                <button
+                <DocDropZone
+                  as="button"
                   key={`task-${t.id}`}
+                  onDropDoc={(id) => handleMoveDoc(id, { projectId: null, taskId: t.id, folderId: null })}
                   onClick={() => { setCurrentTaskId(t.id); setCurrentFolderId(null); }}
                   className="w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 text-sm transition-colors hover:bg-background/60 text-foreground/80"
+                  dragOverClassName="ring-2 ring-primary/60 bg-primary/[0.06]"
                   data-testid={`button-task-folder-${t.id}`}
                   title={`Documents attached to task: ${t.name}`}
                 >
                   <ListChecks className="w-3.5 h-3.5 shrink-0 text-amber-400" />
                   <span className="truncate flex-1">Task: "{t.name}"</span>
                   <span className="text-[10px] font-mono text-muted-foreground tabular-nums shrink-0">{t.count}</span>
-                </button>
+                </DocDropZone>
               ))}
             </div>
           </>
@@ -1273,15 +1301,18 @@ function DocumentsTab({ projectId }: { projectId: number }) {
             <div className="mt-3 px-2 py-1.5 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
               Task Attachments
             </div>
-            <button
+            <DocDropZone
+              as="button"
+              onDropDoc={(id) => handleMoveDoc(id, { projectId: null, taskId: currentTaskId, folderId: null })}
               onClick={goTaskRoot}
               className={`w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 text-sm transition-colors ${
                 currentFolderId == null ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
               }`}
+              dragOverClassName="ring-2 ring-primary/60 bg-primary/[0.06]"
             >
               <ListChecks className="w-3.5 h-3.5 shrink-0 text-amber-400" />
               <span className="truncate">Task: "{currentTaskName}"</span>
-            </button>
+            </DocDropZone>
           </>
         )}
       </div>
@@ -1291,21 +1322,31 @@ function DocumentsTab({ projectId }: { projectId: number }) {
         {/* Breadcrumbs + actions */}
         <div className="flex flex-wrap gap-3 items-center justify-between">
           <div className="flex items-center gap-1 flex-wrap text-sm">
-            {breadcrumbs.map((b, i) => (
-              <span key={`${b.id ?? (b.taskScope ? "task" : "root")}-${i}`} className="flex items-center gap-1">
-                {i > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
-                <button
-                  onClick={() => {
-                    if (i === 0) { goAllDocuments(); return; }
-                    if (b.taskScope) { goTaskRoot(); return; }
-                    setCurrentFolderId(b.id);
-                  }}
-                  className={`hover:text-primary transition-colors ${i === breadcrumbs.length - 1 ? "text-foreground font-medium" : "text-muted-foreground"}`}
-                >
-                  {b.name}
-                </button>
-              </span>
-            ))}
+            {breadcrumbs.map((b, i) => {
+              const targetPatch = (() => {
+                if (i === 0) return { projectId, taskId: null, folderId: null };
+                if (b.taskScope) return { projectId: null, taskId: currentTaskId, folderId: null };
+                return { projectId: currentTaskId == null ? projectId : null, taskId: currentTaskId, folderId: b.id ?? null };
+              })();
+              return (
+                <span key={`${b.id ?? (b.taskScope ? "task" : "root")}-${i}`} className="flex items-center gap-1">
+                  {i > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
+                  <DocDropZone
+                    as="button"
+                    onDropDoc={(id) => handleMoveDoc(id, targetPatch)}
+                    onClick={() => {
+                      if (i === 0) { goAllDocuments(); return; }
+                      if (b.taskScope) { goTaskRoot(); return; }
+                      setCurrentFolderId(b.id);
+                    }}
+                    className={`px-1.5 py-0.5 rounded transition-colors ${i === breadcrumbs.length - 1 ? "text-foreground font-medium hover:text-primary" : "text-muted-foreground hover:text-primary"}`}
+                    dragOverClassName="ring-2 ring-primary/60 bg-primary/[0.08] text-primary"
+                  >
+                    {b.name}
+                  </DocDropZone>
+                </span>
+              );
+            })}
           </div>
           <div className="flex items-center gap-2">
             <Select value={uploadCategory} onValueChange={setUploadCategory}>
@@ -1415,21 +1456,48 @@ function DocumentsTab({ projectId }: { projectId: number }) {
 }
 
 function FolderTreeItem({
-  node, depth, currentId, onSelect, onDelete,
+  node, depth, currentId, onSelect, onDelete, onDropDoc,
 }: {
   node: FolderNode;
   depth: number;
   currentId: number | null;
   onSelect: (id: number) => void;
   onDelete: (id: number) => void;
+  onDropDoc: (docId: number, folderId: number) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [dragOver, setDragOver] = useState(false);
   const isActive = currentId === node.id;
+
+  function handleDragOver(e: React.DragEvent) {
+    if (!e.dataTransfer.types.includes("application/x-doc-id")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (!dragOver) setDragOver(true);
+  }
+  function handleDragLeave(e: React.DragEvent) {
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setDragOver(false);
+  }
+  function handleDrop(e: React.DragEvent) {
+    const idStr = e.dataTransfer.getData("application/x-doc-id");
+    setDragOver(false);
+    if (!idStr) return;
+    e.preventDefault();
+    const id = parseInt(idStr);
+    if (Number.isFinite(id)) onDropDoc(id, node.id);
+  }
+
   return (
     <div>
       <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         className={`group flex items-center gap-1 rounded-md text-sm transition-colors ${
-          isActive ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
+          dragOver
+            ? "ring-2 ring-primary/60 bg-primary/[0.08]"
+            : isActive ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
         }`}
         style={{ paddingLeft: `${depth * 12 + 4}px` }}
       >
@@ -1453,10 +1521,60 @@ function FolderTreeItem({
       {expanded && node.children.length > 0 && (
         <div>
           {node.children.map(c => (
-            <FolderTreeItem key={c.id} node={c} depth={depth + 1} currentId={currentId} onSelect={onSelect} onDelete={onDelete} />
+            <FolderTreeItem key={c.id} node={c} depth={depth + 1} currentId={currentId} onSelect={onSelect} onDelete={onDelete} onDropDoc={onDropDoc} />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function DocDropZone({
+  as: _as = "div",
+  onDropDoc,
+  className = "",
+  dragOverClassName = "",
+  children,
+  ...rest
+}: {
+  as?: "button" | "div";
+  onDropDoc: (docId: number) => void;
+  className?: string;
+  dragOverClassName?: string;
+  children: React.ReactNode;
+} & React.HTMLAttributes<HTMLElement>) {
+  const [dragOver, setDragOver] = useState(false);
+  const handlers = {
+    onDragOver: (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes("application/x-doc-id")) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      if (!dragOver) setDragOver(true);
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+      setDragOver(false);
+    },
+    onDrop: (e: React.DragEvent) => {
+      const idStr = e.dataTransfer.getData("application/x-doc-id");
+      setDragOver(false);
+      if (!idStr) return;
+      e.preventDefault();
+      const id = parseInt(idStr);
+      if (Number.isFinite(id)) onDropDoc(id);
+    },
+  };
+  const cls = `${className} ${dragOver ? dragOverClassName : ""}`;
+  if (_as === "button") {
+    return (
+      <button {...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)} {...handlers} className={cls}>
+        {children}
+      </button>
+    );
+  }
+  return (
+    <div {...rest} {...handlers} className={cls}>
+      {children}
     </div>
   );
 }
@@ -1484,6 +1602,7 @@ function DocTile({
   collaboraEnabled: boolean;
   onDelete: () => void;
 }) {
+  const [dragging, setDragging] = useState(false);
   const [, navigate] = useLocation();
   void navigate;
   const tone = CATEGORY_TONE[doc.category] ?? CATEGORY_TONE.general;
@@ -1519,7 +1638,14 @@ function DocTile({
         isLink
           ? "border-dashed border-sky-500/40 hover:border-sky-500/70 bg-sky-500/[0.03]"
           : "border-border/70 hover:border-border"
-      }`}
+      } ${dragging ? "opacity-40" : ""}`}
+      draggable
+      onDragStart={((e: React.DragEvent) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("application/x-doc-id", String(doc.id));
+        setDragging(true);
+      }) as any}
+      onDragEnd={() => setDragging(false)}
       onDoubleClick={handleOpen}
       onClick={handleOpen}
       title={isLink ? `${doc.title}\n${doc.url}` : doc.title}
