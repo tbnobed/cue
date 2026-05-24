@@ -14,4 +14,10 @@ export interface MemberInput {
   role: MemberInputRole;
   department?: string;
   avatarUrl?: string;
+  title?: string;
+  phone?: string;
+  mobilePhone?: string;
+  location?: string;
+  company?: string;
+  notes?: string;
 }

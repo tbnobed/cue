@@ -9,6 +9,13 @@ export const membersTable = pgTable("members", {
   role: text("role").notNull().default("engineer"),
   department: text("department"),
   avatarUrl: text("avatar_url"),
+  // Extended contact info
+  title: text("title"),
+  phone: text("phone"),
+  mobilePhone: text("mobile_phone"),
+  location: text("location"),
+  company: text("company"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

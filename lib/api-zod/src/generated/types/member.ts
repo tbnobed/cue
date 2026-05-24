@@ -17,5 +17,29 @@ export interface Member {
   department?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  /**
+     * Job title, e.g. 'Senior AV Engineer'.
+     * @nullable
+     */
+  title?: string | null;
+  /**
+     * Office or main phone.
+     * @nullable
+     */
+  phone?: string | null;
+  /** @nullable */
+  mobilePhone?: string | null;
+  /**
+     * City, timezone, or site assignment.
+     * @nullable
+     */
+  location?: string | null;
+  /**
+     * External company, for contractors/integrators.
+     * @nullable
+     */
+  company?: string | null;
+  /** @nullable */
+  notes?: string | null;
   createdAt: string;
 }

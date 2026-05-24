@@ -466,6 +466,12 @@ export const ListMembersResponseItem = zod.object({
   "role": zod.enum(['producer', 'engineer', 'it', 'integrator', 'manager', 'contractor']),
   "department": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "title": zod.string().nullish().describe('Job title, e.g. \'Senior AV Engineer\'.'),
+  "phone": zod.string().nullish().describe('Office or main phone.'),
+  "mobilePhone": zod.string().nullish(),
+  "location": zod.string().nullish().describe('City, timezone, or site assignment.'),
+  "company": zod.string().nullish().describe('External company, for contractors\/integrators.'),
+  "notes": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListMembersResponse = zod.array(ListMembersResponseItem)
@@ -482,7 +488,13 @@ export const CreateMemberBody = zod.object({
   "email": zod.string().optional(),
   "role": zod.enum(['producer', 'engineer', 'it', 'integrator', 'manager', 'contractor']),
   "department": zod.string().optional(),
-  "avatarUrl": zod.string().optional()
+  "avatarUrl": zod.string().optional(),
+  "title": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "mobilePhone": zod.string().optional(),
+  "location": zod.string().optional(),
+  "company": zod.string().optional(),
+  "notes": zod.string().optional()
 })
 
 
@@ -495,11 +507,17 @@ export const UpdateMemberParams = zod.object({
 
 export const UpdateMemberBody = zod.object({
   "name": zod.string().optional(),
-  "email": zod.string().optional(),
   "role": zod.enum(['producer', 'engineer', 'it', 'integrator', 'manager', 'contractor']).optional(),
-  "department": zod.string().optional(),
-  "avatarUrl": zod.string().optional()
-})
+  "email": zod.string().nullish(),
+  "department": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "title": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "mobilePhone": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "company": zod.string().nullish(),
+  "notes": zod.string().nullish()
+}).describe('Partial update. Send `null` for an optional field to clear it; omit to leave unchanged.')
 
 export const UpdateMemberResponse = zod.object({
   "id": zod.number(),
@@ -508,6 +526,12 @@ export const UpdateMemberResponse = zod.object({
   "role": zod.enum(['producer', 'engineer', 'it', 'integrator', 'manager', 'contractor']),
   "department": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "title": zod.string().nullish().describe('Job title, e.g. \'Senior AV Engineer\'.'),
+  "phone": zod.string().nullish().describe('Office or main phone.'),
+  "mobilePhone": zod.string().nullish(),
+  "location": zod.string().nullish().describe('City, timezone, or site assignment.'),
+  "company": zod.string().nullish().describe('External company, for contractors\/integrators.'),
+  "notes": zod.string().nullish(),
   "createdAt": zod.string()
 })
 

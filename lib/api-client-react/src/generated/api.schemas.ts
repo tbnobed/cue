@@ -521,6 +521,30 @@ export interface Member {
   department?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  /**
+     * Job title, e.g. 'Senior AV Engineer'.
+     * @nullable
+     */
+  title?: string | null;
+  /**
+     * Office or main phone.
+     * @nullable
+     */
+  phone?: string | null;
+  /** @nullable */
+  mobilePhone?: string | null;
+  /**
+     * City, timezone, or site assignment.
+     * @nullable
+     */
+  location?: string | null;
+  /**
+     * External company, for contractors/integrators.
+     * @nullable
+     */
+  company?: string | null;
+  /** @nullable */
+  notes?: string | null;
   createdAt: string;
 }
 
@@ -543,6 +567,12 @@ export interface MemberInput {
   role: MemberInputRole;
   department?: string;
   avatarUrl?: string;
+  title?: string;
+  phone?: string;
+  mobilePhone?: string;
+  location?: string;
+  company?: string;
+  notes?: string;
 }
 
 export type MemberUpdateRole = typeof MemberUpdateRole[keyof typeof MemberUpdateRole];
@@ -557,12 +587,30 @@ export const MemberUpdateRole = {
   contractor: 'contractor',
 } as const;
 
+/**
+ * Partial update. Send `null` for an optional field to clear it; omit to leave unchanged.
+ */
 export interface MemberUpdate {
   name?: string;
-  email?: string;
   role?: MemberUpdateRole;
-  department?: string;
-  avatarUrl?: string;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  department?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  mobilePhone?: string | null;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  company?: string | null;
+  /** @nullable */
+  notes?: string | null;
 }
 
 export interface ProjectMember {

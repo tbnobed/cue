@@ -46,6 +46,12 @@ function fmt(m: typeof membersTable.$inferSelect) {
     role: m.role,
     department: m.department ?? null,
     avatarUrl: m.avatarUrl ?? null,
+    title: m.title ?? null,
+    phone: m.phone ?? null,
+    mobilePhone: m.mobilePhone ?? null,
+    location: m.location ?? null,
+    company: m.company ?? null,
+    notes: m.notes ?? null,
     createdAt: m.createdAt.toISOString(),
   };
 }

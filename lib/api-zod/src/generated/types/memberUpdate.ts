@@ -7,10 +7,28 @@
  */
 import type { MemberUpdateRole } from './memberUpdateRole';
 
+/**
+ * Partial update. Send `null` for an optional field to clear it; omit to leave unchanged.
+ */
 export interface MemberUpdate {
   name?: string;
-  email?: string;
   role?: MemberUpdateRole;
-  department?: string;
-  avatarUrl?: string;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  department?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  mobilePhone?: string | null;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  company?: string | null;
+  /** @nullable */
+  notes?: string | null;
 }

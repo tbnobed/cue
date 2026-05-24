@@ -1175,32 +1175,51 @@ components:
       type: object
       required: [id, name, role, createdAt]
       properties:
-        id:         { type: integer }
-        name:       { type: string }
-        email:      { type: ["string", "null"] }
-        role:       { type: string, enum: [producer, engineer, it, integrator, manager, contractor] }
-        department: { type: ["string", "null"] }
-        avatarUrl:  { type: ["string", "null"] }
-        createdAt:  { type: string }
+        id:           { type: integer }
+        name:         { type: string }
+        email:        { type: ["string", "null"] }
+        role:         { type: string, enum: [producer, engineer, it, integrator, manager, contractor] }
+        department:   { type: ["string", "null"] }
+        avatarUrl:    { type: ["string", "null"] }
+        title:        { type: ["string", "null"], description: "Job title, e.g. 'Senior AV Engineer'." }
+        phone:        { type: ["string", "null"], description: "Office or main phone." }
+        mobilePhone:  { type: ["string", "null"] }
+        location:     { type: ["string", "null"], description: "City, timezone, or site assignment." }
+        company:      { type: ["string", "null"], description: "External company, for contractors/integrators." }
+        notes:        { type: ["string", "null"] }
+        createdAt:    { type: string }
 
     MemberInput:
       type: object
       required: [name, role]
       properties:
-        name:       { type: string, minLength: 1 }
-        email:      { type: string }
-        role:       { type: string, enum: [producer, engineer, it, integrator, manager, contractor] }
-        department: { type: string }
-        avatarUrl:  { type: string }
+        name:         { type: string, minLength: 1 }
+        email:        { type: string }
+        role:         { type: string, enum: [producer, engineer, it, integrator, manager, contractor] }
+        department:   { type: string }
+        avatarUrl:    { type: string }
+        title:        { type: string }
+        phone:        { type: string }
+        mobilePhone:  { type: string }
+        location:     { type: string }
+        company:      { type: string }
+        notes:        { type: string }
 
     MemberUpdate:
       type: object
+      description: "Partial update. Send `null` for an optional field to clear it; omit to leave unchanged."
       properties:
-        name:       { type: string }
-        email:      { type: string }
-        role:       { type: string, enum: [producer, engineer, it, integrator, manager, contractor] }
-        department: { type: string }
-        avatarUrl:  { type: string }
+        name:         { type: string }
+        role:         { type: string, enum: [producer, engineer, it, integrator, manager, contractor] }
+        email:        { type: ["string", "null"] }
+        department:   { type: ["string", "null"] }
+        avatarUrl:    { type: ["string", "null"] }
+        title:        { type: ["string", "null"] }
+        phone:        { type: ["string", "null"] }
+        mobilePhone:  { type: ["string", "null"] }
+        location:     { type: ["string", "null"] }
+        company:      { type: ["string", "null"] }
+        notes:        { type: ["string", "null"] }
 
     # ── Project Member ──────────────────────────────────────────────────────
     ProjectMember:
