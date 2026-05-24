@@ -127,7 +127,11 @@ export function ShareDialog({
       {trigger ? <span onClick={(e) => { e.stopPropagation(); setOpen(true); }}>{trigger}</span> : defaultTrigger}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[560px]">
+        <DialogContent
+          className="sm:max-w-[560px]"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Share2 className="w-4 h-4 text-primary" />
