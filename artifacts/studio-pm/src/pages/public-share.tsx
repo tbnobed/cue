@@ -261,24 +261,46 @@ function ProjectView({ token, project, milestones, tasks, documents, folders }: 
           </div>
         </Panel>
 
-        <Panel title="Milestones">
+        {/* Key Milestones — read-only mirror of the authed MilestonesPanel
+         * (timeline rail, status pill, due date, description). */}
+        <Panel title="Key Milestones">
           {milestones.length === 0 ? (
             <div className="text-center py-6 text-sm text-muted-foreground font-mono">No milestones.</div>
           ) : (
-            <ul className="space-y-3">
-              {milestones.map(m => (
-                <li key={m.id} className="flex items-start gap-2.5">
-                  <span className={`w-1.5 h-1.5 rounded-full mt-2 shrink-0 ${MILESTONE_DOT[m.status] ?? "bg-muted-foreground/40"}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{m.name}</div>
-                    <div className="text-[11px] font-mono text-muted-foreground tabular-nums mt-0.5 flex items-center gap-2">
-                      {m.dueDate && <span>{format(new Date(m.dueDate), "MMM dd, yyyy")}</span>}
-                      <Pill tone={MILESTONE_TONE[m.status]}>{m.status?.replace("_", " ")}</Pill>
+            <div className="space-y-1 relative">
+              <div className="absolute left-[5px] top-2 bottom-2 w-px bg-border/70" />
+              {milestones.map(m => {
+                const tone = MILESTONE_TONE[m.status] ?? MILESTONE_TONE.pending;
+                const dot = MILESTONE_DOT[m.status] ?? "bg-muted-foreground/40";
+                const isOverdue = m.dueDate && new Date(m.dueDate) < new Date() && m.status !== "completed";
+                return (
+                  <div key={m.id} className="flex items-start gap-3 py-1.5 relative">
+                    <div className="relative z-10 w-[11px] h-[11px] mt-1 rounded-full bg-background ring-2 ring-background flex items-center justify-center shrink-0">
+                      <div className={`w-2 h-2 rounded-full ${dot}`} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium leading-snug">{m.name}</span>
+                        <span className={`text-[9px] font-mono uppercase tracking-[0.12em] px-1.5 py-0.5 rounded ring-1 ring-inset ${tone}`}>
+                          {m.status?.replace("_", " ")}
+                        </span>
+                      </div>
+                      <div className="text-[10.5px] text-muted-foreground font-mono tabular-nums">
+                        <span className={isOverdue ? "text-red-400" : ""}>
+                          {m.dueDate ? format(new Date(m.dueDate), "MMM dd, yyyy") : "TBD"}
+                        </span>
+                        {m.description && (
+                          <>
+                            <span className="mx-1.5 text-border">·</span>
+                            <span className="text-muted-foreground/80 normal-case font-sans truncate">{m.description}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </li>
-              ))}
-            </ul>
+                );
+              })}
+            </div>
           )}
           </Panel>
           </div>
