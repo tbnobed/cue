@@ -43,7 +43,7 @@ export default function PublicShare() {
         )}
       </header>
 
-      <main className={`mx-auto px-6 py-8 ${data?.project ? "max-w-7xl" : "max-w-4xl"}`}>
+      <main className={`w-full px-6 py-8 ${data?.project ? "" : "max-w-4xl mx-auto"}`}>
         {isLoading && (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 rounded-full border-2 border-border border-t-primary animate-spin" />

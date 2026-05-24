@@ -6,7 +6,7 @@ export default function Team() {
   const { data: members, isLoading } = useListMembers();
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div className="w-full space-y-8">
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">

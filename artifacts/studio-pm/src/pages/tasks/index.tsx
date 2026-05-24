@@ -160,7 +160,7 @@ export default function Tasks() {
   const filterCount = [filterStatus, filterCategory, filterStudio].filter(Boolean).length;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Header */}
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div className="space-y-1.5">

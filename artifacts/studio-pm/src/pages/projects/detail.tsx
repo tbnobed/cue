@@ -52,7 +52,7 @@ export default function ProjectDetail() {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="w-full space-y-6">
         <Skeleton className="h-12 w-1/3 rounded-xl" />
         <Skeleton className="h-6 w-1/4 rounded-md" />
         <Skeleton className="h-10 w-72 rounded-xl" />
@@ -66,7 +66,7 @@ export default function ProjectDetail() {
 
   if (!project) {
     return (
-      <div className="max-w-7xl mx-auto">
+      <div className="w-full">
         <div className="surface-card ring-hairline border border-border/70 rounded-2xl p-12 text-center text-sm text-muted-foreground font-mono">
           Project not found.
         </div>
@@ -77,7 +77,7 @@ export default function ProjectDetail() {
   const tone = STATUS_TONE[project.status] ?? "text-muted-foreground bg-muted/40 ring-border/60";
 
   return (
-    <div className="max-w-7xl mx-auto space-y-7">
+    <div className="w-full space-y-7">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-3 min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">

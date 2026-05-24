@@ -153,7 +153,7 @@ export default function DocumentEditor() {
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl mx-auto space-y-4 py-8">
+      <div className="w-full space-y-4 py-8">
         <Skeleton className="h-8 w-1/2" />
         <Skeleton className="h-4 w-1/3" />
         <Skeleton className="h-[60vh] w-full mt-8" />
@@ -184,7 +184,7 @@ export default function DocumentEditor() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-4">
+    <div className="w-full space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 pb-3 border-b border-border">
         <div className="flex items-center gap-3 min-w-0">

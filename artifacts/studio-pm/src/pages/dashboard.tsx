@@ -10,7 +10,7 @@ export default function Dashboard() {
 
   if (isLoadingSummary) {
     return (
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="w-full space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}
         </div>
@@ -23,7 +23,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-8 w-full">
       {/* Page header */}
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div className="space-y-1.5">
