@@ -720,6 +720,26 @@ function GanttChart({ milestones, projectStart, projectTarget }: {
                   );
                 })}
               </div>
+
+              {/* Legend — mirrors authed GanttChart */}
+              <div className="flex items-center gap-4 pt-4 mt-3 border-t border-border/40 text-[10px] font-mono text-muted-foreground">
+                {todayPct != null && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1 h-3 bg-primary/70" /> Today
+                  </div>
+                )}
+                {projectStart && projectTarget && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-primary/[0.04] border border-dashed border-primary/30" /> Project range
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rotate-45 bg-emerald-400" /> Completed
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rotate-45 bg-red-400" /> Missed
+                </div>
+              </div>
             </div>
           </div>
         )}
