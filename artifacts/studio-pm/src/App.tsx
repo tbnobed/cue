@@ -78,7 +78,7 @@ function App() {
       <TooltipProvider>
         <AuthProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <div className="dark h-full w-full">
+            <div className="h-full w-full">
               <Routes />
             </div>
           </WouterRouter>
