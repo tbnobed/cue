@@ -20,6 +20,14 @@ export const membersTable = pgTable("members", {
   // If false, this member's email is never used for project/task notifications.
   // Defaults to true so existing rows opt in automatically after `pnpm run push`.
   emailNotifications: boolean("email_notifications").notNull().default(true),
+  // Pre-approval flag: when true, an OIDC sign-in for this member's email
+  // is created with `users.is_active = true` instead of the default false.
+  // The user still has to satisfy the IdP and the Cue email-verification
+  // gate (if the IdP doesn't verify), but skips the admin-must-approve
+  // step on /admin/users. Defaults to false (preserve existing
+  // admin-must-approve flow); flip to true at member-create time to
+  // pre-provision a teammate.
+  preApproved: boolean("pre_approved").notNull().default(false),
   // Link to the auth user this roster entry represents. NULLABLE because
   // contractors/external crew can exist as roster entries with no login.
   // Auto-populated by lowercase-email match in `linkUserToMembersByEmail()`

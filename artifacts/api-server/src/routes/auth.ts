@@ -213,15 +213,30 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 // (2) if an admin deactivated them after the fact.
 
 async function memberExistsForEmail(email: string | null): Promise<boolean> {
-  if (!email) return false;
+  return (await findInviteForEmail(email)) !== null;
+}
+
+// Returns the lookup result for the invite gate AND the preApproved flag.
+// `preApproved=true` lets the OIDC callback create the user as ACTIVE,
+// skipping the admin-must-approve step. Null when no matching member row.
+async function findInviteForEmail(email: string | null): Promise<{ preApproved: boolean } | null> {
+  if (!email) return null;
   const normalized = email.trim().toLowerCase();
-  if (!normalized) return false;
+  if (!normalized) return null;
+  // If multiple member rows share the email (e.g. duplicate roster entries),
+  // any one being pre-approved is enough — we MAX the boolean so the most
+  // permissive wins.
   const [row] = await db
-    .select({ id: membersTable.id })
+    .select({ preApproved: sql<boolean>`bool_or(${membersTable.preApproved})` })
     .from(membersTable)
     .where(eq(sql`lower(${membersTable.email})`, normalized))
     .limit(1);
-  return !!row;
+  if (!row) return null;
+  // bool_or returns NULL when the group is empty (no rows matched the WHERE).
+  // We still get one row back from the aggregate, so detect "no match" via
+  // the boolean being null.
+  if (row.preApproved === null) return null;
+  return { preApproved: row.preApproved };
 }
 
 // ─── Cue-issued email verification (fallback when IdP doesn't verify) ─────
@@ -492,8 +507,8 @@ async function handleOidcCallback(provider: ProviderId, req: Request, res: Respo
       userIsActive = existing.isActive;
     } else {
       // New user. Apply the invite gate.
-      const invited = await memberExistsForEmail(email);
-      if (!invited) {
+      const invite = await findInviteForEmail(email);
+      if (!invite) {
         // Deliberately respond with the same `pending` code we use for invited-
         // but-not-yet-active users. The public callback would otherwise be a
         // membership oracle (try an email, watch which error code comes back).
@@ -502,17 +517,19 @@ async function handleOidcCallback(provider: ProviderId, req: Request, res: Respo
         loginRedirect(res, "pending");
         return;
       }
-      // Invited — create the user as INACTIVE. They cannot sign in until an
-      // admin flips is_active. We still create the row so the admin sees a
-      // pending-approval entry in /admin/users.
+      // Invited. If the admin marked the member row `preApproved`, create
+      // the user already-active and let them straight in (still subject to
+      // email verification above). Otherwise create them inactive and wait
+      // for an admin to flip the switch on /admin/users.
+      const startActive = invite.preApproved;
       const [row] = await db.insert(usersTable)
-        .values({ sub, email, name, picture, isAdmin: false, isActive: false, lastLoginAt: now })
+        .values({ sub, email, name, picture, isAdmin: false, isActive: startActive, lastLoginAt: now })
         .returning({ id: usersTable.id });
       userId = row!.id;
-      userIsActive = false;
+      userIsActive = startActive;
       try {
         const linked = await linkUserToMembersByEmail(userId, email);
-        req.log.info({ userId, provider, email, linked }, "new OIDC user created (pending approval)");
+        req.log.info({ userId, provider, email, linked, preApproved: invite.preApproved }, startActive ? "new OIDC user created (pre-approved, active)" : "new OIDC user created (pending approval)");
       } catch (err) {
         req.log.error({ err, userId }, "linkUserToMembersByEmail failed (oidc new user)");
       }

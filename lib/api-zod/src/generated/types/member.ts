@@ -41,5 +41,7 @@ export interface Member {
   company?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** When true, an OIDC sign-in matching this member's email lands ACTIVE — skips the admin-must-approve step on /admin/users. The user still has to verify their email (via Cue or the IdP) before signing in. */
+  preApproved?: boolean;
   createdAt: string;
 }

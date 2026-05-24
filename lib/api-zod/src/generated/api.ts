@@ -560,6 +560,7 @@ export const ListMembersResponseItem = zod.object({
   "location": zod.string().nullish().describe('City, timezone, or site assignment.'),
   "company": zod.string().nullish().describe('External company, for contractors\/integrators.'),
   "notes": zod.string().nullish(),
+  "preApproved": zod.boolean().optional().describe('When true, an OIDC sign-in matching this member\'s email lands ACTIVE — skips the admin-must-approve step on \/admin\/users. The user still has to verify their email (via Cue or the IdP) before signing in.'),
   "createdAt": zod.string()
 })
 export const ListMembersResponse = zod.array(ListMembersResponseItem)
@@ -582,7 +583,8 @@ export const CreateMemberBody = zod.object({
   "mobilePhone": zod.string().optional(),
   "location": zod.string().optional(),
   "company": zod.string().optional(),
-  "notes": zod.string().optional()
+  "notes": zod.string().optional(),
+  "preApproved": zod.boolean().optional().describe('Pre-approve this member so their first OIDC sign-in (after email verification) lands ACTIVE, no admin approval needed.')
 })
 
 
@@ -604,7 +606,8 @@ export const UpdateMemberBody = zod.object({
   "mobilePhone": zod.string().nullish(),
   "location": zod.string().nullish(),
   "company": zod.string().nullish(),
-  "notes": zod.string().nullish()
+  "notes": zod.string().nullish(),
+  "preApproved": zod.boolean().optional().describe('Only affects users who have NOT yet signed in. Flipping this on existing OIDC users does NOT retroactively activate them — use PATCH \/api\/admin\/users\/:id for that.')
 }).describe('Partial update. Send `null` for an optional field to clear it; omit to leave unchanged.')
 
 export const UpdateMemberResponse = zod.object({
@@ -620,6 +623,7 @@ export const UpdateMemberResponse = zod.object({
   "location": zod.string().nullish().describe('City, timezone, or site assignment.'),
   "company": zod.string().nullish().describe('External company, for contractors\/integrators.'),
   "notes": zod.string().nullish(),
+  "preApproved": zod.boolean().optional().describe('When true, an OIDC sign-in matching this member\'s email lands ACTIVE — skips the admin-must-approve step on \/admin\/users. The user still has to verify their email (via Cue or the IdP) before signing in.'),
   "createdAt": zod.string()
 })
 

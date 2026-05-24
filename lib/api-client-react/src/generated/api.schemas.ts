@@ -622,6 +622,8 @@ export interface Member {
   company?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** When true, an OIDC sign-in matching this member's email lands ACTIVE — skips the admin-must-approve step on /admin/users. The user still has to verify their email (via Cue or the IdP) before signing in. */
+  preApproved?: boolean;
   createdAt: string;
 }
 
@@ -650,6 +652,8 @@ export interface MemberInput {
   location?: string;
   company?: string;
   notes?: string;
+  /** Pre-approve this member so their first OIDC sign-in (after email verification) lands ACTIVE, no admin approval needed. */
+  preApproved?: boolean;
 }
 
 export type MemberUpdateRole = typeof MemberUpdateRole[keyof typeof MemberUpdateRole];
@@ -688,6 +692,8 @@ export interface MemberUpdate {
   company?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** Only affects users who have NOT yet signed in. Flipping this on existing OIDC users does NOT retroactively activate them — use PATCH /api/admin/users/:id for that. */
+  preApproved?: boolean;
 }
 
 export interface ProjectMember {

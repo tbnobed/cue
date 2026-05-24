@@ -1366,6 +1366,7 @@ components:
         location:     { type: ["string", "null"], description: "City, timezone, or site assignment." }
         company:      { type: ["string", "null"], description: "External company, for contractors/integrators." }
         notes:        { type: ["string", "null"] }
+        preApproved:  { type: boolean, description: "When true, an OIDC sign-in matching this member's email lands ACTIVE — skips the admin-must-approve step on /admin/users. The user still has to verify their email (via Cue or the IdP) before signing in." }
         createdAt:    { type: string }
 
     MemberInput:
@@ -1383,6 +1384,7 @@ components:
         location:     { type: string }
         company:      { type: string }
         notes:        { type: string }
+        preApproved:  { type: boolean, description: "Pre-approve this member so their first OIDC sign-in (after email verification) lands ACTIVE, no admin approval needed." }
 
     MemberUpdate:
       type: object
@@ -1399,6 +1401,7 @@ components:
         location:     { type: ["string", "null"] }
         company:      { type: ["string", "null"] }
         notes:        { type: ["string", "null"] }
+        preApproved:  { type: boolean, description: "Only affects users who have NOT yet signed in. Flipping this on existing OIDC users does NOT retroactively activate them — use PATCH /api/admin/users/:id for that." }
 
     # ── Project Member ──────────────────────────────────────────────────────
     ProjectMember:
