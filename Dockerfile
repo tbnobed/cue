@@ -37,10 +37,6 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 COPY lib/ lib/
 COPY artifacts/ artifacts/
 COPY scripts/ scripts/
-# Vite's @assets alias in studio-pm resolves to this repo-root directory,
-# so it must be present at build time or `vite build` fails to resolve
-# imports like `@assets/cue-mark_*.svg` used by login.tsx / privacy.tsx.
-COPY attached_assets/ attached_assets/
 
 # Generate codegen
 RUN pnpm --filter @workspace/api-spec run codegen

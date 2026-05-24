@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
-import cueMark from "@assets/cue-mark_1779576125630.svg";
+import cueMark from "@/assets/cue-mark_1779576125630.svg";
 
 // Default privacy policy shipped with Cue. This is a TEMPLATE — self-hosting
 // operators should review and edit it (or replace it entirely) to reflect

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import cueMark from "@assets/cue-icon_1779576125630.svg";
+import cueMark from "@/assets/cue-icon_1779576125630.svg";
 
 export function AppSidebar() {
   const [location] = useLocation();

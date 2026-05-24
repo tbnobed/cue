@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight } from "lucide-react";
 import { useAuth, AuthError, type OidcProvider } from "@/hooks/use-auth";
-import cueMark from "@assets/cue-mark_1779576125630.svg";
+import cueMark from "@/assets/cue-mark_1779576125630.svg";
 
 // Friendly messages for the `?error=…` codes the OIDC callback redirects with.
 // "pending" intentionally covers BOTH "you weren't invited" and "you were
