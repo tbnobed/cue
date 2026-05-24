@@ -86,6 +86,168 @@ export interface ProjectUpdate {
   budget?: number;
 }
 
+export type ShareLinkInputResourceType = typeof ShareLinkInputResourceType[keyof typeof ShareLinkInputResourceType];
+
+
+export const ShareLinkInputResourceType = {
+  project: 'project',
+  task: 'task',
+  document: 'document',
+} as const;
+
+export interface ShareLinkInput {
+  resourceType: ShareLinkInputResourceType;
+  resourceId: number;
+  /** ISO timestamp. Omit for no expiry. */
+  expiresAt?: string;
+}
+
+export type ShareLinkResourceType = typeof ShareLinkResourceType[keyof typeof ShareLinkResourceType];
+
+
+export const ShareLinkResourceType = {
+  project: 'project',
+  task: 'task',
+  document: 'document',
+} as const;
+
+export interface ShareLink {
+  id: number;
+  token: string;
+  resourceType: ShareLinkResourceType;
+  resourceId: number;
+  /** Absolute URL to the public share page. */
+  url: string;
+  createdBy?: number;
+  createdAt: string;
+  expiresAt?: string;
+  revokedAt?: string;
+  active: boolean;
+}
+
+export type PublicShareResourceType = typeof PublicShareResourceType[keyof typeof PublicShareResourceType];
+
+
+export const PublicShareResourceType = {
+  project: 'project',
+  task: 'task',
+  document: 'document',
+} as const;
+
+export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
+
+
+export const TaskStatus = {
+  todo: 'todo',
+  in_progress: 'in_progress',
+  blocked: 'blocked',
+  review: 'review',
+  done: 'done',
+} as const;
+
+export type TaskPriority = typeof TaskPriority[keyof typeof TaskPriority];
+
+
+export const TaskPriority = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  critical: 'critical',
+} as const;
+
+export type TaskCategory = typeof TaskCategory[keyof typeof TaskCategory];
+
+
+export const TaskCategory = {
+  construction: 'construction',
+  electrical: 'electrical',
+  av: 'av',
+  it: 'it',
+  network: 'network',
+  acoustics: 'acoustics',
+  furnishing: 'furnishing',
+  signage: 'signage',
+  general: 'general',
+} as const;
+
+export interface Task {
+  id: number;
+  projectId: number;
+  /** @nullable */
+  milestoneId?: number | null;
+  /** @nullable */
+  assigneeId?: number | null;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  category: TaskCategory;
+  /** @nullable */
+  dueDate?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  /** @nullable */
+  assigneeName?: string | null;
+  /** @nullable */
+  projectName?: string | null;
+  /** @nullable */
+  milestoneName?: string | null;
+}
+
+export type DocumentCategory = typeof DocumentCategory[keyof typeof DocumentCategory];
+
+
+export const DocumentCategory = {
+  spec: 'spec',
+  plan: 'plan',
+  permit: 'permit',
+  vendor: 'vendor',
+  as_built: 'as_built',
+  safety: 'safety',
+  general: 'general',
+} as const;
+
+export interface Document {
+  id: number;
+  /** @nullable */
+  projectId?: number | null;
+  /** @nullable */
+  projectName?: string | null;
+  /** @nullable */
+  folderId?: number | null;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  url?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  category: DocumentCategory;
+  /** @nullable */
+  uploadedBy?: string | null;
+  /** @nullable */
+  version?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PublicShare {
+  resourceType: PublicShareResourceType;
+  resourceId: number;
+  createdAt: string;
+  expiresAt?: string;
+  project?: Project;
+  task?: Task;
+  document?: Document;
+  /** Name of the project this resource belongs to, if any. */
+  projectName?: string;
+  fileUrl?: string;
+  fileMimeType?: string;
+}
+
 export type ProjectProgressByCategoryItem = {
   category: string;
   total: number;
@@ -165,69 +327,6 @@ export interface MilestoneUpdate {
   dueDate?: string;
   status?: MilestoneUpdateStatus;
   color?: string;
-}
-
-export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
-
-
-export const TaskStatus = {
-  todo: 'todo',
-  in_progress: 'in_progress',
-  blocked: 'blocked',
-  review: 'review',
-  done: 'done',
-} as const;
-
-export type TaskPriority = typeof TaskPriority[keyof typeof TaskPriority];
-
-
-export const TaskPriority = {
-  low: 'low',
-  medium: 'medium',
-  high: 'high',
-  critical: 'critical',
-} as const;
-
-export type TaskCategory = typeof TaskCategory[keyof typeof TaskCategory];
-
-
-export const TaskCategory = {
-  construction: 'construction',
-  electrical: 'electrical',
-  av: 'av',
-  it: 'it',
-  network: 'network',
-  acoustics: 'acoustics',
-  furnishing: 'furnishing',
-  signage: 'signage',
-  general: 'general',
-} as const;
-
-export interface Task {
-  id: number;
-  projectId: number;
-  /** @nullable */
-  milestoneId?: number | null;
-  /** @nullable */
-  assigneeId?: number | null;
-  title: string;
-  /** @nullable */
-  description?: string | null;
-  status: TaskStatus;
-  priority: TaskPriority;
-  category: TaskCategory;
-  /** @nullable */
-  dueDate?: string | null;
-  /** @nullable */
-  completedAt?: string | null;
-  createdAt: string;
-  updatedAt?: string;
-  /** @nullable */
-  assigneeName?: string | null;
-  /** @nullable */
-  projectName?: string | null;
-  /** @nullable */
-  milestoneName?: string | null;
 }
 
 export type TaskInputStatus = typeof TaskInputStatus[keyof typeof TaskInputStatus];
@@ -449,43 +548,6 @@ export interface DashboardSummary {
   tasksByCategory: DashboardSummaryTasksByCategoryItem[];
 }
 
-export type DocumentCategory = typeof DocumentCategory[keyof typeof DocumentCategory];
-
-
-export const DocumentCategory = {
-  spec: 'spec',
-  plan: 'plan',
-  permit: 'permit',
-  vendor: 'vendor',
-  as_built: 'as_built',
-  safety: 'safety',
-  general: 'general',
-} as const;
-
-export interface Document {
-  id: number;
-  /** @nullable */
-  projectId?: number | null;
-  /** @nullable */
-  projectName?: string | null;
-  /** @nullable */
-  folderId?: number | null;
-  title: string;
-  /** @nullable */
-  description?: string | null;
-  /** @nullable */
-  url?: string | null;
-  /** @nullable */
-  notes?: string | null;
-  category: DocumentCategory;
-  /** @nullable */
-  uploadedBy?: string | null;
-  /** @nullable */
-  version?: string | null;
-  createdAt: string;
-  updatedAt?: string;
-}
-
 export type DocumentInputCategory = typeof DocumentInputCategory[keyof typeof DocumentInputCategory];
 
 
@@ -618,4 +680,18 @@ projectId?: number;
  */
 global?: boolean;
 };
+
+export type ListShareLinksParams = {
+resourceType: ListShareLinksResourceType;
+resourceId: number;
+};
+
+export type ListShareLinksResourceType = typeof ListShareLinksResourceType[keyof typeof ListShareLinksResourceType];
+
+
+export const ListShareLinksResourceType = {
+  project: 'project',
+  task: 'task',
+  document: 'document',
+} as const;
 

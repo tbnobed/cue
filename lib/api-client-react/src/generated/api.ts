@@ -33,6 +33,7 @@ import type {
   HealthStatus,
   ListDocumentsParams,
   ListFoldersParams,
+  ListShareLinksParams,
   ListTasksParams,
   Member,
   MemberInput,
@@ -44,6 +45,9 @@ import type {
   ProjectInput,
   ProjectProgress,
   ProjectUpdate,
+  PublicShare,
+  ShareLink,
+  ShareLinkInput,
   Task,
   TaskInput,
   TaskUpdate
@@ -2570,6 +2574,308 @@ export function useGetDashboardActivity<TData = Awaited<ReturnType<typeof getDas
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetDashboardActivityQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListShareLinksUrl = (params: ListShareLinksParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/share-links?${stringifiedParams}` : `/api/share-links`
+}
+
+/**
+ * @summary List share links for a given resource
+ */
+export const listShareLinks = async (params: ListShareLinksParams, options?: RequestInit): Promise<ShareLink[]> => {
+
+  return customFetch<ShareLink[]>(getListShareLinksUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListShareLinksQueryKey = (params?: ListShareLinksParams,) => {
+    return [
+    `/api/share-links`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListShareLinksQueryOptions = <TData = Awaited<ReturnType<typeof listShareLinks>>, TError = ErrorType<unknown>>(params: ListShareLinksParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listShareLinks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListShareLinksQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listShareLinks>>> = ({ signal }) => listShareLinks(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listShareLinks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListShareLinksQueryResult = NonNullable<Awaited<ReturnType<typeof listShareLinks>>>
+export type ListShareLinksQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List share links for a given resource
+ */
+
+export function useListShareLinks<TData = Awaited<ReturnType<typeof listShareLinks>>, TError = ErrorType<unknown>>(
+ params: ListShareLinksParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listShareLinks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListShareLinksQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateShareLinkUrl = () => {
+
+
+
+
+  return `/api/share-links`
+}
+
+/**
+ * @summary Create a new share link
+ */
+export const createShareLink = async (shareLinkInput: ShareLinkInput, options?: RequestInit): Promise<ShareLink> => {
+
+  return customFetch<ShareLink>(getCreateShareLinkUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      shareLinkInput,)
+  }
+);}
+
+
+
+
+export const getCreateShareLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createShareLink>>, TError,{data: BodyType<ShareLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createShareLink>>, TError,{data: BodyType<ShareLinkInput>}, TContext> => {
+
+const mutationKey = ['createShareLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createShareLink>>, {data: BodyType<ShareLinkInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createShareLink(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateShareLinkMutationResult = NonNullable<Awaited<ReturnType<typeof createShareLink>>>
+    export type CreateShareLinkMutationBody = BodyType<ShareLinkInput>
+    export type CreateShareLinkMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a new share link
+ */
+export const useCreateShareLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createShareLink>>, TError,{data: BodyType<ShareLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createShareLink>>,
+        TError,
+        {data: BodyType<ShareLinkInput>},
+        TContext
+      > => {
+      return useMutation(getCreateShareLinkMutationOptions(options));
+    }
+
+export const getRevokeShareLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/share-links/${id}`
+}
+
+/**
+ * @summary Revoke a share link
+ */
+export const revokeShareLink = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getRevokeShareLinkUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRevokeShareLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeShareLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeShareLink>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['revokeShareLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeShareLink>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  revokeShareLink(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeShareLinkMutationResult = NonNullable<Awaited<ReturnType<typeof revokeShareLink>>>
+
+    export type RevokeShareLinkMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Revoke a share link
+ */
+export const useRevokeShareLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeShareLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeShareLink>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRevokeShareLinkMutationOptions(options));
+    }
+
+export const getGetPublicShareUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/shares/${token}`
+}
+
+/**
+ * @summary Public read-only view of a shared resource (no auth required)
+ */
+export const getPublicShare = async (token: string, options?: RequestInit): Promise<PublicShare> => {
+
+  return customFetch<PublicShare>(getGetPublicShareUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicShareQueryKey = (token: string,) => {
+    return [
+    `/api/public/shares/${token}`
+    ] as const;
+    }
+
+
+export const getGetPublicShareQueryOptions = <TData = Awaited<ReturnType<typeof getPublicShare>>, TError = ErrorType<void>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicShare>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicShareQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicShare>>> = ({ signal }) => getPublicShare(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(token), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicShare>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicShareQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicShare>>>
+export type GetPublicShareQueryError = ErrorType<void>
+
+
+/**
+ * @summary Public read-only view of a shared resource (no auth required)
+ */
+
+export function useGetPublicShare<TData = Awaited<ReturnType<typeof getPublicShare>>, TError = ErrorType<void>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicShare>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicShareQueryOptions(token,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

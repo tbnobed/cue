@@ -681,3 +681,109 @@ export const GetDashboardActivityResponseItem = zod.object({
 export const GetDashboardActivityResponse = zod.array(GetDashboardActivityResponseItem)
 
 
+/**
+ * @summary List share links for a given resource
+ */
+export const ListShareLinksQueryParams = zod.object({
+  "resourceType": zod.enum(['project', 'task', 'document']),
+  "resourceId": zod.coerce.number()
+})
+
+export const ListShareLinksResponseItem = zod.object({
+  "id": zod.number(),
+  "token": zod.string(),
+  "resourceType": zod.enum(['project', 'task', 'document']),
+  "resourceId": zod.number(),
+  "url": zod.string().describe('Absolute URL to the public share page.'),
+  "createdBy": zod.number().optional(),
+  "createdAt": zod.string(),
+  "expiresAt": zod.string().optional(),
+  "revokedAt": zod.string().optional(),
+  "active": zod.boolean()
+})
+export const ListShareLinksResponse = zod.array(ListShareLinksResponseItem)
+
+
+/**
+ * @summary Create a new share link
+ */
+export const CreateShareLinkBody = zod.object({
+  "resourceType": zod.enum(['project', 'task', 'document']),
+  "resourceId": zod.number(),
+  "expiresAt": zod.string().optional().describe('ISO timestamp. Omit for no expiry.')
+})
+
+
+/**
+ * @summary Revoke a share link
+ */
+export const RevokeShareLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Public read-only view of a shared resource (no auth required)
+ */
+export const GetPublicShareParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetPublicShareResponse = zod.object({
+  "resourceType": zod.enum(['project', 'task', 'document']),
+  "resourceId": zod.number(),
+  "createdAt": zod.string(),
+  "expiresAt": zod.string().optional(),
+  "project": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "status": zod.enum(['planning', 'in_progress', 'on_hold', 'completed']),
+  "phase": zod.string().nullish(),
+  "startDate": zod.string().nullish(),
+  "targetDate": zod.string().nullish(),
+  "completedDate": zod.string().nullish(),
+  "budget": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+}).optional(),
+  "task": zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "milestoneId": zod.number().nullish(),
+  "assigneeId": zod.number().nullish(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'review', 'done']),
+  "priority": zod.enum(['low', 'medium', 'high', 'critical']),
+  "category": zod.enum(['construction', 'electrical', 'av', 'it', 'network', 'acoustics', 'furnishing', 'signage', 'general']),
+  "dueDate": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional(),
+  "assigneeName": zod.string().nullish(),
+  "projectName": zod.string().nullish(),
+  "milestoneName": zod.string().nullish()
+}).optional(),
+  "document": zod.object({
+  "id": zod.number(),
+  "projectId": zod.number().nullish(),
+  "projectName": zod.string().nullish(),
+  "folderId": zod.number().nullish(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "category": zod.enum(['spec', 'plan', 'permit', 'vendor', 'as_built', 'safety', 'general']),
+  "uploadedBy": zod.string().nullish(),
+  "version": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+}).optional(),
+  "projectName": zod.string().optional().describe('Name of the project this resource belongs to, if any.'),
+  "fileUrl": zod.string().optional(),
+  "fileMimeType": zod.string().optional()
+})
+
+

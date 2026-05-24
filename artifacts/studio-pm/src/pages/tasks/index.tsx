@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, X, AlertTriangle, Clock, CheckCircle2, Circle, Loader2, Eye, Trash2 } from "lucide-react";
+import { ShareDialog } from "@/components/share-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -282,6 +283,11 @@ export default function Tasks() {
                   <span className={`text-[10px] font-mono uppercase tracking-[0.12em] ${PRIORITY_TONE[task.priority as Priority]}`}>
                     {task.priority}
                   </span>
+
+                  {/* Share */}
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ShareDialog resourceType="task" resourceId={task.id} resourceTitle={task.title} />
+                  </div>
 
                   {/* Delete */}
                   <Button

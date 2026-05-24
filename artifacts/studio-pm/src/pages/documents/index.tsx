@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Upload, Trash2, FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Globe, FolderOpen, X, Loader2 } from "lucide-react";
+import { ShareDialog } from "@/components/share-dialog";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -323,13 +324,16 @@ function DocTile({ doc, idx, collaboraEnabled, onDelete }: { doc: Doc; idx: numb
       title={doc.title}
       data-testid={`doc-tile-${doc.id}`}
     >
-      <Button
-        variant="ghost" size="icon"
-        className="absolute top-1 right-1 h-6 w-6 text-muted-foreground hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-      >
-        <Trash2 className="w-3 h-3" />
-      </Button>
+      <div className="absolute top-1 right-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        <ShareDialog resourceType="document" resourceId={doc.id} resourceTitle={doc.title} />
+        <Button
+          variant="ghost" size="icon"
+          className="h-6 w-6 text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        >
+          <Trash2 className="w-3 h-3" />
+        </Button>
+      </div>
       <div className={`mt-2 w-14 h-14 rounded-xl flex flex-col items-center justify-center ring-1 ring-inset ${meta.tone} gap-0.5`}>
         <div className="[&>svg]:w-6 [&>svg]:h-6">{meta.icon}</div>
         {ext && <span className="text-[8px] font-bold font-mono leading-none">{ext}</span>}

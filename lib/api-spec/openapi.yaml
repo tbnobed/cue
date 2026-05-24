@@ -691,6 +691,77 @@ paths:
                 items:
                   $ref: "#/components/schemas/ActivityEntry"
 
+  # ── Share links ─────────────────────────────────────────────────────────────
+  /share-links:
+    get:
+      operationId: listShareLinks
+      tags: [shares]
+      summary: List share links for a given resource
+      parameters:
+        - in: query
+          name: resourceType
+          required: true
+          schema: { type: string, enum: [project, task, document] }
+        - in: query
+          name: resourceId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Active and inactive links for the resource
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ShareLink" }
+    post:
+      operationId: createShareLink
+      tags: [shares]
+      summary: Create a new share link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ShareLinkInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ShareLink" }
+
+  /share-links/{id}:
+    delete:
+      operationId: revokeShareLink
+      tags: [shares]
+      summary: Revoke a share link
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Revoked }
+
+  /public/shares/{token}:
+    get:
+      operationId: getPublicShare
+      tags: [shares]
+      summary: Public read-only view of a shared resource (no auth required)
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The shared resource
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicShare" }
+        "404":
+          description: Link not found, revoked, or expired
+
 components:
   schemas:
     HealthStatus:
@@ -744,6 +815,50 @@ components:
         targetDate:     { type: string }
         completedDate:  { type: string }
         budget:         { type: number }
+
+    ShareLinkInput:
+      type: object
+      required: [resourceType, resourceId]
+      properties:
+        resourceType:
+          type: string
+          enum: [project, task, document]
+        resourceId: { type: integer }
+        expiresAt:
+          type: string
+          description: ISO timestamp. Omit for no expiry.
+
+    ShareLink:
+      type: object
+      required: [id, token, resourceType, resourceId, url, createdAt, active]
+      properties:
+        id:           { type: integer }
+        token:        { type: string }
+        resourceType: { type: string, enum: [project, task, document] }
+        resourceId:   { type: integer }
+        url:          { type: string, description: "Absolute URL to the public share page." }
+        createdBy:    { type: integer }
+        createdAt:    { type: string }
+        expiresAt:    { type: string }
+        revokedAt:    { type: string }
+        active:       { type: boolean }
+
+    PublicShare:
+      type: object
+      required: [resourceType, resourceId, createdAt]
+      properties:
+        resourceType: { type: string, enum: [project, task, document] }
+        resourceId:   { type: integer }
+        createdAt:    { type: string }
+        expiresAt:    { type: string }
+        project:      { $ref: "#/components/schemas/Project" }
+        task:         { $ref: "#/components/schemas/Task" }
+        document:     { $ref: "#/components/schemas/Document" }
+        projectName:  { type: string, description: "Name of the project this resource belongs to, if any." }
+        # For document shares: an absolute URL the public page can use to fetch
+        # the file content (streams through the public file endpoint).
+        fileUrl:      { type: string }
+        fileMimeType: { type: string }
 
     ProjectProgress:
       type: object

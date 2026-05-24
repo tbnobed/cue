@@ -13,6 +13,7 @@ import Team from "@/pages/team";
 import Documents from "@/pages/documents";
 import DocumentEditor from "@/pages/documents/editor";
 import Login from "@/pages/login";
+import PublicShare from "@/pages/public-share";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,8 @@ function Routes() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      {/* Public, unauthenticated share viewer — must live outside AuthedShell. */}
+      <Route path="/s/:token" component={PublicShare} />
       <Route>
         <AuthedShell>
           <Switch>

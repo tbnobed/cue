@@ -12,6 +12,8 @@ import collabRouter from "./collab";
 import wopiRouter from "./wopi";
 import configRouter from "./config";
 import authRouter from "./auth";
+import shareLinksRouter from "./share-links";
+import publicSharesRouter from "./public-shares";
 import { requireAuth } from "../middlewares/require-auth";
 
 const router: IRouter = Router();
@@ -23,6 +25,8 @@ router.use(healthRouter);
 router.use(configRouter);
 router.use(authRouter);
 router.use(wopiRouter);
+// public share viewer — read-only, gated by opaque random token.
+router.use(publicSharesRouter);
 
 // --- Authenticated routes ---
 // All product data routes require a signed-in user.
@@ -35,5 +39,6 @@ router.use(requireAuth, dashboardRouter);
 router.use(requireAuth, documentsRouter);
 router.use(requireAuth, foldersRouter);
 router.use(requireAuth, collabRouter);
+router.use(requireAuth, shareLinksRouter);
 
 export default router;

@@ -33,6 +33,7 @@ import {
   Trash2, ExternalLink, PenLine, Loader2, Circle, Loader, Eye, CheckCircle2, AlertTriangle,
   FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Home, Settings,
 } from "lucide-react";
+import { ShareDialog } from "@/components/share-dialog";
 
 const STATUS_TONE: Record<string, string> = {
   planning:    "text-blue-400 bg-blue-500/10 ring-blue-500/20",
@@ -105,7 +106,10 @@ export default function ProjectDetail() {
             {project.budget != null && <span>Budget: <span className="text-foreground/80">${Number(project.budget).toLocaleString()}</span></span>}
           </div>
         </div>
-        <EditProjectButton project={project} />
+        <div className="flex items-center gap-2">
+          <ShareDialog resourceType="project" resourceId={project.id} resourceTitle={project.name} triggerVariant="button" />
+          <EditProjectButton project={project} />
+        </div>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-5">
