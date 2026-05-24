@@ -217,11 +217,15 @@
   body {
     position: relative;
   }
-  /* Aurora blob layer — soft violet/cyan/blue bloom drifting slowly. */
+  /* Aurora blob layer — soft violet/cyan/blue bloom drifting slowly.
+   * Promoted to its own compositor layer (translateZ + will-change) so the
+   * expensive blur is rasterized once and only the transform animates each
+   * frame. Without this the browser re-rasterizes the blur every frame and
+   * the layer flickers, especially when rendered inside another iframe. */
   body::before {
     content: "";
     position: fixed;
-    inset: 0;
+    inset: -5%;
     z-index: 0;
     pointer-events: none;
     background-image:
@@ -229,17 +233,23 @@
       radial-gradient(560px 560px at 6% 110%, rgba(15, 184, 158, 0.22) 0%, transparent 65%),
       radial-gradient(520px 520px at 48% 50%, rgba(42, 92, 255, 0.18) 0%, transparent 70%);
     filter: blur(40px);
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    backface-visibility: hidden;
     animation: aurora-drift 26s ease-in-out infinite alternate;
   }
-  /* Grain overlay — high-frequency noise softened by overlay blend. */
+  /* Grain overlay — static, high-frequency noise. `mix-blend-mode: overlay`
+   * over the animated aurora forced a re-blend on every frame and read as
+   * flicker; plain low-opacity additive noise looks identical and stays on
+   * its own layer. */
   body::after {
     content: "";
     position: fixed;
     inset: 0;
     z-index: 1;
     pointer-events: none;
-    opacity: 0.05;
-    mix-blend-mode: overlay;
+    opacity: 0.04;
+    transform: translateZ(0);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   /* App content sits above the backdrop layers. */
