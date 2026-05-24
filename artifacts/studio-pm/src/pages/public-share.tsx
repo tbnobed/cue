@@ -162,7 +162,7 @@ function Panel({ title, children, className }: { title: string; children: React.
 
 // ─── PROJECT VIEW (mirrors authed dashboard) ─────────────────────────────────
 
-function ProjectView({ token, project, milestones, tasks, documents, folders }: {
+function ProjectView({ token, project, milestones: rawMilestones, tasks, documents, folders }: {
   token: string;
   project: any;
   milestones: any[];
@@ -172,6 +172,17 @@ function ProjectView({ token, project, milestones, tasks, documents, folders }: 
 }) {
   const tone = STATUS_TONE[project.status] ?? "text-muted-foreground bg-muted/40 ring-border/60";
   const [detailTask, setDetailTask] = useState<any | null>(null);
+
+  // Sort milestones chronologically (dated first, ascending by dueDate; undated
+  // last). The panel and the gantt below it both consume this so their rows
+  // line up — and so the order matches the authed Project Detail view.
+  const milestones = useMemo(() => {
+    const dated = rawMilestones.filter(m => m.dueDate)
+      .slice()
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+    const undated = rawMilestones.filter(m => !m.dueDate);
+    return [...dated, ...undated];
+  }, [rawMilestones]);
 
   // Compute progress client-side (same blend as the server uses)
   const totalTasks = tasks.length;
