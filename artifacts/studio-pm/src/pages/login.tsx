@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -214,8 +214,17 @@ export default function Login() {
           )}
         </div>
 
-        <div className="text-center text-[11px] text-muted-foreground/70 mt-6 font-mono">
-          Members only · Contact your administrator for access
+        <div className="text-center text-[11px] text-muted-foreground/70 mt-6 font-mono space-y-2">
+          <div>Members only · Contact your administrator for access</div>
+          <div>
+            <Link
+              href="/privacy"
+              className="hover:text-foreground transition-colors underline-offset-4 hover:underline"
+              data-testid="link-privacy"
+            >
+              Privacy policy
+            </Link>
+          </div>
         </div>
       </div>
     </div>

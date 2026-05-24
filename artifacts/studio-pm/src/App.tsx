@@ -14,6 +14,7 @@ import UsersAdmin from "@/pages/admin/users";
 import Documents from "@/pages/documents";
 import DocumentEditor from "@/pages/documents/editor";
 import Login from "@/pages/login";
+import Privacy from "@/pages/privacy";
 import PublicShare from "@/pages/public-share";
 import NotFound from "@/pages/not-found";
 
@@ -47,6 +48,9 @@ function Routes() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      {/* Public privacy policy — needs to be reachable from the OAuth consent
+          screen and from the login page footer, so it lives outside AuthedShell. */}
+      <Route path="/privacy" component={Privacy} />
       {/* Public, unauthenticated share viewer — must live outside AuthedShell. */}
       <Route path="/s/:token" component={PublicShare} />
       <Route>
