@@ -150,16 +150,16 @@ export function isCollaboraConfigured(): boolean {
  *   false= remove space
  * See: https://wiki.documentfoundation.org/Documentation/DevGuide/Spreadsheet_Documents#Filter_Options_for_the_CSV_Filter
  */
-const CSV_FILTER_OPTIONS = "44,34,76,1,,1033,false,true,false,false";
+// Short canonical form: <fieldSep>,<textQuote>,<charset>
+// Long forms have been observed to be silently ignored by some COOL builds.
+const CSV_FILTER_OPTIONS = "44,34,UTF8";
+const TSV_FILTER_OPTIONS = "9,34,UTF8";
 
 function filterOptionsForUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   const ext = url.split("?")[0]?.split(".").pop()?.toLowerCase() ?? "";
-  if (ext === "csv" || ext === "tsv") {
-    return ext === "tsv"
-      ? CSV_FILTER_OPTIONS.replace(/^44,/, "9,") // 9 = TAB
-      : CSV_FILTER_OPTIONS;
-  }
+  if (ext === "csv") return CSV_FILTER_OPTIONS;
+  if (ext === "tsv") return TSV_FILTER_OPTIONS;
   return null;
 }
 
@@ -176,6 +176,9 @@ export function buildEditSession(
   // some file types even when UserCanWrite=true in CheckFileInfo.
   let actionUrl = `${collaboraUrl}/browser/dist/cool.html?WOPISrc=${encodeURIComponent(wopiSrc)}&permission=edit`;
   const opts = filterOptionsForUrl(fileUrl ?? null);
-  if (opts) actionUrl += `&options=${encodeURIComponent(opts)}`;
+  // Do NOT URL-encode the commas — COOL splits the value on bare `,` and an
+  // encoded `%2C` is treated as a literal character, silently ignoring the
+  // filter options. Commas are legal in URL query values per RFC 3986.
+  if (opts) actionUrl += `&options=${opts}`;
   return { actionUrl, wopiSrc, accessToken: token, accessTokenTtl: ttlMs };
 }
