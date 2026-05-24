@@ -6,6 +6,7 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { getSessionMiddleware } from "./lib/session";
+import { attachCollaboraHttpProxy } from "./lib/collabora-proxy";
 
 const app: Express = express();
 
@@ -32,6 +33,14 @@ app.use(
   }),
 );
 app.use(cors());
+
+// Collabora proxy mounts BEFORE express.json/session — those middlewares
+// consume the request body, which breaks streaming proxies. Anonymous on
+// purpose: Collabora's static assets (cool.html, /browser/*) are loaded
+// by the browser without cookies; document access is gated by the WOPI
+// HMAC access_token in the URL.
+attachCollaboraHttpProxy(app);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(getSessionMiddleware());

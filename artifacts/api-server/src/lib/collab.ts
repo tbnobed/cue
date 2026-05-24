@@ -102,45 +102,27 @@ async function getOrCreateRoom(roomName: string): Promise<Room> {
 
 // ── HTTP → WebSocket upgrade ──────────────────────────────────────────────
 
-export function attachCollabServer(httpServer: HttpServer): void {
+type UpgradeRouter = (
+  req: IncomingMessage,
+  socket: import("stream").Duplex,
+  head: Buffer,
+) => boolean;
+
+/**
+ * Initialises the Yjs collab WebSocket server and returns a router function
+ * that claims `/api/ws/*` upgrades. Returns `true` when the upgrade was
+ * handled (or rejected with 401), `false` to let another router try.
+ *
+ * Lifecycle ownership is centralised in `index.ts` — see the dispatcher
+ * there. Do NOT register an httpServer.on("upgrade") listener from here,
+ * or unmatched upgrades will leak open sockets (DoS surface).
+ */
+export function createCollabUpgradeRouter(): UpgradeRouter {
   const wss = new WebSocketServer({ noServer: true });
-  // Lazy-imported to keep this module's side-effect surface small.
   // Validates the session cookie on the WS upgrade handshake so anonymous
   // sockets cannot read/write live document state when auth is enabled.
   const sessionMw = sessionMiddleware();
   const authEnabled = isAuthConfigured();
-
-  httpServer.on("upgrade", (request: IncomingMessage, socket, head) => {
-    const url = request.url ?? "";
-    if (!url.startsWith("/api/ws")) {
-      socket.destroy();
-      return;
-    }
-
-    // Run express-session against the upgrade request to populate `request.session`.
-    // We pass a stub response since session middleware only writes Set-Cookie on
-    // mutation, and we never mutate during upgrade.
-    const stubRes = {
-      getHeader() { return undefined; },
-      setHeader() { /* no-op */ },
-      end() { /* no-op */ },
-      on() { /* no-op */ },
-      once() { /* no-op */ },
-      emit() { /* no-op */ },
-    } as unknown as import("http").ServerResponse;
-
-    sessionMw(request as unknown as import("express").Request, stubRes as unknown as import("express").Response, () => {
-      const sess = (request as unknown as { session?: { userId?: number } }).session;
-      if (authEnabled && !sess?.userId) {
-        socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
-        socket.destroy();
-        return;
-      }
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit("connection", ws, request);
-      });
-    });
-  });
 
   wss.on("connection", async (ws: WebSocket, req: IncomingMessage) => {
     const url = req.url ?? "";
@@ -176,4 +158,38 @@ export function attachCollabServer(httpServer: HttpServer): void {
       logger.error({ err, roomName }, "Collab WS error");
     });
   });
+
+  return (request, socket, head) => {
+    const url = request.url ?? "";
+    if (!url.startsWith("/api/ws")) return false;
+
+    // Run express-session against the upgrade request to populate `request.session`.
+    // We pass a stub response since session middleware only writes Set-Cookie on
+    // mutation, and we never mutate during upgrade.
+    const stubRes = {
+      getHeader() { return undefined; },
+      setHeader() { /* no-op */ },
+      end() { /* no-op */ },
+      on() { /* no-op */ },
+      once() { /* no-op */ },
+      emit() { /* no-op */ },
+    } as unknown as import("http").ServerResponse;
+
+    sessionMw(
+      request as unknown as import("express").Request,
+      stubRes as unknown as import("express").Response,
+      () => {
+        const sess = (request as unknown as { session?: { userId?: number } }).session;
+        if (authEnabled && !sess?.userId) {
+          socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+          socket.destroy();
+          return;
+        }
+        wss.handleUpgrade(request, socket, head, (ws) => {
+          wss.emit("connection", ws, request);
+        });
+      },
+    );
+    return true;
+  };
 }
