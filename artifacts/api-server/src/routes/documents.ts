@@ -17,6 +17,7 @@ async function documentProjectId(d: { projectId: number | null; taskId: number |
   return null;
 }
 import {
+  CreateDocumentBody,
   UpdateDocumentParams,
   UpdateDocumentBody,
   DeleteDocumentParams,
@@ -129,6 +130,65 @@ router.get("/documents", async (req, res): Promise<void> => {
   }
 
   res.json(filtered.map(d => fmt(d, projectMap)));
+});
+
+router.post("/documents", async (req, res): Promise<void> => {
+  const parsed = CreateDocumentBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid body", details: parsed.error.issues }); return; }
+  const body = parsed.data;
+
+  // Normalize URL: only allow http(s) external links via this JSON route.
+  // Uploaded-file urls (/api/uploads/...) must continue to go through /documents/upload
+  // so the file actually exists on disk.
+  if (body.url !== undefined) {
+    const u = body.url.trim();
+    if (!/^https?:\/\//i.test(u)) { res.status(400).json({ error: "url must be an http(s) link" }); return; }
+    body.url = u;
+  }
+
+  const projects = await db.select().from(projectsTable);
+  const projectMap = Object.fromEntries(projects.map(s => [s.id, s.name]));
+
+  let projectId: number | null = body.projectId ?? null;
+  const taskId: number | null = body.taskId ?? null;
+  const folderId: number | null = body.folderId ?? null;
+
+  if (taskId !== null) {
+    const [t] = await db.select({ projectId: tasksTable.projectId }).from(tasksTable).where(eq(tasksTable.id, taskId));
+    if (!t) { res.status(400).json({ error: "Task not found" }); return; }
+    if (projectId !== null && t.projectId !== projectId) {
+      res.status(400).json({ error: "Task does not belong to the given project" }); return;
+    }
+    if (!(await requireProjectAccess(req, res, t.projectId))) return;
+    projectId = null; // task-attached docs are scoped via taskId
+  } else if (projectId !== null) {
+    if (!(await requireProjectAccess(req, res, projectId))) return;
+  } else if (!req.authUser!.isAdmin) {
+    res.status(403).json({ error: "Only an admin can create global documents." }); return;
+  }
+
+  if (folderId !== null) {
+    const [folder] = await db.select().from(documentFoldersTable).where(eq(documentFoldersTable.id, folderId));
+    if (!folder) { res.status(400).json({ error: "Folder not found" }); return; }
+    if ((folder.projectId ?? null) !== (projectId ?? null) || (folder.taskId ?? null) !== (taskId ?? null)) {
+      res.status(400).json({ error: "Folder belongs to a different scope" }); return;
+    }
+  }
+
+  const [doc] = await db.insert(documentsTable).values({
+    title: body.title,
+    projectId: projectId ?? undefined,
+    taskId: taskId ?? undefined,
+    folderId: folderId ?? undefined,
+    category: body.category,
+    url: body.url ?? undefined,
+    description: body.description ?? undefined,
+    notes: body.notes ?? undefined,
+    uploadedBy: body.uploadedBy ?? undefined,
+    version: body.version ?? undefined,
+  }).returning();
+
+  res.status(201).json(fmt(doc, projectMap));
 });
 
 router.post("/documents/upload", upload.single("file"), async (req, res): Promise<void> => {

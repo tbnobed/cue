@@ -4,6 +4,7 @@ import path from "path";
 import { db, documentsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { verifyWopiToken } from "../lib/wopi-token";
+import { convertOffice, shouldTranscodeOnRead, invalidateCacheForFile } from "../lib/office-convert.js";
 
 import { uploadsDir } from "../lib/uploads-dir.js";
 
@@ -36,22 +37,64 @@ router.get("/wopi/files/:id", async (req, res): Promise<void> => {
   const onDiskExt = path.extname(fp).slice(1).toLowerCase() || "bin";
   const titleExt = path.extname(doc.title).slice(1).toLowerCase();
   const stem = titleExt ? doc.title.slice(0, -(titleExt.length + 1)) : doc.title;
-  const baseFileName = `${stem}.${onDiskExt}`;
 
+  // Transcode-on-read: some formats (CSV/TSV) trigger LibreOffice's "Text
+  // Import" dialog that can't be suppressed. We serve them as XLSX through
+  // WOPI and convert back to the original format on PutFile.
+  const transcode = shouldTranscodeOnRead(onDiskExt);
+  let baseFileName: string;
+  let size: number;
+  if (transcode) {
+    const src = await fs.promises.readFile(fp);
+    let converted: Buffer;
+    try {
+      converted = await convertOffice(src, onDiskExt, transcode.servedExt, fileId, stat.mtimeMs);
+    } catch (err) {
+      // Conversion failed (Collabora unreachable or rejected the file).
+      // Fall back to serving the file as-is so the user at least gets the
+      // import-dialog experience instead of a hard failure.
+      req.log.warn(
+        { err: (err as Error).message, fileId, onDiskExt },
+        "office-convert failed, falling back to raw file",
+      );
+      baseFileName = `${stem}.${onDiskExt}`;
+      size = stat.size;
+      sendCheckFileInfo(res, { baseFileName, size, doc, stat, claims });
+      return;
+    }
+    baseFileName = `${stem}.${transcode.servedExt}`;
+    size = converted.length;
+  } else {
+    baseFileName = `${stem}.${onDiskExt}`;
+    size = stat.size;
+  }
+
+  sendCheckFileInfo(res, { baseFileName, size, doc, stat, claims });
+});
+
+function sendCheckFileInfo(
+  res: import("express").Response,
+  args: {
+    baseFileName: string;
+    size: number;
+    doc: typeof documentsTable.$inferSelect;
+    stat: fs.Stats;
+    claims: { w: 0 | 1 };
+  },
+): void {
+  const { baseFileName, size, doc, stat, claims } = args;
   res.json({
     BaseFileName: baseFileName,
-    Size: stat.size,
+    Size: size,
     OwnerId: "studiopm",
     UserId: doc.uploadedBy || "user",
     UserFriendlyName: doc.uploadedBy || "Project Member",
     UserCanWrite: claims.w === 1,
-    // COOL also looks at these top-level flags — without UserCanNotWriteRelative
-    // explicitly false, some COOL builds enter readonly mode.
     UserCanNotWriteRelative: false,
     UserCanRename: false,
     ReadOnly: claims.w !== 1,
-    Version: String(doc.updatedAt.getTime()),
-    LastModifiedTime: doc.updatedAt.toISOString(),
+    Version: String(doc.updatedAt.getTime()) + ":" + String(stat.mtimeMs),
+    LastModifiedTime: new Date(stat.mtimeMs).toISOString(),
     DisablePrint: false,
     DisableExport: false,
     DisableCopy: false,
@@ -59,7 +102,7 @@ router.get("/wopi/files/:id", async (req, res): Promise<void> => {
     SupportsLocks: false,
     SupportsRename: false,
   });
-});
+}
 
 // GetFile: GET /api/wopi/files/:id/contents
 router.get("/wopi/files/:id/contents", async (req, res): Promise<void> => {
@@ -71,7 +114,24 @@ router.get("/wopi/files/:id/contents", async (req, res): Promise<void> => {
   if (!doc) { res.status(404).send("Not found"); return; }
   const fp = uploadPath(doc.url);
   if (!fp || !fs.existsSync(fp)) { res.status(404).send("File missing"); return; }
-  res.sendFile(fp);
+
+  const onDiskExt = path.extname(fp).slice(1).toLowerCase();
+  const transcode = shouldTranscodeOnRead(onDiskExt);
+  if (!transcode) { res.sendFile(fp); return; }
+
+  try {
+    const stat = await fs.promises.stat(fp);
+    const src = await fs.promises.readFile(fp);
+    const converted = await convertOffice(src, onDiskExt, transcode.servedExt, fileId, stat.mtimeMs);
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.send(converted);
+  } catch (err) {
+    req.log.warn(
+      { err: (err as Error).message, fileId, onDiskExt },
+      "office-convert failed on GetFile, serving raw",
+    );
+    res.sendFile(fp);
+  }
 });
 
 // PutFile: POST /api/wopi/files/:id/contents — raw binary body
@@ -92,7 +152,41 @@ router.post(
 
     const body = req.body;
     if (!Buffer.isBuffer(body)) { res.status(400).send("Empty body"); return; }
-    fs.writeFileSync(fp, body);
+
+    const onDiskExt = path.extname(fp).slice(1).toLowerCase();
+    const transcode = shouldTranscodeOnRead(onDiskExt);
+    let toWrite: Buffer = body;
+    if (transcode) {
+      // The editor saved as `servedExt` (e.g. xlsx). Convert back to the
+      // original on-disk format before persisting so the file the user
+      // downloads / external systems consume is still a CSV.
+      try {
+        const stat = await fs.promises.stat(fp).catch(() => null);
+        const mtimeMs = stat?.mtimeMs ?? Date.now();
+        toWrite = await convertOffice(
+          body,
+          transcode.servedExt,
+          onDiskExt,
+          // Cache key for the *inverse* direction is keyed on the editor
+          // buffer's logical mtime — use Date.now() so each save is unique
+          // (we don't want to ever serve a stale reverse-conversion).
+          fileId,
+          Date.now() + mtimeMs,
+        );
+      } catch (err) {
+        req.log.error(
+          { err: (err as Error).message, fileId, onDiskExt },
+          "office-convert failed on PutFile, refusing save to avoid corruption",
+        );
+        res.status(500).send("Save conversion failed");
+        return;
+      }
+    }
+
+    fs.writeFileSync(fp, toWrite);
+    // The on-disk file's mtime just changed; nuke any cached read-direction
+    // conversions so the next open re-converts the new contents.
+    invalidateCacheForFile(fileId);
 
     const now = new Date();
     await db.update(documentsTable).set({ updatedAt: now }).where(eq(documentsTable.id, fileId));

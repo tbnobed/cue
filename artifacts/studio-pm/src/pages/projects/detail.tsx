@@ -31,13 +31,14 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus, Upload, FolderPlus, Folder, FolderOpen, ChevronRight,
+  Plus, Upload, Link2, FolderPlus, Folder, FolderOpen, ChevronRight,
   Trash2, ExternalLink, PenLine, Pencil, Loader2, Circle, Loader, Eye, CheckCircle2, AlertTriangle,
   FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Home, Settings, ListChecks,
   Users, UserPlus, X,
 } from "lucide-react";
 import { ShareDialog } from "@/components/share-dialog";
 import { TaskDetailDialog } from "@/components/task-detail-dialog";
+import { AddLinkDialog } from "@/components/add-link-dialog";
 
 const STATUS_TONE: Record<string, string> = {
   planning:    "text-blue-400 bg-blue-500/10 ring-blue-500/20",
@@ -1049,6 +1050,7 @@ function DocumentsTab({ projectId }: { projectId: number }) {
 
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
 
   // Fetch ALL folders/docs for this project including those attached to its tasks,
   // so we can render virtual task folders at the root and also satisfy task-scope drills.
@@ -1314,6 +1316,9 @@ function DocumentsTab({ projectId }: { projectId: number }) {
             <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={() => setFolderDialogOpen(true)}>
               <FolderPlus className="w-4 h-4" /> New Folder
             </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={() => setLinkDialogOpen(true)}>
+              <Link2 className="w-4 h-4" /> Add link
+            </Button>
             <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
             <Button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-2 h-9">
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
@@ -1321,6 +1326,17 @@ function DocumentsTab({ projectId }: { projectId: number }) {
             </Button>
           </div>
         </div>
+
+        <AddLinkDialog
+          open={linkDialogOpen}
+          onOpenChange={setLinkDialogOpen}
+          projectId={currentTaskId == null ? projectId : null}
+          taskId={currentTaskId}
+          folderId={currentFolderId}
+          defaultCategory={uploadCategory as any}
+          scopeLabel={currentTaskName ? `Task: ${currentTaskName}` : "this project"}
+          onCreated={invalidate}
+        />
 
         {/* Docs list (folders are sidebar-only) */}
         {docsLoading ? (

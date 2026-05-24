@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Upload, Trash2, FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Globe, FolderOpen, X, Loader2 } from "lucide-react";
+import { Upload, Trash2, FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Globe, FolderOpen, X, Loader2, Link2 } from "lucide-react";
 import { ShareDialog } from "@/components/share-dialog";
+import { AddLinkDialog } from "@/components/add-link-dialog";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -34,6 +35,7 @@ export default function Documents() {
   const [uploading, setUploading] = useState(false);
   const [uploadStudio, setUploadStudio] = useState("");
   const [uploadCategory, setUploadCategory] = useState("general");
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
 
   const { data: allDocs, isLoading } = useListDocuments({});
   const { data: projects } = useListProjects();
@@ -148,8 +150,26 @@ export default function Documents() {
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
             {uploading ? "Uploading…" : "Upload"}
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setLinkDialogOpen(true)}
+            className="gap-2 h-9"
+          >
+            <Link2 className="w-4 h-4" /> Add link
+          </Button>
         </div>
       </div>
+
+      <AddLinkDialog
+        open={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+        projectId={uploadStudio ? parseInt(uploadStudio) : null}
+        defaultCategory={uploadCategory as any}
+        scopeLabel={uploadStudio
+          ? (projects?.find(p => String(p.id) === uploadStudio)?.name ?? "this project")
+          : "the General Library"}
+        onCreated={invalidate}
+      />
 
       {/* Filters */}
       <div className="surface-card ring-hairline border border-border/70 rounded-xl p-3 flex flex-wrap gap-2 items-center">
