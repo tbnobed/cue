@@ -518,3 +518,258 @@
 }
 .ProseMirror .tableWrapper { overflow-x: auto; }
 .ProseMirror.resize-cursor { cursor: col-resize; }
+/* ── Mobile shell (below md / 768px) ──────────────────────────────────────
+ * Self-contained design language for the mobile-only layout.
+ * Class names mirror the source mockup so the JSX reads 1:1 with it.
+ * Scoped under `.mshell` so they never collide with the desktop UI. */
+.mshell {
+  --m-text-2: rgba(231, 233, 255, 0.82);
+  --m-text-3: hsl(var(--muted-foreground));
+  --m-text-4: rgba(231, 233, 255, 0.45);
+  --m-glass: rgba(255, 255, 255, 0.04);
+  --m-glass-2: rgba(255, 255, 255, 0.07);
+  --m-border: rgba(255, 255, 255, 0.09);
+  --m-border-2: rgba(255, 255, 255, 0.18);
+  --m-violet: #9384ff;
+  --m-violet-line: rgba(147, 132, 255, 0.35);
+  --m-violet-dim: rgba(147, 132, 255, 0.14);
+  --m-emerald: #41e3a0;
+  --m-emerald-line: rgba(65, 227, 160, 0.35);
+  --m-emerald-dim: rgba(65, 227, 160, 0.12);
+  --m-cyan: #2fded0;
+  --m-cyan-line: rgba(47, 222, 208, 0.35);
+  --m-cyan-dim: rgba(47, 222, 208, 0.12);
+  --m-blue: #5fa0ff;
+  --m-blue-line: rgba(95, 160, 255, 0.35);
+  --m-blue-dim: rgba(95, 160, 255, 0.12);
+  --m-rose: #ff7b9c;
+  --m-rose-line: rgba(255, 123, 156, 0.35);
+  --m-rose-dim: rgba(255, 123, 156, 0.12);
+  --m-amber: #ffc555;
+  --m-amber-line: rgba(255, 197, 85, 0.35);
+  --m-amber-dim: rgba(255, 197, 85, 0.12);
+}
+
+.mshell .m-glass {
+  background: var(--m-glass);
+  border: 1px solid var(--m-border);
+  border-radius: 16px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* App bar */
+.mshell .appbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  background: linear-gradient(180deg, rgba(11, 13, 26, 0.95), rgba(11, 13, 26, 0.55));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--m-border);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.mshell .appbar .ab-btn {
+  width: 38px; height: 38px; border-radius: 12px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  background: var(--m-glass-2); border: 1px solid var(--m-border);
+  color: var(--m-text-2); cursor: pointer;
+}
+.mshell .appbar .ab-btn:active { transform: scale(.94); }
+.mshell .appbar .ab-btn svg { width: 18px; height: 18px; }
+.mshell .appbar .mk {
+  width: 40px; height: 40px; border-radius: 13px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, rgba(147, 132, 255, 0.18), rgba(47, 222, 208, 0.12));
+  border: 1px solid var(--m-violet-line);
+  box-shadow: 0 8px 24px -8px rgba(109, 92, 255, 0.55);
+}
+.mshell .appbar .ttl { flex: 1; min-width: 0; line-height: 1.15; }
+.mshell .appbar .ttl b { font-family: var(--app-font-display); font-weight: 700; font-size: 16px; display: block; letter-spacing: -.01em; }
+.mshell .appbar .ttl span { font-size: 10.5px; color: var(--m-text-3); font-family: var(--app-font-mono); text-transform: uppercase; letter-spacing: .08em; }
+
+/* Body scroll container */
+.mshell .mbody {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 18px 16px calc(env(safe-area-inset-bottom, 0px) + 110px);
+  position: relative;
+}
+
+/* Section heads */
+.mshell .mhead { margin-bottom: 18px; }
+.mshell .mhead .k { font-size: 10px; color: var(--m-text-3); font-family: var(--app-font-mono); text-transform: uppercase; letter-spacing: .14em; margin-bottom: 6px; }
+.mshell .mhead h2 { font-family: var(--app-font-display); font-weight: 700; font-size: 24px; letter-spacing: -.4px; line-height: 1.12; margin-bottom: 4px; }
+.mshell .mhead p { font-size: 12.5px; color: var(--m-text-3); }
+.mshell .sect-h { display: flex; align-items: center; justify-content: space-between; margin: 18px 2px 10px; }
+.mshell .sect-h b { font-family: var(--app-font-display); font-weight: 600; font-size: 14px; }
+.mshell .sect-h .more, .mshell .sect-h .live { font-size: 10.5px; color: var(--m-text-3); display: inline-flex; align-items: center; gap: 5px; font-family: var(--app-font-mono); text-transform: uppercase; letter-spacing: .1em; }
+.mshell .sect-h .more svg { width: 11px; height: 11px; }
+.mshell .sect-h .live { color: var(--m-emerald); }
+.mshell .sect-h .live .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--m-emerald); box-shadow: 0 0 7px var(--m-emerald); animation: m-pulse 1.6s ease-in-out infinite; }
+@keyframes m-pulse { 0%,100%{opacity:.55} 50%{opacity:1} }
+
+/* Stats 2x2 */
+.mshell .mstats { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-bottom: 4px; }
+.mshell .mstat { padding: 14px; border-radius: 16px; position: relative; overflow: hidden; }
+.mshell .mstat .r { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.mshell .mstat .lab { font-size: 10px; font-family: var(--app-font-mono); text-transform: uppercase; letter-spacing: .14em; color: var(--m-text-3); }
+.mshell .mstat .ic { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; color: var(--c); background: rgba(255,255,255,0.05); border: 1px solid var(--cline); }
+.mshell .mstat .ic svg { width: 15px; height: 15px; }
+.mshell .mstat .n { font-family: var(--app-font-display); font-weight: 700; font-size: 30px; letter-spacing: -.5px; line-height: 1; color: var(--c); }
+.mshell .mstat .sub { font-size: 10.5px; color: var(--m-text-3); margin-top: 5px; }
+.mshell .mstat.violet { --c: var(--m-violet); --cline: var(--m-violet-line); background: linear-gradient(135deg, var(--m-violet-dim), var(--m-glass)); border: 1px solid var(--m-violet-line); }
+.mshell .mstat.cyan { --c: var(--m-cyan); --cline: var(--m-cyan-line); background: linear-gradient(135deg, var(--m-cyan-dim), var(--m-glass)); border: 1px solid var(--m-cyan-line); }
+.mshell .mstat.emerald { --c: var(--m-emerald); --cline: var(--m-emerald-line); background: linear-gradient(135deg, var(--m-emerald-dim), var(--m-glass)); border: 1px solid var(--m-emerald-line); }
+.mshell .mstat.rose { --c: var(--m-rose); --cline: var(--m-rose-line); background: linear-gradient(135deg, var(--m-rose-dim), var(--m-glass)); border: 1px solid var(--m-rose-line); }
+
+/* Upcoming deadline row */
+.mshell .mdl { display: flex; align-items: center; gap: 13px; padding: 12px 13px; margin-bottom: 8px; }
+.mshell .mdl .dt { width: 46px; flex: 0 0 auto; text-align: center; border-radius: 11px; padding: 6px 4px; background: var(--m-violet-dim); border: 1px solid var(--m-violet-line); line-height: 1.05; }
+.mshell .mdl .dt b { font-family: var(--app-font-display); font-weight: 700; font-size: 18px; color: var(--m-violet); display: block; }
+.mshell .mdl .dt span { font-size: 9.5px; color: var(--m-text-3); font-family: var(--app-font-mono); text-transform: uppercase; letter-spacing: .1em; }
+.mshell .mdl .info { flex: 1; min-width: 0; }
+.mshell .mdl .info b { font-size: 13px; font-weight: 600; display: block; }
+.mshell .mdl .info span { font-size: 11px; color: var(--m-text-3); font-family: var(--app-font-mono); }
+.mshell .mdl .eta { font-size: 11px; color: var(--m-text-3); font-family: var(--app-font-mono); flex: 0 0 auto; }
+
+/* Activity log */
+.mshell .mlog { padding: 6px 13px; }
+.mshell .mact { display: flex; align-items: flex-start; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--m-border); }
+.mshell .mact:last-child { border-bottom: none; }
+.mshell .mact .g { width: 26px; height: 26px; border-radius: 9px; flex: 0 0 auto; display: grid; place-items: center; color: #0a0b16; }
+.mshell .mact .g svg { width: 13px; height: 13px; }
+.mshell .mact .g-add { background: linear-gradient(135deg, #a99bff, #6d5cff); }
+.mshell .mact .g-done { background: linear-gradient(135deg, #5ce8ac, #1ec98a); }
+.mshell .mact .g-upd { background: linear-gradient(135deg, #7cc1ff, #3a7bff); }
+.mshell .mact .c { flex: 1; min-width: 0; }
+.mshell .mact .c .t { font-size: 12.5px; line-height: 1.35; }
+.mshell .mact .c .t em { color: var(--m-text-2); font-style: normal; }
+.mshell .mact .c .m { font-size: 10px; color: var(--m-text-3); margin-top: 3px; font-family: var(--app-font-mono); }
+
+/* Project card */
+.mshell .mproj { padding: 15px; border-radius: 16px; margin-bottom: 12px; display: block; }
+.mshell .mproj.violet { background: linear-gradient(135deg, var(--m-violet-dim), var(--m-glass)); border: 1px solid var(--m-violet-line); }
+.mshell .mproj.blue { background: linear-gradient(135deg, var(--m-blue-dim), var(--m-glass)); border: 1px solid var(--m-blue-line); }
+.mshell .mproj.emerald { background: linear-gradient(135deg, var(--m-emerald-dim), var(--m-glass)); border: 1px solid var(--m-emerald-line); }
+.mshell .mproj.amber { background: linear-gradient(135deg, var(--m-amber-dim), var(--m-glass)); border: 1px solid var(--m-amber-line); }
+.mshell .mproj .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mshell .mproj .arrow { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: var(--m-glass-2); color: var(--m-text-3); }
+.mshell .mproj .arrow svg { width: 13px; height: 13px; }
+.mshell .mproj h3 { font-family: var(--app-font-display); font-weight: 700; font-size: 17px; letter-spacing: -.3px; margin-bottom: 5px; }
+.mshell .mproj p { font-size: 12px; color: var(--m-text-3); line-height: 1.4; margin-bottom: 12px; }
+.mshell .mprog .l { display: flex; justify-content: space-between; font-size: 11px; color: var(--m-text-3); margin-bottom: 6px; font-family: var(--app-font-mono); }
+.mshell .mprog .l b { color: var(--m-text-2); }
+.mshell .mprog .bar { height: 6px; border-radius: 999px; background: var(--m-glass-2); overflow: hidden; }
+.mshell .mprog .bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--m-violet), var(--m-cyan)); }
+.mshell .mproj.blue .mprog .bar i { background: linear-gradient(90deg, var(--m-blue), var(--m-cyan)); }
+.mshell .mproj.emerald .mprog .bar i { background: linear-gradient(90deg, var(--m-emerald), var(--m-cyan)); }
+.mshell .mproj.amber .mprog .bar i { background: linear-gradient(90deg, var(--m-amber), var(--m-violet)); }
+.mshell .mproj .ft { display: flex; justify-content: space-between; align-items: center; margin-top: 11px; font-size: 11px; color: var(--m-text-3); font-family: var(--app-font-mono); }
+.mshell .mproj .ft span { display: inline-flex; align-items: center; gap: 5px; }
+.mshell .mproj .ft svg { width: 12px; height: 12px; }
+
+/* Tag pill */
+.mshell .mtag { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; padding: 4px 9px; border-radius: 999px; color: var(--a, var(--m-violet)); border: 1px solid var(--aline, var(--m-violet-line)); background: var(--abg, var(--m-violet-dim)); font-family: var(--app-font-mono); text-transform: uppercase; letter-spacing: .08em; }
+.mshell .mtag .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
+
+/* Filters chips */
+.mshell .mfilters { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; margin-bottom: 8px; scrollbar-width: none; }
+.mshell .mfilters::-webkit-scrollbar { display: none; }
+.mshell .chip { flex: 0 0 auto; font-size: 11.5px; color: var(--m-text-2); background: var(--m-glass-2); border: 1px solid var(--m-border); border-radius: 999px; padding: 7px 13px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.mshell .chip.on { color: var(--m-violet); border-color: var(--m-violet-line); background: var(--m-violet-dim); }
+
+/* Empty state */
+.mshell .mempty { padding: 50px 24px; text-align: center; margin-top: 16px; }
+.mshell .mempty .orb { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 18px; background: radial-gradient(circle at 35% 30%, #a99bff, #6d5cff 60%, #2a1f6b); box-shadow: 0 0 44px rgba(109, 92, 255, .55); animation: m-bob 3s ease-in-out infinite; }
+@keyframes m-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+.mshell .mempty b { font-family: var(--app-font-display); font-size: 17px; display: block; margin-bottom: 7px; }
+.mshell .mempty span { font-size: 12.5px; color: var(--m-text-3); line-height: 1.5; }
+
+/* Timeline */
+.mshell .tlgroup { margin-bottom: 22px; }
+.mshell .tlg-h { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 0 2px; }
+.mshell .tlg-h .ic { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; color: #0a0b16; background: linear-gradient(135deg, var(--c, var(--m-violet)), var(--c2, var(--m-cyan))); }
+.mshell .tlg-h .ic svg { width: 14px; height: 14px; }
+.mshell .tlg-h b { font-family: var(--app-font-display); font-weight: 600; font-size: 14px; flex: 1; }
+.mshell .tlg-h .st { font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; font-family: var(--app-font-mono); }
+.mshell .s-violet { color: var(--m-violet); border: 1px solid var(--m-violet-line); background: var(--m-violet-dim); }
+.mshell .s-emerald { color: var(--m-emerald); border: 1px solid var(--m-emerald-line); background: var(--m-emerald-dim); }
+.mshell .s-blue { color: var(--m-blue); border: 1px solid var(--m-blue-line); background: var(--m-blue-dim); }
+.mshell .s-amber { color: var(--m-amber); border: 1px solid var(--m-amber-line); background: var(--m-amber-dim); }
+.mshell .tline { position: relative; padding-left: 22px; }
+.mshell .tline::before { content: ""; position: absolute; left: 5px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(180deg, var(--m-border-2), transparent); }
+.mshell .tms { position: relative; margin-bottom: 10px; }
+.mshell .tms .nd { position: absolute; left: -22px; top: 15px; width: 11px; height: 11px; border-radius: 50%; background: hsl(var(--background)); border: 2.5px solid var(--mc, var(--m-violet)); box-shadow: 0 0 9px var(--mc, var(--m-violet)); }
+.mshell .tms-c { padding: 11px 13px; border-radius: 12px; border: 1px solid var(--m-border); border-left: 3px solid var(--mc, var(--m-violet)); background: linear-gradient(135deg, var(--mcdim, var(--m-violet-dim)), var(--m-glass)); }
+.mshell .tms-c b { font-size: 12.5px; font-weight: 600; display: block; margin-bottom: 5px; }
+.mshell .tms-c .d { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--m-text-3); font-family: var(--app-font-mono); }
+.mshell .tms-c .over { color: var(--m-rose); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: .06em; }
+.mshell .tms-c .over::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--m-rose); box-shadow: 0 0 6px var(--m-rose); }
+.mshell .tms.v { --mc: var(--m-violet); --mcdim: var(--m-violet-dim); }
+.mshell .tms.r { --mc: var(--m-rose); --mcdim: var(--m-rose-dim); }
+.mshell .tms.e { --mc: var(--m-emerald); --mcdim: var(--m-emerald-dim); }
+
+/* Team */
+.mshell .mteam .row { display: flex; align-items: center; gap: 13px; padding: 13px; margin-bottom: 10px; }
+.mshell .mteam .av { width: 42px; height: 42px; border-radius: 13px; flex: 0 0 auto; display: grid; place-items: center; position: relative; font-weight: 700; font-size: 13px; color: #0a0b16; background: linear-gradient(135deg, var(--g1, #a99bff), var(--g2, #6d5cff)); font-family: var(--app-font-display); }
+.mshell .mteam .nm { flex: 1; min-width: 0; }
+.mshell .mteam .nm b { font-size: 14px; font-weight: 600; display: block; }
+.mshell .mteam .nm span { font-size: 11px; color: var(--m-text-3); font-family: var(--app-font-mono); }
+.mshell .mteam .nm .r { color: var(--m-violet); font-weight: 600; }
+
+/* Docs */
+.mshell .mdoc { display: flex; align-items: center; gap: 13px; padding: 13px; margin-bottom: 10px; }
+.mshell .mdoc .di { width: 40px; height: 40px; border-radius: 11px; flex: 0 0 auto; display: grid; place-items: center; font-size: 9px; font-weight: 700; color: #0a0b16; background: linear-gradient(135deg, #5ce8ac, #1ec98a); font-family: var(--app-font-display); letter-spacing: .04em; }
+.mshell .mdoc .di.violet { background: linear-gradient(135deg, #a99bff, #6d5cff); }
+.mshell .mdoc .di.blue { background: linear-gradient(135deg, #7cc1ff, #3a7bff); }
+.mshell .mdoc .di.amber { background: linear-gradient(135deg, #ffd97f, #ffaa2b); }
+.mshell .mdoc .dn { flex: 1; min-width: 0; }
+.mshell .mdoc .dn b { font-size: 13px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mshell .mdoc .dn .m { font-size: 10.5px; color: var(--m-text-3); margin-top: 3px; font-family: var(--app-font-mono); }
+.mshell .mdoc .dn .m .ty { color: var(--m-text-2); background: var(--m-glass-2); border: 1px solid var(--m-border); border-radius: 5px; padding: 1px 6px; margin-right: 5px; }
+.mshell .mdoc .go { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: var(--m-text-3); background: var(--m-glass-2); border: 1px solid var(--m-border); flex: 0 0 auto; }
+.mshell .mdoc .go svg { width: 14px; height: 14px; }
+
+/* Project detail hero + tasks */
+.mshell .detail-hero { border-radius: 18px; padding: 18px; margin-bottom: 14px; position: relative; overflow: hidden; background: linear-gradient(135deg, var(--m-violet-dim), var(--m-glass)); border: 1px solid var(--m-violet-line); }
+.mshell .detail-hero .mtag { margin-bottom: 12px; }
+.mshell .detail-hero h2 { font-family: var(--app-font-display); font-weight: 700; font-size: 22px; letter-spacing: -.5px; line-height: 1.1; margin-bottom: 8px; }
+.mshell .detail-hero p { font-size: 12px; color: var(--m-text-2); line-height: 1.5; margin-bottom: 14px; }
+.mshell .dh-meta { display: flex; gap: 18px; font-size: 11px; color: var(--m-text-3); font-family: var(--app-font-mono); }
+.mshell .dh-meta b { display: block; color: var(--m-text-2); font-family: var(--app-font-display); font-size: 16px; font-weight: 700; margin-top: 2px; }
+.mshell .seg { display: flex; gap: 4px; background: var(--m-glass-2); border: 1px solid var(--m-border); border-radius: 12px; padding: 4px; margin-bottom: 14px; }
+.mshell .seg button { flex: 1; border: none; background: none; color: var(--m-text-3); font-family: var(--app-font-sans); font-size: 12px; font-weight: 600; padding: 8px; border-radius: 9px; cursor: pointer; }
+.mshell .seg button.on { background: linear-gradient(135deg, #a99bff, #6d5cff); color: #0a0b16; }
+.mshell .mtask { display: flex; align-items: center; gap: 11px; padding: 12px 13px; margin-bottom: 8px; cursor: pointer; }
+.mshell .mtask .cb { width: 20px; height: 20px; border-radius: 7px; flex: 0 0 auto; border: 2px solid var(--m-border-2); display: grid; place-items: center; background: transparent; cursor: pointer; }
+.mshell .mtask .cb.done { background: linear-gradient(135deg, #5ce8ac, #1ec98a); border-color: transparent; }
+.mshell .mtask .cb.done svg { width: 12px; height: 12px; color: #0a0b16; }
+.mshell .mtask .tx { flex: 1; min-width: 0; }
+.mshell .mtask .tx b { font-size: 12.5px; font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mshell .mtask .tx.done b { color: var(--m-text-3); text-decoration: line-through; }
+.mshell .mtask .tx span { font-size: 10px; color: var(--m-text-3); font-family: var(--app-font-mono); }
+.mshell .mtask .pri { font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; border-radius: 6px; padding: 3px 7px; font-family: var(--app-font-mono); flex: 0 0 auto; }
+.mshell .pri-hi { color: var(--m-rose); background: var(--m-rose-dim); border: 1px solid var(--m-rose-line); }
+.mshell .pri-md { color: var(--m-amber); background: var(--m-amber-dim); border: 1px solid var(--m-amber-line); }
+.mshell .pri-lo { color: var(--m-blue); background: var(--m-blue-dim); border: 1px solid var(--m-blue-line); }
+.mshell .pri-cr { color: var(--m-rose); background: var(--m-rose-dim); border: 1px solid var(--m-rose-line); box-shadow: 0 0 0 1px var(--m-rose-line); }
+
+/* FAB */
+.mshell .fab { position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); width: 56px; height: 56px; border-radius: 18px; z-index: 45; border: none; cursor: pointer; display: grid; place-items: center; color: #0a0b16; background: linear-gradient(135deg, #a99bff, #6d5cff); box-shadow: 0 14px 30px -6px rgba(109, 92, 255, .7), inset 0 1px 0 rgba(255, 255, 255, .3); }
+.mshell .fab:active { transform: scale(.94); }
+.mshell .fab svg { width: 24px; height: 24px; }
+
+/* Bottom tab bar */
+.mshell .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 9px 8px calc(env(safe-area-inset-bottom, 0px) + 12px); display: flex; justify-content: space-around; background: linear-gradient(180deg, rgba(11, 13, 26, .45), rgba(11, 13, 26, .96)); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--m-border); }
+.mshell .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; cursor: pointer; color: var(--m-text-3); padding: 5px 0; font-family: var(--app-font-sans); }
+.mshell .tab svg { width: 21px; height: 21px; transition: .18s; }
+.mshell .tab span { font-size: 9.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-family: var(--app-font-mono); }
+.mshell .tab.on { color: var(--m-violet); }
+.mshell .tab.on svg { filter: drop-shadow(0 0 8px rgba(147, 132, 255, .7)); }
+.mshell .tab .ind { width: 4px; height: 4px; border-radius: 50%; background: var(--m-violet); box-shadow: 0 0 7px var(--m-violet); opacity: 0; transition: .18s; }
+.mshell .tab.on .ind { opacity: 1; }
