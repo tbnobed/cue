@@ -11,21 +11,27 @@ A self-hosted project management platform for Production TV studios. Used by pro
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env (dev): `DATABASE_URL` — Postgres connection string
-- Required env (auth, optional in dev): `AUTHENTIK_ISSUER`, `AUTHENTIK_CLIENT_ID`, `AUTHENTIK_CLIENT_SECRET`, `PUBLIC_URL` — when set, sign-in is enforced on every page. When unset, the app runs in "guest mode" so local development is unblocked.
+- Auth env (all optional in dev): `AUTHENTIK_ISSUER`, `AUTHENTIK_CLIENT_ID`, `AUTHENTIK_CLIENT_SECRET`, `PUBLIC_URL` — when all set, the login page also shows "Continue with Authentik". Local accounts (email + password, bcrypt) are always available; create the first admin with `pnpm --filter @workspace/scripts run create-admin --email … --password …`.
 
 ## Self-Hosting with Docker
 
 ```bash
 # Copy and configure env
 cp .env.example .env
-# Edit POSTGRES_PASSWORD, SESSION_SECRET, COLLABORA_ADMIN_PASSWORD
+# Edit at minimum: POSTGRES_PASSWORD, SESSION_SECRET, PUBLIC_URL, COLLABORA_ADMIN_PASSWORD
+# (Authentik and SendGrid are optional — leave blank to disable.)
 
-# Start everything (app + postgres + Collabora Online for document editing)
+# Start everything (app + postgres + Collabora Online for document editing).
+# The `migrate` service runs `drizzle-kit push` against the DB and exits;
+# `app` waits on it via depends_on, so schema is applied before the API boots.
 docker compose up -d
-
-# First run: push DB schema
-docker compose exec app sh -c "cd /app && pnpm --filter @workspace/db run push"
 ```
+
+To re-run migrations after upgrading the image:
+```bash
+docker compose run --rm migrate
+```
+(The `app` service is pruned with `--prod` so it intentionally does not contain `drizzle-kit`. All schema pushes go through the `migrate` service, which targets the builder stage that has devDeps installed.)
 
 The app runs on port 5000 by default. Collabora runs on 9980. Set `APP_PORT` / `COLLABORA_PORT` in your `.env` to change them. Put a TLS reverse proxy (Caddy, Traefik, nginx) in front of both for production.
 
