@@ -89,7 +89,12 @@ function getProxy(): ReturnType<typeof httpProxy.createProxyServer> {
   if (proxyInstance) return proxyInstance;
   proxyInstance = httpProxy.createProxyServer({
     target: upstream(),
-    changeOrigin: true,
+    // changeOrigin must be false — Collabora uses the incoming Host header to
+    // build absolute URLs for its static assets and WebSocket endpoint. If we
+    // rewrite Host to `collabora:9980` (the upstream), the browser then tries
+    // to fetch from collabora:9980 and fails with NS_ERROR_UNKNOWN_HOST.
+    // Keep Host = cue.obtv.io (or whatever the operator's public domain is).
+    changeOrigin: false,
     ws: true,
     // Long-lived editing sessions need WS pings to stay alive; node-http-proxy
     // doesn't enforce a read timeout by default which is what we want here.
