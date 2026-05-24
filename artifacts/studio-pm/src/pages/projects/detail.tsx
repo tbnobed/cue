@@ -39,6 +39,7 @@ import {
 import { ShareDialog } from "@/components/share-dialog";
 import { TaskDetailDialog } from "@/components/task-detail-dialog";
 import { AddLinkDialog } from "@/components/add-link-dialog";
+import { NewDocumentButton } from "@/components/new-document-button";
 
 const STATUS_TONE: Record<string, string> = {
   planning:    "text-blue-400 bg-blue-500/10 ring-blue-500/20",
@@ -1319,6 +1320,15 @@ function DocumentsTab({ projectId }: { projectId: number }) {
             <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={() => setLinkDialogOpen(true)}>
               <Link2 className="w-4 h-4" /> Add link
             </Button>
+            <NewDocumentButton
+              size="sm"
+              projectId={currentTaskId == null ? projectId : null}
+              taskId={currentTaskId}
+              folderId={currentFolderId}
+              category={uploadCategory}
+              scopeLabel={currentTaskName ? `Task: ${currentTaskName}` : "this project"}
+              className="h-9"
+            />
             <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
             <Button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-2 h-9">
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}

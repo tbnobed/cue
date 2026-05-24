@@ -191,6 +191,81 @@ router.post("/documents", async (req, res): Promise<void> => {
   res.status(201).json(fmt(doc, projectMap));
 });
 
+// Create a brand-new blank document of the given format. The file is created
+// empty on disk under uploadsDir (so the WOPI/Collabora and in-app editors
+// pick it up exactly like an upload), then the row is inserted. Scope rules
+// match /documents and /documents/upload.
+// Only text-based formats: empty bytes are a valid file in all of them and
+// open cleanly in both the in-app editor and Collabora. OOXML (docx/xlsx)
+// can't be created from zero bytes — they require a valid zip skeleton — so
+// they're intentionally excluded from blank-doc creation.
+const NEW_DOC_FORMATS: Record<string, { ext: string; seed: string }> = {
+  md:  { ext: "md",  seed: "" },
+  txt: { ext: "txt", seed: "" },
+  csv: { ext: "csv", seed: "" },
+};
+
+router.post("/documents/new", async (req, res): Promise<void> => {
+  const body = req.body ?? {};
+  const format = String(body.format ?? "md").toLowerCase();
+  const spec = NEW_DOC_FORMATS[format];
+  if (!spec) { res.status(400).json({ error: `Unsupported format. Use one of: ${Object.keys(NEW_DOC_FORMATS).join(", ")}` }); return; }
+  const title = (typeof body.title === "string" && body.title.trim()) ? body.title.trim() : "Untitled";
+  const category = typeof body.category === "string" ? body.category : "general";
+  if (!["spec","plan","permit","vendor","as_built","safety","general"].includes(category)) {
+    res.status(400).json({ error: "Invalid category" }); return;
+  }
+
+  let projectId: number | null = body.projectId != null ? parseInt(String(body.projectId), 10) : null;
+  const taskId: number | null = body.taskId != null ? parseInt(String(body.taskId), 10) : null;
+  const folderId: number | null = body.folderId != null ? parseInt(String(body.folderId), 10) : null;
+
+  if (taskId !== null) {
+    const [t] = await db.select({ projectId: tasksTable.projectId }).from(tasksTable).where(eq(tasksTable.id, taskId));
+    if (!t) { res.status(400).json({ error: "Task not found" }); return; }
+    if (projectId !== null && t.projectId !== projectId) { res.status(400).json({ error: "Task does not belong to the given project" }); return; }
+    if (!(await requireProjectAccess(req, res, t.projectId))) return;
+    projectId = null;
+  } else if (projectId !== null) {
+    if (!(await requireProjectAccess(req, res, projectId))) return;
+  } else if (!req.authUser!.isAdmin) {
+    res.status(403).json({ error: "Only an admin can create global documents." }); return;
+  }
+
+  if (folderId !== null) {
+    const [folder] = await db.select().from(documentFoldersTable).where(eq(documentFoldersTable.id, folderId));
+    if (!folder) { res.status(400).json({ error: "Folder not found" }); return; }
+    if ((folder.projectId ?? null) !== (projectId ?? null) || (folder.taskId ?? null) !== (taskId ?? null)) {
+      res.status(400).json({ error: "Folder belongs to a different scope" }); return;
+    }
+  }
+
+  // Filename matches multer's convention: <ts>_<safeOriginal>
+  const safeBase = title.replace(/[^a-zA-Z0-9.\-_]/g, "_").slice(0, 64) || "Untitled";
+  const filename = `${Date.now()}_${safeBase}.${spec.ext}`;
+  const filePath = path.join(uploadsDir, filename);
+  try { fs.writeFileSync(filePath, spec.seed); }
+  catch (err) {
+    req.log.error({ err }, "Failed to create blank document file");
+    res.status(500).json({ error: "Failed to create document file" }); return;
+  }
+
+  const projects = await db.select().from(projectsTable);
+  const projectMap = Object.fromEntries(projects.map(s => [s.id, s.name]));
+
+  const [doc] = await db.insert(documentsTable).values({
+    title,
+    projectId: projectId ?? undefined,
+    taskId: taskId ?? undefined,
+    folderId: folderId ?? undefined,
+    category,
+    url: `/api/uploads/${filename}`,
+    pendingSeedText: spec.seed || undefined,
+  }).returning();
+
+  res.status(201).json(fmt(doc, projectMap));
+});
+
 router.post("/documents/upload", upload.single("file"), async (req, res): Promise<void> => {
   // Defer authorization until after we know the scope, but never trust
   // multer to skip its disk write — by the time we 403, the file is already

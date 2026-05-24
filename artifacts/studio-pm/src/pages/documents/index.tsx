@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Upload, Trash2, FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Globe, FolderOpen, X, Loader2, Link2, ExternalLink } from "lucide-react";
 import { ShareDialog } from "@/components/share-dialog";
 import { AddLinkDialog } from "@/components/add-link-dialog";
+import { NewDocumentButton } from "@/components/new-document-button";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -157,6 +158,14 @@ export default function Documents() {
           >
             <Link2 className="w-4 h-4" /> Add link
           </Button>
+          <NewDocumentButton
+            projectId={uploadStudio ? parseInt(uploadStudio) : null}
+            category={uploadCategory}
+            scopeLabel={uploadStudio
+              ? (projects?.find(p => String(p.id) === uploadStudio)?.name ?? "this project")
+              : "the General Library"}
+            className="h-9"
+          />
         </div>
       </div>
 
