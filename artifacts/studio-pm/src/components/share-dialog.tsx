@@ -120,7 +120,6 @@ export function ShareDialog({
   );
 
   const activeLinks = (links ?? []).filter(l => l.active);
-  const inactiveLinks = (links ?? []).filter(l => !l.active);
 
   return (
     <>
@@ -203,23 +202,6 @@ export function ShareDialog({
               </ul>
             )}
 
-            {inactiveLinks.length > 0 && (
-              <details className="text-[11px] text-muted-foreground">
-                <summary className="cursor-pointer hover:text-foreground">
-                  {inactiveLinks.length} revoked / expired
-                </summary>
-                <ul className="mt-2 space-y-1">
-                  {inactiveLinks.map(l => (
-                    <li key={l.id} className="flex items-center gap-2 font-mono">
-                      <span className="line-through truncate">{l.url}</span>
-                      <span className="shrink-0 text-[10px] uppercase tracking-wider">
-                        {l.revokedAt ? "revoked" : "expired"} {formatDistanceToNow(new Date(l.revokedAt ?? l.expiresAt ?? l.createdAt), { addSuffix: true })}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )}
           </div>
 
           <div className="border-t border-border/60 pt-3 mt-1 space-y-2">
