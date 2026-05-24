@@ -8,7 +8,7 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
   const [projects, tasks, milestones] = await Promise.all([
     db.select().from(projectsTable),
     db.select().from(tasksTable),
-    db.select().from(milestonesTable),
+    db.select().from(milestonesTable).orderBy(milestonesTable.dueDate),
   ]);
 
   const now = new Date().toISOString().split("T")[0];

@@ -173,9 +173,9 @@ function ProjectView({ token, project, milestones: rawMilestones, tasks, documen
   const tone = STATUS_TONE[project.status] ?? "text-muted-foreground bg-muted/40 ring-border/60";
   const [detailTask, setDetailTask] = useState<any | null>(null);
 
-  // Sort milestones chronologically (dated first, ascending by dueDate; undated
-  // last). The panel and the gantt below it both consume this so their rows
-  // line up — and so the order matches the authed Project Detail view.
+  // Defense in depth: the API already returns milestones ordered by dueDate
+  // ASC (see public-shares route), but re-sort client-side so the panel and
+  // the gantt can never disagree if the wire order ever drifts.
   const milestones = useMemo(() => {
     const dated = rawMilestones.filter(m => m.dueDate)
       .slice()

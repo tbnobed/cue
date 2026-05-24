@@ -50,7 +50,7 @@ router.get("/public/shares/:token", async (req, res): Promise<void> => {
     // Pull the project's children too so the public viewer can show a real
     // overview, not just project metadata.
     const [milestones, tasks, documents, folders] = await Promise.all([
-      db.select().from(milestonesTable).where(eq(milestonesTable.projectId, link.resourceId)),
+      db.select().from(milestonesTable).where(eq(milestonesTable.projectId, link.resourceId)).orderBy(milestonesTable.dueDate),
       db.select().from(tasksTable).where(eq(tasksTable.projectId, link.resourceId)).orderBy(desc(tasksTable.updatedAt)),
       db.select().from(documentsTable).where(eq(documentsTable.projectId, link.resourceId)).orderBy(desc(documentsTable.updatedAt)),
       db.select().from(documentFoldersTable).where(eq(documentFoldersTable.projectId, link.resourceId)),
