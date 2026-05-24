@@ -51,6 +51,8 @@ import type {
   ProjectUpdate,
   PublicShare,
   ShareLink,
+  ShareLinkEmailInput,
+  ShareLinkEmailResult,
   ShareLinkInput,
   Task,
   TaskInput,
@@ -3404,6 +3406,78 @@ export const useRevokeShareLink = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getRevokeShareLinkMutationOptions(options));
+    }
+
+export const getEmailShareLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/share-links/${id}/email`
+}
+
+/**
+ * @summary Email an existing share link to one or more recipients
+ */
+export const emailShareLink = async (id: number,
+    shareLinkEmailInput: ShareLinkEmailInput, options?: RequestInit): Promise<ShareLinkEmailResult> => {
+
+  return customFetch<ShareLinkEmailResult>(getEmailShareLinkUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      shareLinkEmailInput,)
+  }
+);}
+
+
+
+
+export const getEmailShareLinkMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof emailShareLink>>, TError,{id: number;data: BodyType<ShareLinkEmailInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof emailShareLink>>, TError,{id: number;data: BodyType<ShareLinkEmailInput>}, TContext> => {
+
+const mutationKey = ['emailShareLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof emailShareLink>>, {id: number;data: BodyType<ShareLinkEmailInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  emailShareLink(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EmailShareLinkMutationResult = NonNullable<Awaited<ReturnType<typeof emailShareLink>>>
+    export type EmailShareLinkMutationBody = BodyType<ShareLinkEmailInput>
+    export type EmailShareLinkMutationError = ErrorType<void>
+
+    /**
+ * @summary Email an existing share link to one or more recipients
+ */
+export const useEmailShareLink = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof emailShareLink>>, TError,{id: number;data: BodyType<ShareLinkEmailInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof emailShareLink>>,
+        TError,
+        {id: number;data: BodyType<ShareLinkEmailInput>},
+        TContext
+      > => {
+      return useMutation(getEmailShareLinkMutationOptions(options));
     }
 
 export const getGetPublicShareUrl = (token: string,) => {

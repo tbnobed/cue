@@ -10,8 +10,24 @@ import {
   GetProjectProgressParams,
   GetProjectParams,
 } from "@workspace/api-zod";
+import { notifyProjectEvent, actorFromUserId } from "../lib/notifications.js";
 
 const router = Router();
+
+/** Pick out the fields that changed between two project rows for the change-log email. */
+function diffProject(
+  before: typeof projectsTable.$inferSelect,
+  after: typeof projectsTable.$inferSelect,
+): Record<string, { from: unknown; to: unknown }> {
+  const fields = ["name", "description", "location", "status", "phase", "startDate", "targetDate", "completedDate", "budget"] as const;
+  const out: Record<string, { from: unknown; to: unknown }> = {};
+  for (const f of fields) {
+    const a = (before as Record<string, unknown>)[f] ?? null;
+    const b = (after as Record<string, unknown>)[f] ?? null;
+    if (a !== b) out[f] = { from: a, to: b };
+  }
+  return out;
+}
 
 router.get("/projects", async (req, res): Promise<void> => {
   const projects = await db.select().from(projectsTable).orderBy(projectsTable.createdAt);
@@ -30,6 +46,12 @@ router.post("/projects", async (req, res): Promise<void> => {
     budget: budget !== undefined ? String(budget) : undefined,
   }).returning();
   res.status(201).json(formatProject(project));
+  // fire-and-forget — notify project members the project exists. On a brand
+  // new project there are usually no assigned members yet, so this is mostly
+  // a no-op until someone is added.
+  void actorFromUserId(req.session?.userId).then((actor) =>
+    notifyProjectEvent("created", { id: project.id, name: project.name }, actor),
+  );
 });
 
 router.get("/projects/:id", async (req, res): Promise<void> => {
@@ -44,6 +66,7 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
   const parsed = UpdateProjectBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const { budget, ...rest } = parsed.data;
+  const [before] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
   const [project] = await db.update(projectsTable)
     .set({
       ...rest,
@@ -54,12 +77,26 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
     .returning();
   if (!project) { res.status(404).json({ error: "Not found" }); return; }
   res.json(formatProject(project));
+  if (before) {
+    const changes = diffProject(before, project);
+    if (Object.keys(changes).length > 0) {
+      void actorFromUserId(req.session?.userId).then((actor) =>
+        notifyProjectEvent("updated", { id: project.id, name: project.name }, actor, changes),
+      );
+    }
+  }
 });
 
 router.delete("/projects/:id", async (req, res): Promise<void> => {
   const { id } = DeleteProjectParams.parse(req.params);
+  const [before] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
   await db.delete(projectsTable).where(eq(projectsTable.id, id));
   res.status(204).send();
+  if (before) {
+    void actorFromUserId(req.session?.userId).then((actor) =>
+      notifyProjectEvent("deleted", { id: before.id, name: before.name }, actor),
+    );
+  }
 });
 
 router.get("/projects/:id/progress", async (req, res): Promise<void> => {

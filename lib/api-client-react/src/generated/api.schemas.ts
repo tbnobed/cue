@@ -86,6 +86,24 @@ export interface ProjectUpdate {
   budget?: number;
 }
 
+export interface ShareLinkEmailInput {
+  /**
+     * Email addresses to send the share link to.
+     * @minItems 1
+     */
+  recipients: string[];
+  /**
+     * Optional personal note included in the email body.
+     * @maxLength 2000
+     */
+  message?: string;
+}
+
+export interface ShareLinkEmailResult {
+  sent: number;
+  recipients: string[];
+}
+
 export type ShareLinkInputResourceType = typeof ShareLinkInputResourceType[keyof typeof ShareLinkInputResourceType];
 
 

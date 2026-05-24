@@ -896,6 +896,29 @@ export const RevokeShareLinkParams = zod.object({
 
 
 /**
+ * @summary Email an existing share link to one or more recipients
+ */
+export const EmailShareLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const emailShareLinkBodyMessageMax = 2000;
+
+
+
+export const EmailShareLinkBody = zod.object({
+  "recipients": zod.array(zod.string()).min(1).describe('Email addresses to send the share link to.'),
+  "message": zod.string().max(emailShareLinkBodyMessageMax).optional().describe('Optional personal note included in the email body.')
+})
+
+export const EmailShareLinkResponse = zod.object({
+  "sent": zod.number(),
+  "recipients": zod.array(zod.string())
+})
+
+
+/**
  * @summary Public read-only view of a shared resource (no auth required)
  */
 export const GetPublicShareParams = zod.object({

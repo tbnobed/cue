@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -16,6 +16,9 @@ export const membersTable = pgTable("members", {
   location: text("location"),
   company: text("company"),
   notes: text("notes"),
+  // If false, this member's email is never used for project/task notifications.
+  // Defaults to true so existing rows opt in automatically after `pnpm run push`.
+  emailNotifications: boolean("email_notifications").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

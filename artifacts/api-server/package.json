@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@hocuspocus/server": "^4.1.0",
+    "@sendgrid/mail": "^8.1.6",
     "@types/ws": "^8.18.1",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",

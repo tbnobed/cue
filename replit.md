@@ -64,6 +64,30 @@ Two auth methods, both available simultaneously:
 - Frontend: `AuthProvider` (`src/hooks/use-auth.tsx`) exposes `signInLocal`, `signUp`, `signInOidc`, `signOut`. Unauthenticated requests redirect to `/login`. The sidebar shows an "Admin" badge for admin users and a sign-out button for everyone.
 - TODO: the `/api/collab` WebSocket (Yjs collaboration) is currently only protected by reachability — add session validation on the WS upgrade handshake before exposing publicly.
 
+## Email notifications
+
+Optional SendGrid integration. When `SENDGRID_API_KEY` + `EMAIL_FROM` are both set, the API server sends transactional emails for project and task lifecycle events and from the share dialog. When either is unset, every send is a logged no-op — the app boots normally without it (good for dev/Replit, opt-in for self-hosters).
+
+- `artifacts/api-server/src/lib/email.ts` — thin SendGrid wrapper. Catches errors, never throws to callers, fans out one send per recipient (so recipients don't see each other's addresses). Disables SendGrid click-tracking so share-link tokens aren't rewritten through `sendgrid.net`.
+- `artifacts/api-server/src/lib/notifications.ts` — high-level fan-out. Recipient policy:
+  - **Project events** (create/update/delete) → every member assigned to the project who has an email AND `email_notifications = true`, minus the actor.
+  - **Task events** (create/update/delete) → same set, plus the task's assignee if they're outside the project member list.
+  - **Share-link emails** → caller-supplied address list only; no member lookup. Always requires SendGrid to be configured (returns 503 otherwise).
+- All wired-up sends from route handlers are **fire-and-forget** (`void` the promise after `res.json()`). A SendGrid hiccup can never fail a mutation.
+- `members.email_notifications` is a `boolean DEFAULT true` opt-in flag. Existing rows opt in automatically after `pnpm --filter @workspace/db run push`. To mute a member, `UPDATE members SET email_notifications = false WHERE id = …`.
+- The "Email this link" form in the share dialog calls `POST /share-links/:id/email` with `{ recipients: string[], message?: string }`. The actor's email becomes the email's `Reply-To` header. **Abuse guardrails on this endpoint** (in-process, single-replica assumption — see `share-links.ts`): max 20 recipients per request, max 10 calls / 60 recipients per user per 10-minute window, 429 with `Retry-After` past those limits. Every dispatch is audited via `req.log.info` with actor, link id, and recipient count (count only, not addresses).
+- Email subject lines are prefixed `[Cue]`; the HTML shell lives in `renderEmailShell()` (dark-themed to match the app).
+
+To set up: create a SendGrid API key with Mail Send permission, verify a sender domain or single sender address, then set:
+
+```env
+SENDGRID_API_KEY=SG.xxxxx
+EMAIL_FROM=notifications@your-domain.tld   # MUST be a SendGrid-verified sender
+EMAIL_FROM_NAME=Cue
+```
+
+These are already wired through `docker-compose.yml` for the `app` service.
+
 ## Architecture decisions
 
 - Contract-first API: OpenAPI spec gates codegen which gates the frontend — all types are derived from one source

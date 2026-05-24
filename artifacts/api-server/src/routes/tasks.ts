@@ -11,6 +11,27 @@ import {
   DeleteTaskParams,
 } from "@workspace/api-zod";
 import { getSessionAuthor } from "../lib/session-author.js";
+import { notifyTaskEvent, actorFromUserId } from "../lib/notifications.js";
+
+function diffTask(
+  before: typeof tasksTable.$inferSelect,
+  after: typeof tasksTable.$inferSelect,
+): Record<string, { from: unknown; to: unknown }> {
+  const fields = ["title", "description", "status", "priority", "category", "assigneeId", "milestoneId", "dueDate"] as const;
+  const out: Record<string, { from: unknown; to: unknown }> = {};
+  for (const f of fields) {
+    const a = (before as Record<string, unknown>)[f] ?? null;
+    const b = (after as Record<string, unknown>)[f] ?? null;
+    if (a !== b) out[f] = { from: a, to: b };
+  }
+  return out;
+}
+
+async function lookupProject(id: number): Promise<{ id: number; name: string } | null> {
+  const [p] = await db.select({ id: projectsTable.id, name: projectsTable.name })
+    .from(projectsTable).where(eq(projectsTable.id, id));
+  return p ?? null;
+}
 
 const router = Router();
 
@@ -37,6 +58,15 @@ router.post("/tasks", async (req, res): Promise<void> => {
   const [task] = await db.insert(tasksTable).values(parsed.data).returning();
   const enriched = await enrichTasks([task]);
   res.status(201).json(enriched[0]);
+  void (async () => {
+    const project = await lookupProject(task.projectId);
+    if (!project) return;
+    const actor = await actorFromUserId(req.session?.userId);
+    await notifyTaskEvent("created", {
+      id: task.id, projectId: task.projectId, title: task.title,
+      status: task.status, priority: task.priority, assigneeId: task.assigneeId, dueDate: task.dueDate,
+    }, project, actor);
+  })();
 });
 
 router.get("/tasks/upcoming", async (_req, res): Promise<void> => {
@@ -92,12 +122,37 @@ router.patch("/tasks/:id", async (req, res): Promise<void> => {
 
   const enriched = await enrichTasks([task]);
   res.json(enriched[0]);
+
+  const changes = diffTask(existing, task);
+  if (Object.keys(changes).length > 0) {
+    void (async () => {
+      const project = await lookupProject(task.projectId);
+      if (!project) return;
+      const actor = await actorFromUserId(req.session?.userId);
+      await notifyTaskEvent("updated", {
+        id: task.id, projectId: task.projectId, title: task.title,
+        status: task.status, priority: task.priority, assigneeId: task.assigneeId, dueDate: task.dueDate,
+      }, project, actor, changes);
+    })();
+  }
 });
 
 router.delete("/tasks/:id", async (req, res): Promise<void> => {
   const { id } = DeleteTaskParams.parse(req.params);
+  const [before] = await db.select().from(tasksTable).where(eq(tasksTable.id, id));
   await db.delete(tasksTable).where(eq(tasksTable.id, id));
   res.status(204).send();
+  if (before) {
+    void (async () => {
+      const project = await lookupProject(before.projectId);
+      if (!project) return;
+      const actor = await actorFromUserId(req.session?.userId);
+      await notifyTaskEvent("deleted", {
+        id: before.id, projectId: before.projectId, title: before.title,
+        status: before.status, priority: before.priority, assigneeId: before.assigneeId, dueDate: before.dueDate,
+      }, project, actor);
+    })();
+  }
 });
 
 async function enrichTasks(tasks: (typeof tasksTable.$inferSelect)[]) {

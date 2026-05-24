@@ -64,6 +64,14 @@ services:
       AUTHENTIK_ISSUER: ${AUTHENTIK_ISSUER:?set AUTHENTIK_ISSUER in your .env (e.g. https://auth.your-domain.tld/application/o/studio-command/)}
       AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:?set AUTHENTIK_CLIENT_ID in your .env}
       AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET:?set AUTHENTIK_CLIENT_SECRET in your .env}
+      # --- SendGrid email notifications (optional) ---
+      # When SENDGRID_API_KEY + EMAIL_FROM are both set, project/task events
+      # email project members and the share dialog can email share links.
+      # Without them, all sends are silently skipped (logged) — the app still
+      # boots and works normally.
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Cue}
     volumes:
       - uploads:/app/artifacts/api-server/uploads
     depends_on:

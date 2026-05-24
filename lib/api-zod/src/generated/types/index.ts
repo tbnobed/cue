@@ -59,6 +59,8 @@ export * from './publicShare';
 export * from './publicShareResourceType';
 export * from './publicShareTeamItem';
 export * from './shareLink';
+export * from './shareLinkEmailInput';
+export * from './shareLinkEmailResult';
 export * from './shareLinkInput';
 export * from './shareLinkInputResourceType';
 export * from './shareLinkResourceType';
