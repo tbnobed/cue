@@ -2,13 +2,19 @@ import { useParams } from "wouter";
 import { useGetPublicShare, getGetPublicShareQueryKey } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { AlertTriangle, Calendar, FileText, FolderKanban, ListChecks, Lock } from "lucide-react";
+import {
+  AlertTriangle, Calendar, FileText, FolderKanban, ListChecks, Lock,
+  Circle, Loader, Eye, CheckCircle2, FileSpreadsheet, FileImage, FileCode, FileArchive,
+} from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 /**
  * Public, unauthenticated read-only view of a shared resource. Loaded at
- * `/s/:token`. Renders different layouts based on what was shared (project /
- * task / document) and stays deliberately bare — no nav, no editing, no
- * sign-in prompts — so external viewers don't see Cue's internals.
+ * `/s/:token`. For project shares we mirror the authenticated project
+ * dashboard (overview + milestones + gantt + tasks + documents) so external
+ * viewers see the same thing the team sees — minus the controls and the
+ * sensitive bits (budget, internal IDs).
  */
 export default function PublicShare() {
   const { token } = useParams<{ token: string }>();
@@ -18,7 +24,7 @@ export default function PublicShare() {
 
   return (
     <div className="dark min-h-screen w-full bg-background text-foreground">
-      <header className="border-b border-border/60 px-6 py-3 flex items-center justify-between">
+      <header className="border-b border-border/60 px-6 py-3 flex items-center justify-between sticky top-0 z-10 backdrop-blur bg-background/80">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-primary/15 ring-1 ring-primary/30 flex items-center justify-center">
             <span className="text-primary font-bold text-sm leading-none">C</span>
@@ -35,7 +41,7 @@ export default function PublicShare() {
         )}
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-10">
+      <main className={`mx-auto px-6 py-8 ${data?.project ? "max-w-7xl" : "max-w-4xl"}`}>
         {isLoading && (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 rounded-full border-2 border-border border-t-primary animate-spin" />
@@ -52,7 +58,14 @@ export default function PublicShare() {
           </div>
         )}
 
-        {data?.project && <ProjectView project={data.project} />}
+        {data?.project && (
+          <ProjectView
+            project={data.project}
+            milestones={data.milestones ?? []}
+            tasks={data.tasks ?? []}
+            documents={data.documents ?? []}
+          />
+        )}
         {data?.task && <TaskView task={data.task} projectName={data.projectName} />}
         {data?.document && (
           <DocumentView
@@ -67,50 +80,403 @@ export default function PublicShare() {
   );
 }
 
+// ─── shared tone maps (mirror project detail) ────────────────────────────────
+
 const STATUS_TONE: Record<string, string> = {
   planning:    "text-blue-400 bg-blue-500/10 ring-blue-500/20",
   in_progress: "text-primary bg-primary/10 ring-primary/20",
   on_hold:     "text-amber-400 bg-amber-500/10 ring-amber-500/20",
   completed:   "text-emerald-400 bg-emerald-500/10 ring-emerald-500/20",
-  todo:        "text-muted-foreground bg-muted/20 ring-border",
+};
+const TASK_TONE: Record<string, string> = {
+  todo:        "text-muted-foreground bg-muted/30 ring-border/60",
+  in_progress: "text-blue-400 bg-blue-500/10 ring-blue-500/20",
   blocked:     "text-red-400 bg-red-500/10 ring-red-500/20",
   review:      "text-amber-400 bg-amber-500/10 ring-amber-500/20",
   done:        "text-emerald-400 bg-emerald-500/10 ring-emerald-500/20",
 };
+const TASK_ICONS: Record<string, React.ReactNode> = {
+  todo:        <Circle className="w-3 h-3" />,
+  in_progress: <Loader className="w-3 h-3" />,
+  blocked:     <AlertTriangle className="w-3 h-3" />,
+  review:      <Eye className="w-3 h-3" />,
+  done:        <CheckCircle2 className="w-3 h-3" />,
+};
+const PRIORITY_TONE: Record<string, string> = {
+  low: "text-muted-foreground", medium: "text-blue-400", high: "text-amber-400", critical: "text-red-400",
+};
+const MILESTONE_TONE: Record<string, string> = {
+  pending:     "text-muted-foreground bg-muted/40 ring-border/60",
+  in_progress: "text-blue-400 bg-blue-500/10 ring-blue-500/20",
+  completed:   "text-emerald-400 bg-emerald-500/10 ring-emerald-500/20",
+  missed:      "text-red-400 bg-red-500/10 ring-red-500/20",
+};
+const MILESTONE_DOT: Record<string, string> = {
+  pending:     "bg-muted-foreground/40",
+  in_progress: "bg-blue-400",
+  completed:   "bg-emerald-400",
+  missed:      "bg-red-400",
+};
+const GANTT_COLOR_BAR: Record<string, string> = {
+  blue:    "bg-blue-500/70 ring-blue-400/60",
+  violet:  "bg-violet-500/70 ring-violet-400/60",
+  amber:   "bg-amber-500/70 ring-amber-400/60",
+  teal:    "bg-teal-500/70 ring-teal-400/60",
+  emerald: "bg-emerald-500/70 ring-emerald-400/60",
+  red:     "bg-red-500/70 ring-red-400/60",
+  pink:    "bg-pink-500/70 ring-pink-400/60",
+};
+const CATEGORY_TONE: Record<string, string> = {
+  spec:     "text-blue-400 bg-blue-500/10 ring-blue-500/20",
+  plan:     "text-violet-400 bg-violet-500/10 ring-violet-500/20",
+  permit:   "text-amber-400 bg-amber-500/10 ring-amber-500/20",
+  vendor:   "text-teal-400 bg-teal-500/10 ring-teal-500/20",
+  as_built: "text-emerald-400 bg-emerald-500/10 ring-emerald-500/20",
+  safety:   "text-red-400 bg-red-500/10 ring-red-500/20",
+  general:  "text-muted-foreground bg-muted/40 ring-border/60",
+};
 
 function Pill({ children, tone }: { children: React.ReactNode; tone?: string }) {
   return (
-    <span className={`text-[10px] uppercase tracking-[0.14em] font-mono px-2 py-0.5 rounded-md ring-1 ring-inset ${tone ?? "bg-muted/30 ring-border"}`}>
+    <span className={`text-[10px] uppercase tracking-[0.12em] font-mono px-2 py-1 rounded-md ring-1 ring-inset ${tone ?? "bg-muted/30 ring-border"}`}>
       {children}
     </span>
   );
 }
 
-function ProjectView({ project }: { project: any }) {
+function Panel({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <motion.article initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <div className="flex items-start gap-3">
-        <FolderKanban className="w-6 h-6 text-primary mt-1" />
-        <div className="flex-1 min-w-0">
-          <h1 className="font-bricolage text-3xl font-semibold tracking-tight">{project.name}</h1>
-          {project.location && <p className="text-sm text-muted-foreground mt-1">{project.location}</p>}
-        </div>
-        <Pill tone={STATUS_TONE[project.status]}>{project.status?.replace("_", " ")}</Pill>
+    <div className={`surface-card ring-hairline border border-border/70 rounded-2xl ${className ?? ""}`}>
+      <div className="px-5 pt-4 pb-3 border-b border-border/50">
+        <h2 className="text-[13px] font-semibold tracking-tight">{title}</h2>
       </div>
-
-      {project.description && (
-        <p className="text-base text-muted-foreground leading-relaxed whitespace-pre-wrap">{project.description}</p>
-      )}
-
-      <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 surface-card ring-hairline rounded-xl p-4">
-        <Field label="Phase" value={project.phase} />
-        <Field label="Start" value={project.startDate} />
-        <Field label="Target" value={project.targetDate} />
-        <Field label="Completed" value={project.completedDate} />
-      </dl>
-    </motion.article>
+      <div className="p-5">{children}</div>
+    </div>
   );
 }
+
+// ─── PROJECT VIEW (mirrors authed dashboard) ─────────────────────────────────
+
+function ProjectView({ project, milestones, tasks, documents }: {
+  project: any;
+  milestones: any[];
+  tasks: any[];
+  documents: any[];
+}) {
+  const tone = STATUS_TONE[project.status] ?? "text-muted-foreground bg-muted/40 ring-border/60";
+
+  // Compute progress client-side (same blend as the server uses)
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(t => t.status === "done").length;
+  const totalMilestones = milestones.length;
+  const completedMilestones = milestones.filter(m => m.status === "completed").length;
+  const taskPct = totalTasks ? (completedTasks / totalTasks) * 100 : 0;
+  const milestonePct = totalMilestones ? (completedMilestones / totalMilestones) * 100 : 0;
+  const totalItems = totalTasks + totalMilestones;
+  const overallPct = totalItems ? ((completedTasks + completedMilestones) / totalItems) * 100 : 0;
+
+  const byCategory = (() => {
+    const m = new Map<string, { total: number; completed: number }>();
+    for (const t of tasks) {
+      const entry = m.get(t.category) ?? { total: 0, completed: 0 };
+      entry.total++;
+      if (t.status === "done") entry.completed++;
+      m.set(t.category, entry);
+    }
+    return [...m.entries()].map(([category, v]) => ({ category, ...v }));
+  })();
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="space-y-7">
+      {/* Header — matches projects/detail.tsx */}
+      <div className="space-y-3 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`text-[10px] font-mono uppercase tracking-[0.12em] px-2 py-1 rounded-md ring-1 ring-inset ${tone}`}>
+            {project.status?.replace("_", " ")}
+          </span>
+          {project.phase && (
+            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">· {project.phase}</span>
+          )}
+          {project.location && (
+            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">· {project.location}</span>
+          )}
+        </div>
+        <h1 className="text-4xl font-semibold tracking-tight flex items-center gap-3">
+          <FolderKanban className="w-7 h-7 text-primary" />
+          {project.name}
+        </h1>
+        {project.description && (
+          <p className="text-muted-foreground max-w-2xl leading-relaxed whitespace-pre-wrap">{project.description}</p>
+        )}
+        <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] font-mono text-muted-foreground tabular-nums pt-1">
+          {project.startDate && <span>Start: <span className="text-foreground/80">{format(new Date(project.startDate), "MMM dd, yyyy")}</span></span>}
+          {project.targetDate && <span>Target: <span className="text-foreground/80">{format(new Date(project.targetDate), "MMM dd, yyyy")}</span></span>}
+          {project.completedDate && <span>Completed: <span className="text-foreground/80">{format(new Date(project.completedDate), "MMM dd, yyyy")}</span></span>}
+        </div>
+      </div>
+
+      <Tabs defaultValue="overview" className="space-y-5">
+        <TabsList className="bg-muted/40 ring-1 ring-inset ring-border/60">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-5 outline-none">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <Panel className="md:col-span-2" title="Deployment Progress">
+          <div className="space-y-6">
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-muted-foreground">Overall completion</span>
+                <span className="font-mono tabular-nums text-primary font-semibold">{Math.round(overallPct)}%</span>
+              </div>
+              <Progress value={overallPct} className="h-1.5 bg-muted/40" />
+            </div>
+            <div className="grid grid-cols-2 gap-5 pt-5 border-t border-border/50">
+              <ProgressBlock label="Milestones" done={completedMilestones} total={totalMilestones} pct={milestonePct} />
+              <ProgressBlock label="Tasks" done={completedTasks} total={totalTasks} pct={taskPct} />
+            </div>
+            {byCategory.length > 0 && (
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 pt-5 border-t border-border/50">
+                {byCategory.map(cat => (
+                  <div key={cat.category} className="space-y-1.5">
+                    <div className="flex justify-between text-xs font-mono">
+                      <span className="capitalize text-foreground/80">{cat.category}</span>
+                      <span className="text-muted-foreground tabular-nums">{cat.completed}/{cat.total}</span>
+                    </div>
+                    <Progress value={cat.total > 0 ? (cat.completed / cat.total) * 100 : 0} className="h-1 bg-muted/30" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Panel>
+
+        <Panel title="Milestones">
+          {milestones.length === 0 ? (
+            <div className="text-center py-6 text-sm text-muted-foreground font-mono">No milestones.</div>
+          ) : (
+            <ul className="space-y-3">
+              {milestones.map(m => (
+                <li key={m.id} className="flex items-start gap-2.5">
+                  <span className={`w-1.5 h-1.5 rounded-full mt-2 shrink-0 ${MILESTONE_DOT[m.status] ?? "bg-muted-foreground/40"}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{m.name}</div>
+                    <div className="text-[11px] font-mono text-muted-foreground tabular-nums mt-0.5 flex items-center gap-2">
+                      {m.dueDate && <span>{format(new Date(m.dueDate), "MMM dd, yyyy")}</span>}
+                      <Pill tone={MILESTONE_TONE[m.status]}>{m.status?.replace("_", " ")}</Pill>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          </Panel>
+          </div>
+          <GanttChart milestones={milestones} projectStart={project.startDate} projectTarget={project.targetDate} />
+        </TabsContent>
+
+        <TabsContent value="tasks" className="outline-none space-y-4">
+          <div className="text-[11px] font-mono text-muted-foreground tabular-nums">
+            {tasks.length} {tasks.length === 1 ? "task" : "tasks"} in this project
+          </div>
+          {tasks.length === 0 ? (
+          <div className="surface-card ring-hairline border border-dashed border-border/70 rounded-2xl p-10 text-center text-sm text-muted-foreground font-mono">
+            No tasks yet.
+          </div>
+        ) : (
+          <div className="surface-card ring-hairline border border-border/70 rounded-2xl overflow-hidden divide-y divide-border/40">
+            {tasks.map(t => {
+              const isOverdue = t.dueDate && new Date(t.dueDate) < new Date() && t.status !== "done";
+              return (
+                <div key={t.id} className="flex items-center gap-4 px-4 py-3">
+                  <span className={`inline-flex items-center gap-1.5 w-[132px] text-[11px] font-medium px-2 py-1 rounded-md ring-1 ring-inset ${TASK_TONE[t.status] ?? TASK_TONE.todo}`}>
+                    {TASK_ICONS[t.status]}
+                    <span className="capitalize">{t.status?.replace("_", " ")}</span>
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{t.title}</div>
+                    <div className="text-[11px] text-muted-foreground font-mono flex gap-1.5 flex-wrap mt-0.5">
+                      <span className="capitalize">{t.category}</span>
+                      {t.milestoneName && <><span className="text-border">·</span><span>{t.milestoneName}</span></>}
+                      {t.assigneeName && <><span className="text-border">·</span><span>{t.assigneeName}</span></>}
+                      {t.dueDate && (
+                        <>
+                          <span className="text-border">·</span>
+                          <span className={`tabular-nums ${isOverdue ? "text-red-400" : ""}`}>{format(new Date(t.dueDate), "MMM dd")}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-mono uppercase tracking-[0.12em] ${PRIORITY_TONE[t.priority] ?? ""}`}>
+                    {t.priority}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        </TabsContent>
+
+        <TabsContent value="documents" className="outline-none space-y-4">
+          <div className="text-[11px] font-mono text-muted-foreground tabular-nums">
+            {documents.length} {documents.length === 1 ? "file" : "files"} in this project
+          </div>
+          {documents.length === 0 ? (
+            <div className="surface-card ring-hairline border border-dashed border-border/70 rounded-2xl p-10 text-center text-sm text-muted-foreground font-mono">
+              No documents.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {documents.map(d => (
+                <div key={d.id} className="surface-card ring-hairline border border-border/70 rounded-xl px-3 py-3 flex items-start gap-3">
+                  <DocIcon mime={d.fileMimeType} className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate" title={d.title}>{d.title}</div>
+                    <div className="text-[11px] font-mono text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <Pill tone={CATEGORY_TONE[d.category]}>{d.category?.replace("_", " ")}</Pill>
+                      {d.fileSize && <span className="tabular-nums">{formatBytes(d.fileSize)}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </motion.div>
+  );
+}
+
+function ProgressBlock({ label, done, total, pct }: { label: string; done: number; total: number; pct: number }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex justify-between text-xs font-mono">
+        <span className="uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
+        <span className="text-foreground/80 tabular-nums">
+          {done}/{total}
+          <span className="text-muted-foreground"> · {Math.round(pct)}%</span>
+        </span>
+      </div>
+      <Progress value={pct} className="h-1 bg-muted/30" />
+    </div>
+  );
+}
+
+// ─── GANTT (port of authed dashboard, read-only) ─────────────────────────────
+
+function GanttChart({ milestones, projectStart, projectTarget }: {
+  milestones: any[]; projectStart?: string | null; projectTarget?: string | null;
+}) {
+  const dated = milestones.filter(m => m.dueDate);
+  const range = (() => {
+    const dates: number[] = [];
+    if (projectStart) dates.push(new Date(projectStart).getTime());
+    if (projectTarget) dates.push(new Date(projectTarget).getTime());
+    for (const m of dated) dates.push(new Date(m.dueDate).getTime());
+    if (dates.length === 0) return null;
+    let min = Math.min(...dates);
+    let max = Math.max(...dates);
+    if (min === max) { min -= 7 * 86400_000; max += 7 * 86400_000; }
+    const pad = (max - min) * 0.05;
+    return { min: min - pad, max: max + pad };
+  })();
+  const pct = (iso?: string | null) => {
+    if (!iso || !range) return 0;
+    return Math.max(0, Math.min(100, ((new Date(iso).getTime() - range.min) / (range.max - range.min)) * 100));
+  };
+  const ticks: { pct: number; label: string }[] = [];
+  if (range) {
+    const start = new Date(range.min);
+    const end = new Date(range.max);
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    if (cursor.getTime() < start.getTime()) cursor.setMonth(cursor.getMonth() + 1);
+    const span = range.max - range.min;
+    const step = span > 86400_000 * 365 * 1.5 ? 3 : span > 86400_000 * 180 ? 2 : 1;
+    while (cursor.getTime() <= end.getTime()) {
+      ticks.push({ pct: ((cursor.getTime() - range.min) / span) * 100, label: format(cursor, "MMM yyyy") });
+      cursor.setMonth(cursor.getMonth() + step);
+    }
+  }
+  const todayPct = range && Date.now() >= range.min && Date.now() <= range.max ? pct(new Date().toISOString()) : null;
+
+  return (
+    <div className="surface-card ring-hairline border border-border/70 rounded-2xl">
+      <div className="px-5 pt-4 pb-3 border-b border-border/50 flex items-center justify-between">
+        <h2 className="text-[13px] font-semibold tracking-tight">Project Gantt</h2>
+        <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+          {dated.length} milestone{dated.length === 1 ? "" : "s"}
+        </div>
+      </div>
+      <div className="p-5">
+        {dated.length === 0 || !range ? (
+          <div className="text-center py-8 text-sm text-muted-foreground font-mono">No dated milestones.</div>
+        ) : (
+          <div className="flex">
+            <div className="w-44 shrink-0 pr-3 space-y-2">
+              <div className="h-6" />
+              {dated.map(m => (
+                <div key={m.id} className="h-7 flex items-center text-xs truncate text-foreground/80" title={m.name}>{m.name}</div>
+              ))}
+            </div>
+            <div className="flex-1 min-w-0 relative">
+              <div className="h-6 relative border-b border-border/50">
+                {ticks.map((t, i) => (
+                  <div key={i} className="absolute top-0 bottom-0 flex items-end pb-1" style={{ left: `${t.pct}%` }}>
+                    <div className="text-[9.5px] font-mono text-muted-foreground -translate-x-1/2 whitespace-nowrap">{t.label}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="relative pt-2 space-y-2">
+                <div className="absolute inset-0 pointer-events-none">
+                  {ticks.map((t, i) => (
+                    <div key={i} className="absolute top-0 bottom-0 w-px bg-border/30" style={{ left: `${t.pct}%` }} />
+                  ))}
+                </div>
+                {projectStart && projectTarget && (() => {
+                  const a = pct(projectStart); const b = pct(projectTarget);
+                  return <div className="absolute top-0 bottom-0 bg-primary/[0.04] border-x border-dashed border-primary/30"
+                    style={{ left: `${Math.min(a, b)}%`, width: `${Math.max(0.5, Math.abs(b - a))}%` }} />;
+                })()}
+                {todayPct != null && (
+                  <div className="absolute top-0 bottom-0 w-px bg-primary/70 z-10" style={{ left: `${todayPct}%` }}>
+                    <div className="absolute -top-1 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
+                  </div>
+                )}
+                {dated.map((m, idx) => {
+                  const endPct = pct(m.dueDate);
+                  const startPct = idx === 0 ? pct(projectStart ?? dated[0].dueDate) : pct(dated[idx - 1].dueDate);
+                  const left = Math.min(startPct, endPct);
+                  const width = Math.max(1.5, Math.abs(endPct - startPct));
+                  const color = GANTT_COLOR_BAR[m.color ?? "blue"] ?? GANTT_COLOR_BAR.blue;
+                  const completed = m.status === "completed";
+                  const missed = m.status === "missed";
+                  return (
+                    <div key={m.id} className="h-7 relative">
+                      <div className={`absolute top-1/2 -translate-y-1/2 h-3 rounded-sm ring-1 ring-inset ${color} ${
+                        completed ? "opacity-100" : missed ? "opacity-60 ring-red-500/70 bg-red-500/40" : "opacity-70"
+                      }`} style={{ left: `${left}%`, width: `${width}%` }} />
+                      <div className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rotate-45 ${
+                        completed ? "bg-emerald-400" : missed ? "bg-red-400" : "bg-foreground/70"
+                      } ring-1 ring-background z-[1]`} style={{ left: `${endPct}%` }} />
+                      <div className="absolute top-1/2 -translate-y-1/2 text-[9.5px] font-mono tabular-nums text-muted-foreground whitespace-nowrap pointer-events-none"
+                        style={{ left: `calc(${endPct}% + 8px)` }}>
+                        {format(new Date(m.dueDate), "MMM d")}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── TASK / DOCUMENT single-resource views (unchanged behavior) ──────────────
 
 function TaskView({ task, projectName }: { task: any; projectName?: string }) {
   return (
@@ -121,21 +487,16 @@ function TaskView({ task, projectName }: { task: any; projectName?: string }) {
           {projectName && <p className="text-xs text-muted-foreground mb-1 font-mono uppercase tracking-wider">{projectName}</p>}
           <h1 className="font-bricolage text-2xl font-semibold tracking-tight">{task.title}</h1>
         </div>
-        <Pill tone={STATUS_TONE[task.status]}>{task.status?.replace("_", " ")}</Pill>
+        <Pill tone={TASK_TONE[task.status]}>{task.status?.replace("_", " ")}</Pill>
       </div>
-
       {task.description && (
         <p className="text-base text-muted-foreground leading-relaxed whitespace-pre-wrap">{task.description}</p>
       )}
-
       <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 surface-card ring-hairline rounded-xl p-4">
         <Field label="Priority" value={task.priority} />
         <Field label="Category" value={task.category?.replace("_", " ")} />
-        <Field
-          label="Due"
-          value={task.dueDate ? format(new Date(task.dueDate), "PP") : undefined}
-          icon={<Calendar className="w-3 h-3" />}
-        />
+        <Field label="Due" value={task.dueDate ? format(new Date(task.dueDate), "PP") : undefined}
+          icon={<Calendar className="w-3 h-3" />} />
       </dl>
     </motion.article>
   );
@@ -145,7 +506,6 @@ function DocumentView({ document, projectName, fileUrl, fileMimeType }:
   { document: any; projectName?: string; fileUrl?: string; fileMimeType?: string }) {
   const isImage = fileMimeType?.startsWith("image/");
   const isPdf = fileMimeType === "application/pdf";
-
   return (
     <motion.article initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="flex items-start gap-3">
@@ -154,13 +514,11 @@ function DocumentView({ document, projectName, fileUrl, fileMimeType }:
           {projectName && <p className="text-xs text-muted-foreground mb-1 font-mono uppercase tracking-wider">{projectName}</p>}
           <h1 className="font-bricolage text-2xl font-semibold tracking-tight">{document.title}</h1>
         </div>
-        <Pill>{document.category?.replace("_", " ")}</Pill>
+        <Pill tone={CATEGORY_TONE[document.category]}>{document.category?.replace("_", " ")}</Pill>
       </div>
-
       {document.description && (
         <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{document.description}</p>
       )}
-
       {fileUrl && isPdf && (
         <iframe src={fileUrl} className="w-full h-[80vh] rounded-xl ring-1 ring-border bg-black/30" title={document.title} />
       )}
@@ -170,10 +528,8 @@ function DocumentView({ document, projectName, fileUrl, fileMimeType }:
         </div>
       )}
       {fileUrl && !isPdf && !isImage && (
-        <a
-          href={fileUrl} download
-          className="surface-card ring-hairline rounded-xl p-4 flex items-center gap-3 hover:border-primary/40 transition"
-        >
+        <a href={fileUrl} download
+          className="surface-card ring-hairline rounded-xl p-4 flex items-center gap-3 hover:border-primary/40 transition">
           <FileText className="w-8 h-8 text-primary" />
           <div className="flex-1">
             <div className="text-sm font-medium">Download file</div>
@@ -183,9 +539,7 @@ function DocumentView({ document, projectName, fileUrl, fileMimeType }:
       )}
       {!fileUrl && document.url && (
         <a href={document.url} target="_blank" rel="noopener noreferrer"
-           className="text-primary text-sm hover:underline break-all">
-          {document.url}
-        </a>
+           className="text-primary text-sm hover:underline break-all">{document.url}</a>
       )}
       {document.notes && (
         <div className="surface-card ring-hairline rounded-xl p-4 text-sm text-muted-foreground whitespace-pre-wrap">
@@ -206,4 +560,20 @@ function Field({ label, value, icon }: { label: string; value?: string | null; i
       </dd>
     </div>
   );
+}
+
+function DocIcon({ mime, className }: { mime?: string; className?: string }) {
+  if (!mime) return <FileText className={className} />;
+  if (mime.startsWith("image/")) return <FileImage className={className} />;
+  if (mime.includes("spreadsheet") || mime.includes("csv") || mime.includes("excel")) return <FileSpreadsheet className={className} />;
+  if (mime.includes("zip") || mime.includes("tar") || mime.includes("compressed")) return <FileArchive className={className} />;
+  if (mime.includes("json") || mime.includes("xml") || mime.includes("javascript") || mime.includes("yaml")) return <FileCode className={className} />;
+  return <FileText className={className} />;
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(n / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }

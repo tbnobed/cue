@@ -234,40 +234,6 @@ export interface Document {
   updatedAt?: string;
 }
 
-export interface PublicShare {
-  resourceType: PublicShareResourceType;
-  resourceId: number;
-  createdAt: string;
-  expiresAt?: string;
-  project?: Project;
-  task?: Task;
-  document?: Document;
-  /** Name of the project this resource belongs to, if any. */
-  projectName?: string;
-  fileUrl?: string;
-  fileMimeType?: string;
-}
-
-export type ProjectProgressByCategoryItem = {
-  category: string;
-  total: number;
-  completed: number;
-};
-
-export interface ProjectProgress {
-  projectId: number;
-  totalTasks: number;
-  completedTasks: number;
-  overdueTasks: number;
-  totalMilestones: number;
-  completedMilestones: number;
-  /** Blended completion across tasks and milestones (weighted by item count). */
-  percentComplete: number;
-  taskPercentComplete: number;
-  milestonePercentComplete: number;
-  byCategory: ProjectProgressByCategoryItem[];
-}
-
 export type MilestoneStatus = typeof MilestoneStatus[keyof typeof MilestoneStatus];
 
 
@@ -290,6 +256,43 @@ export interface Milestone {
   /** @nullable */
   color?: string | null;
   createdAt: string;
+}
+
+export interface PublicShare {
+  resourceType: PublicShareResourceType;
+  resourceId: number;
+  createdAt: string;
+  expiresAt?: string;
+  project?: Project;
+  task?: Task;
+  document?: Document;
+  /** Name of the project this resource belongs to, if any. */
+  projectName?: string;
+  milestones?: Milestone[];
+  tasks?: Task[];
+  documents?: Document[];
+  fileUrl?: string;
+  fileMimeType?: string;
+}
+
+export type ProjectProgressByCategoryItem = {
+  category: string;
+  total: number;
+  completed: number;
+};
+
+export interface ProjectProgress {
+  projectId: number;
+  totalTasks: number;
+  completedTasks: number;
+  overdueTasks: number;
+  totalMilestones: number;
+  completedMilestones: number;
+  /** Blended completion across tasks and milestones (weighted by item count). */
+  percentComplete: number;
+  taskPercentComplete: number;
+  milestonePercentComplete: number;
+  byCategory: ProjectProgressByCategoryItem[];
 }
 
 export type MilestoneInputStatus = typeof MilestoneInputStatus[keyof typeof MilestoneInputStatus];

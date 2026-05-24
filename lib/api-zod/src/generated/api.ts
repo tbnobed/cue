@@ -782,6 +782,49 @@ export const GetPublicShareResponse = zod.object({
   "updatedAt": zod.string().optional()
 }).optional(),
   "projectName": zod.string().optional().describe('Name of the project this resource belongs to, if any.'),
+  "milestones": zod.array(zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "dueDate": zod.string().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed', 'missed']),
+  "color": zod.string().nullish(),
+  "createdAt": zod.string()
+})).optional(),
+  "tasks": zod.array(zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "milestoneId": zod.number().nullish(),
+  "assigneeId": zod.number().nullish(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'review', 'done']),
+  "priority": zod.enum(['low', 'medium', 'high', 'critical']),
+  "category": zod.enum(['construction', 'electrical', 'av', 'it', 'network', 'acoustics', 'furnishing', 'signage', 'general']),
+  "dueDate": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional(),
+  "assigneeName": zod.string().nullish(),
+  "projectName": zod.string().nullish(),
+  "milestoneName": zod.string().nullish()
+})).optional(),
+  "documents": zod.array(zod.object({
+  "id": zod.number(),
+  "projectId": zod.number().nullish(),
+  "projectName": zod.string().nullish(),
+  "folderId": zod.number().nullish(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "category": zod.enum(['spec', 'plan', 'permit', 'vendor', 'as_built', 'safety', 'general']),
+  "uploadedBy": zod.string().nullish(),
+  "version": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
+})).optional(),
   "fileUrl": zod.string().optional(),
   "fileMimeType": zod.string().optional()
 })

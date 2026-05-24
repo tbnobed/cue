@@ -855,6 +855,17 @@ components:
         task:         { $ref: "#/components/schemas/Task" }
         document:     { $ref: "#/components/schemas/Document" }
         projectName:  { type: string, description: "Name of the project this resource belongs to, if any." }
+        # For project shares: the project's children so the public page can
+        # show a dashboard-like view (milestones, tasks, documents).
+        milestones:
+          type: array
+          items: { $ref: "#/components/schemas/Milestone" }
+        tasks:
+          type: array
+          items: { $ref: "#/components/schemas/Task" }
+        documents:
+          type: array
+          items: { $ref: "#/components/schemas/Document" }
         # For document shares: an absolute URL the public page can use to fetch
         # the file content (streams through the public file endpoint).
         fileUrl:      { type: string }

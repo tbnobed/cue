@@ -1,8 +1,8 @@
 import { Router } from "express";
 import path from "node:path";
 import fs from "node:fs";
-import { db, shareLinksTable, projectsTable, tasksTable, documentsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, shareLinksTable, projectsTable, tasksTable, documentsTable, milestonesTable } from "@workspace/db";
+import { eq, desc } from "drizzle-orm";
 import { z } from "zod/v4";
 import { uploadsDir } from "../lib/uploads-dir.js";
 
@@ -47,7 +47,20 @@ router.get("/public/shares/:token", async (req, res): Promise<void> => {
   if (link.resourceType === "project") {
     const [project] = await db.select().from(projectsTable).where(eq(projectsTable.id, link.resourceId)).limit(1);
     if (!project) { res.status(404).json({ error: "Resource no longer exists" }); return; }
-    res.json({ ...base, project: formatProject(project) });
+    // Pull the project's children too so the public viewer can show a real
+    // overview, not just project metadata.
+    const [milestones, tasks, documents] = await Promise.all([
+      db.select().from(milestonesTable).where(eq(milestonesTable.projectId, link.resourceId)),
+      db.select().from(tasksTable).where(eq(tasksTable.projectId, link.resourceId)).orderBy(desc(tasksTable.updatedAt)),
+      db.select().from(documentsTable).where(eq(documentsTable.projectId, link.resourceId)).orderBy(desc(documentsTable.updatedAt)),
+    ]);
+    res.json({
+      ...base,
+      project: formatProject(project),
+      milestones: milestones.map(formatMilestone),
+      tasks: tasks.map(formatTask),
+      documents: documents.map(formatDocument),
+    });
     return;
   }
 
@@ -109,6 +122,14 @@ router.get("/public/shares/:token/file", async (req, res): Promise<void> => {
   fs.createReadStream(filePath).pipe(res);
 });
 
+function formatMilestone(m: typeof milestonesTable.$inferSelect) {
+  return {
+    id: m.id, projectId: m.projectId, name: m.name,
+    description: m.description ?? undefined,
+    dueDate: m.dueDate ?? undefined,
+    status: m.status, color: m.color ?? undefined,
+  };
+}
 function formatProject(s: typeof projectsTable.$inferSelect) {
   // NB: `budget` is intentionally omitted from public payloads — anyone with
   // the link should see scope/status/dates, but not financials.
