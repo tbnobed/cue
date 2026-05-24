@@ -34,6 +34,7 @@ import type {
   DocumentInput,
   DocumentUpdate,
   HealthStatus,
+  InviteMemberResult,
   ListDocumentsParams,
   ListFoldersParams,
   ListShareLinksParams,
@@ -2143,6 +2144,80 @@ export const useCreateMember = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateMemberMutationOptions(options));
+    }
+
+export const getInviteMemberUrl = (id: number,) => {
+
+
+
+
+  return `/api/members/${id}/invite`
+}
+
+/**
+ * Sends a Cue-branded email with the sign-in URL to the member's address,
+and flips `preApproved` on so their first OIDC sign-in lands ACTIVE
+without admin approval. Requires SendGrid to be configured server-side.
+
+ * @summary Email a sign-in invitation to a roster member (admin-only)
+ */
+export const inviteMember = async (id: number, options?: RequestInit): Promise<InviteMemberResult> => {
+
+  return customFetch<InviteMemberResult>(getInviteMemberUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getInviteMemberMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof inviteMember>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof inviteMember>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['inviteMember'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof inviteMember>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  inviteMember(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InviteMemberMutationResult = NonNullable<Awaited<ReturnType<typeof inviteMember>>>
+
+    export type InviteMemberMutationError = ErrorType<void>
+
+    /**
+ * @summary Email a sign-in invitation to a roster member (admin-only)
+ */
+export const useInviteMember = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof inviteMember>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof inviteMember>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getInviteMemberMutationOptions(options));
     }
 
 export const getUpdateMemberUrl = (id: number,) => {

@@ -597,6 +597,33 @@ paths:
               schema:
                 $ref: "#/components/schemas/Member"
 
+  /members/{id}/invite:
+    post:
+      operationId: inviteMember
+      tags: [members]
+      summary: Email a sign-in invitation to a roster member (admin-only)
+      description: |
+        Sends a Cue-branded email with the sign-in URL to the member's address,
+        and flips `preApproved` on so their first OIDC sign-in lands ACTIVE
+        without admin approval. Requires SendGrid to be configured server-side.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Invitation accepted by the email provider
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InviteMemberResult" }
+        "400": { description: Member has no email address }
+        "403": { description: Admin access required }
+        "404": { description: Member not found }
+        "429": { description: Too many invite emails — try again later }
+        "502": { description: Email provider rejected the send }
+        "503": { description: Email is not configured on this server }
+
   /members/{id}:
     patch:
       operationId: updateMember
@@ -1402,6 +1429,14 @@ components:
         company:      { type: ["string", "null"] }
         notes:        { type: ["string", "null"] }
         preApproved:  { type: boolean, description: "Only affects users who have NOT yet signed in. Flipping this on existing OIDC users does NOT retroactively activate them — use PATCH /api/admin/users/:id for that." }
+
+    InviteMemberResult:
+      type: object
+      required: [sent, email, preApproved]
+      properties:
+        sent:        { type: boolean, description: "Whether the email provider accepted the send." }
+        email:       { type: string, description: "The address the invite was dispatched to (lowercased)." }
+        preApproved: { type: boolean, description: "Echoes the member's preApproved flag after the call — always true on success." }
 
     # ── Project Member ──────────────────────────────────────────────────────
     ProjectMember:

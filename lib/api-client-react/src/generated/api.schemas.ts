@@ -696,6 +696,15 @@ export interface MemberUpdate {
   preApproved?: boolean;
 }
 
+export interface InviteMemberResult {
+  /** Whether the email provider accepted the send. */
+  sent: boolean;
+  /** The address the invite was dispatched to (lowercased). */
+  email: string;
+  /** Echoes the member's preApproved flag after the call — always true on success. */
+  preApproved: boolean;
+}
+
 export interface ProjectMember {
   id: number;
   projectId: number;

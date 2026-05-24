@@ -589,6 +589,24 @@ export const CreateMemberBody = zod.object({
 
 
 /**
+ * Sends a Cue-branded email with the sign-in URL to the member's address,
+and flips `preApproved` on so their first OIDC sign-in lands ACTIVE
+without admin approval. Requires SendGrid to be configured server-side.
+
+ * @summary Email a sign-in invitation to a roster member (admin-only)
+ */
+export const InviteMemberParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const InviteMemberResponse = zod.object({
+  "sent": zod.boolean().describe('Whether the email provider accepted the send.'),
+  "email": zod.string().describe('The address the invite was dispatched to (lowercased).'),
+  "preApproved": zod.boolean().describe('Echoes the member\'s preApproved flag after the call — always true on success.')
+})
+
+
+/**
  * @summary Update a team member
  */
 export const UpdateMemberParams = zod.object({

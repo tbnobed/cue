@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  useListMembers, useCreateMember, useUpdateMember, useDeleteMember,
+  useListMembers, useCreateMember, useUpdateMember, useDeleteMember, useInviteMember,
   getListMembersQueryKey,
 } from "@workspace/api-client-react";
 import type { Member, MemberInput, MemberUpdate } from "@workspace/api-client-react";
@@ -18,6 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import {
   UserPlus, Mail, Phone, Smartphone, MapPin, Building2, Briefcase,
@@ -342,11 +343,14 @@ function MemberFormDialog({ open, onOpenChange, mode, member }: {
 }) {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const auth = useAuth();
+  const isAdmin = auth.status === "authenticated" && auth.user.isAdmin;
   const [form, setForm] = useState<FormState>(EMPTY);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const create = useCreateMember();
   const update = useUpdateMember();
   const del = useDeleteMember();
+  const invite = useInviteMember();
 
   // Reset form whenever the dialog opens (or the member being edited changes).
   useEffect(() => {
@@ -383,6 +387,41 @@ function MemberFormDialog({ open, onOpenChange, mode, member }: {
         description: err?.message ?? "Unknown error",
         variant: "destructive",
       });
+    }
+  }
+
+  async function handleInvite() {
+    if (!member) return;
+    // Server validates email presence + SendGrid config too, but check here
+    // so we never even fire a request that's guaranteed to fail.
+    if (!member.email) {
+      toast({
+        title: "No email address on file",
+        description: "Add an email for this member before sending an invite.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const result = await invite.mutateAsync({ id: member.id });
+      // Server flips preApproved=true as part of the invite. Reflect that in
+      // local form state so the toggle visibly switches on without needing a
+      // reload, and invalidate the list so the rest of the UI sees it too.
+      setForm(f => ({ ...f, preApproved: true }));
+      await qc.invalidateQueries({ queryKey: getListMembersQueryKey() });
+      toast({
+        title: "Invite sent",
+        description: `Sign-in email dispatched to ${result.email}. They're now pre-approved.`,
+      });
+    } catch (err: unknown) {
+      const e = err as { status?: number; message?: string } | undefined;
+      const description =
+        e?.status === 503
+          ? "Email is not configured on this server. Set SENDGRID_API_KEY and EMAIL_FROM in your environment."
+          : e?.status === 429
+            ? "You've sent a lot of invites in the last few minutes. Try again shortly."
+            : (e?.message ?? "Unknown error");
+      toast({ title: "Couldn't send invite", description, variant: "destructive" });
     }
   }
 
@@ -501,6 +540,40 @@ function MemberFormDialog({ open, onOpenChange, mode, member }: {
                   data-testid="switch-member-pre-approved"
                 />
               </div>
+
+              {/* Send invite email — admin-only, edit-mode-only.
+                  Creates an authenticated session URL email and auto-enables
+                  pre-approval so the recipient lands in the app on first
+                  sign-in. Requires SendGrid config; the server will return
+                  503 with a clear message if it's missing. */}
+              {isEdit && isAdmin && (
+                <div className="md:col-span-2 flex items-start justify-between gap-4 rounded-lg border border-border/40 bg-card/40 p-3">
+                  <div className="space-y-1">
+                    <Label>Send sign-in invite</Label>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Email this member a Cue-branded sign-in link. Sending also pre-authorizes
+                      them, so their first sign-in lands active — no manual approval needed.
+                      {!form.email.trim() && (
+                        <span className="block mt-1 text-amber-400/80">
+                          Add an email address above to enable this.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleInvite}
+                    disabled={!form.email.trim() || invite.isPending || pending}
+                    data-testid="button-invite-member"
+                  >
+                    {invite.isPending
+                      ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      : <Mail className="w-4 h-4 mr-2" />}
+                    Send invite
+                  </Button>
+                </div>
+              )}
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0 flex-col sm:flex-row sm:justify-between">

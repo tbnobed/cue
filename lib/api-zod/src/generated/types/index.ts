@@ -29,6 +29,7 @@ export * from './documentInputCategory';
 export * from './documentUpdate';
 export * from './documentUpdateCategory';
 export * from './healthStatus';
+export * from './inviteMemberResult';
 export * from './listDocumentsParams';
 export * from './listFoldersParams';
 export * from './listShareLinksParams';
