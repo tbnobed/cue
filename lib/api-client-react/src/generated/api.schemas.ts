@@ -134,6 +134,15 @@ export const PublicShareResourceType = {
   document: 'document',
 } as const;
 
+export type PublicShareTeamItem = {
+  memberId: number;
+  name: string;
+  role: string;
+  projectRole?: string;
+  department?: string;
+  avatarUrl?: string;
+};
+
 export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
 
 
@@ -287,6 +296,8 @@ export interface PublicShare {
   tasks?: Task[];
   documents?: Document[];
   folders?: DocumentFolder[];
+  /** Members assigned to the shared project. Email withheld in the public payload. */
+  team?: PublicShareTeamItem[];
   fileUrl?: string;
   fileMimeType?: string;
 }

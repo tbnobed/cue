@@ -1,7 +1,7 @@
 import { Router } from "express";
 import path from "node:path";
 import fs from "node:fs";
-import { db, shareLinksTable, projectsTable, tasksTable, documentsTable, milestonesTable, documentFoldersTable } from "@workspace/db";
+import { db, shareLinksTable, projectsTable, tasksTable, documentsTable, milestonesTable, documentFoldersTable, projectMembersTable, membersTable } from "@workspace/db";
 import { eq, desc, inArray } from "drizzle-orm";
 import { z } from "zod/v4";
 import { uploadsDir } from "../lib/uploads-dir.js";
@@ -49,11 +49,25 @@ router.get("/public/shares/:token", async (req, res): Promise<void> => {
     if (!project) { res.status(404).json({ error: "Resource no longer exists" }); return; }
     // Pull the project's children too so the public viewer can show a real
     // overview, not just project metadata.
-    const [milestones, tasks, projectDocs, projectFolders] = await Promise.all([
+    const [milestones, tasks, projectDocs, projectFolders, teamMembers] = await Promise.all([
       db.select().from(milestonesTable).where(eq(milestonesTable.projectId, link.resourceId)).orderBy(milestonesTable.dueDate),
       db.select().from(tasksTable).where(eq(tasksTable.projectId, link.resourceId)).orderBy(desc(tasksTable.updatedAt)),
       db.select().from(documentsTable).where(eq(documentsTable.projectId, link.resourceId)).orderBy(desc(documentsTable.updatedAt)),
       db.select().from(documentFoldersTable).where(eq(documentFoldersTable.projectId, link.resourceId)),
+      // Project team — mirrors the in-app Team tab. Public viewers see roster
+      // (name, role, department, avatar) but NOT contact info (email withheld).
+      db.select({
+        memberId: projectMembersTable.memberId,
+        projectRole: projectMembersTable.projectRole,
+        name: membersTable.name,
+        role: membersTable.role,
+        department: membersTable.department,
+        avatarUrl: membersTable.avatarUrl,
+      })
+        .from(projectMembersTable)
+        .innerJoin(membersTable, eq(membersTable.id, projectMembersTable.memberId))
+        .where(eq(projectMembersTable.projectId, link.resourceId))
+        .orderBy(membersTable.name),
     ]);
     // Also include docs/folders attached to any task of this project (mirrors
     // the in-app project Documents tab which surfaces task attachments).
@@ -71,6 +85,14 @@ router.get("/public/shares/:token", async (req, res): Promise<void> => {
       tasks: tasks.map(formatTask),
       documents: [...projectDocs, ...taskDocs].map(formatDocument),
       folders: [...projectFolders, ...taskFolders].map(formatFolder),
+      team: teamMembers.map(m => ({
+        memberId: m.memberId,
+        name: m.name,
+        role: m.role,
+        projectRole: m.projectRole ?? undefined,
+        department: m.department ?? undefined,
+        avatarUrl: m.avatarUrl ?? undefined,
+      })),
     });
     return;
   }

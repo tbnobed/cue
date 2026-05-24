@@ -1003,6 +1003,19 @@ components:
         folders:
           type: array
           items: { $ref: "#/components/schemas/DocumentFolder" }
+        team:
+          type: array
+          description: "Members assigned to the shared project. Email withheld in the public payload."
+          items:
+            type: object
+            required: [memberId, name, role]
+            properties:
+              memberId:    { type: integer }
+              name:        { type: string }
+              role:        { type: string }
+              projectRole: { type: string }
+              department:  { type: string }
+              avatarUrl:   { type: string }
         # For document shares: an absolute URL the public page can use to fetch
         # the file content (streams through the public file endpoint).
         fileUrl:      { type: string }

@@ -10,6 +10,7 @@ import type { DocumentFolder } from './documentFolder';
 import type { Milestone } from './milestone';
 import type { Project } from './project';
 import type { PublicShareResourceType } from './publicShareResourceType';
+import type { PublicShareTeamItem } from './publicShareTeamItem';
 import type { Task } from './task';
 
 export interface PublicShare {
@@ -26,6 +27,8 @@ export interface PublicShare {
   tasks?: Task[];
   documents?: Document[];
   folders?: DocumentFolder[];
+  /** Members assigned to the shared project. Email withheld in the public payload. */
+  team?: PublicShareTeamItem[];
   fileUrl?: string;
   fileMimeType?: string;
 }

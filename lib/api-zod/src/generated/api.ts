@@ -931,6 +931,14 @@ export const GetPublicShareResponse = zod.object({
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })).optional(),
+  "team": zod.array(zod.object({
+  "memberId": zod.number(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "projectRole": zod.string().optional(),
+  "department": zod.string().optional(),
+  "avatarUrl": zod.string().optional()
+})).optional().describe('Members assigned to the shared project. Email withheld in the public payload.'),
   "fileUrl": zod.string().optional(),
   "fileMimeType": zod.string().optional()
 })

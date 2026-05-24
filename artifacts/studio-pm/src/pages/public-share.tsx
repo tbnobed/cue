@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import {
   AlertTriangle, Calendar, FileText, FolderKanban, ListChecks, Lock,
   Circle, Loader, Eye, CheckCircle2, FileSpreadsheet, FileImage, FileCode, FileArchive,
-  Folder, FolderOpen, Home, ChevronRight,
+  Folder, FolderOpen, Home, ChevronRight, Users,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -69,6 +69,7 @@ export default function PublicShare() {
             tasks={data.tasks ?? []}
             documents={data.documents ?? []}
             folders={data.folders ?? []}
+            team={data.team ?? []}
           />
         )}
         {data?.task && <TaskView task={data.task} projectName={data.projectName} />}
@@ -162,13 +163,14 @@ function Panel({ title, children, className }: { title: string; children: React.
 
 // ─── PROJECT VIEW (mirrors authed dashboard) ─────────────────────────────────
 
-function ProjectView({ token, project, milestones: rawMilestones, tasks, documents, folders }: {
+function ProjectView({ token, project, milestones: rawMilestones, tasks, documents, folders, team }: {
   token: string;
   project: any;
   milestones: any[];
   tasks: any[];
   documents: any[];
   folders: any[];
+  team: any[];
 }) {
   const tone = STATUS_TONE[project.status] ?? "text-muted-foreground bg-muted/40 ring-border/60";
   const [detailTask, setDetailTask] = useState<any | null>(null);
@@ -239,6 +241,7 @@ function ProjectView({ token, project, milestones: rawMilestones, tasks, documen
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-5 outline-none">
@@ -368,6 +371,10 @@ function ProjectView({ token, project, milestones: rawMilestones, tasks, documen
 
         <TabsContent value="documents" className="outline-none">
           <PublicDocumentsTab token={token} documents={documents} folders={folders} tasks={tasks} />
+        </TabsContent>
+
+        <TabsContent value="team" className="outline-none">
+          <PublicTeamTab team={team} />
         </TabsContent>
       </Tabs>
 
@@ -911,4 +918,68 @@ function formatBytes(n: number) {
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
   return `${(n / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+// ─── PUBLIC TEAM TAB (mirrors authed TeamTab, read-only, no email) ───────────
+
+function PublicTeamTab({ team }: { team: any[] }) {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
+            <Users className="w-3 h-3" />
+            Project Team
+          </div>
+          <h2 className="text-xl font-semibold tracking-tight">
+            {team.length} {team.length === 1 ? "member" : "members"} assigned
+          </h2>
+        </div>
+      </div>
+
+      {team.length === 0 ? (
+        <div className="surface-card ring-hairline border border-border/70 rounded-2xl p-12 text-center">
+          <Users className="w-8 h-8 mx-auto text-muted-foreground/50 mb-3" />
+          <div className="text-sm text-muted-foreground font-mono">No team members assigned.</div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {team.map((m, idx) => {
+            const initials = (m.name || "?")
+              .split(/\s+/).filter(Boolean).slice(0, 2)
+              .map((w: string) => w[0]?.toUpperCase()).join("");
+            return (
+              <motion.div
+                key={m.memberId}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03 }}
+                className="surface-card ring-hairline border border-border/70 rounded-2xl p-4 flex items-center gap-3"
+              >
+                {m.avatarUrl ? (
+                  <img src={m.avatarUrl} alt="" className="w-11 h-11 rounded-full ring-1 ring-border shrink-0" />
+                ) : (
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/30 to-primary/5 ring-1 ring-primary/30 text-primary flex items-center justify-center text-sm font-mono font-semibold shrink-0">
+                    {initials || "?"}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="text-[14px] font-semibold tracking-tight truncate">{m.name}</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5 font-mono">
+                    <span className="capitalize">{m.projectRole || m.role}</span>
+                    {m.department && (
+                      <>
+                        <span className="w-0.5 h-0.5 rounded-full bg-border" />
+                        <span>{m.department}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }

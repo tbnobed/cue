@@ -54,6 +54,7 @@ export * from './projectUpdate';
 export * from './projectUpdateStatus';
 export * from './publicShare';
 export * from './publicShareResourceType';
+export * from './publicShareTeamItem';
 export * from './shareLink';
 export * from './shareLinkInput';
 export * from './shareLinkInputResourceType';
