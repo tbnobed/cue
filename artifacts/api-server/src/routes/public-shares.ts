@@ -2,7 +2,7 @@ import { Router } from "express";
 import path from "node:path";
 import fs from "node:fs";
 import { db, shareLinksTable, projectsTable, tasksTable, documentsTable, milestonesTable, documentFoldersTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { z } from "zod/v4";
 import { uploadsDir } from "../lib/uploads-dir.js";
 
@@ -49,19 +49,28 @@ router.get("/public/shares/:token", async (req, res): Promise<void> => {
     if (!project) { res.status(404).json({ error: "Resource no longer exists" }); return; }
     // Pull the project's children too so the public viewer can show a real
     // overview, not just project metadata.
-    const [milestones, tasks, documents, folders] = await Promise.all([
+    const [milestones, tasks, projectDocs, projectFolders] = await Promise.all([
       db.select().from(milestonesTable).where(eq(milestonesTable.projectId, link.resourceId)).orderBy(milestonesTable.dueDate),
       db.select().from(tasksTable).where(eq(tasksTable.projectId, link.resourceId)).orderBy(desc(tasksTable.updatedAt)),
       db.select().from(documentsTable).where(eq(documentsTable.projectId, link.resourceId)).orderBy(desc(documentsTable.updatedAt)),
       db.select().from(documentFoldersTable).where(eq(documentFoldersTable.projectId, link.resourceId)),
     ]);
+    // Also include docs/folders attached to any task of this project (mirrors
+    // the in-app project Documents tab which surfaces task attachments).
+    const taskIds = tasks.map(t => t.id);
+    const [taskDocs, taskFolders] = taskIds.length === 0
+      ? [[], []] as [typeof projectDocs, typeof projectFolders]
+      : await Promise.all([
+          db.select().from(documentsTable).where(inArray(documentsTable.taskId, taskIds)).orderBy(desc(documentsTable.updatedAt)),
+          db.select().from(documentFoldersTable).where(inArray(documentFoldersTable.taskId, taskIds)),
+        ]);
     res.json({
       ...base,
       project: formatProject(project),
       milestones: milestones.map(formatMilestone),
       tasks: tasks.map(formatTask),
-      documents: documents.map(formatDocument),
-      folders: folders.map(formatFolder),
+      documents: [...projectDocs, ...taskDocs].map(formatDocument),
+      folders: [...projectFolders, ...taskFolders].map(formatFolder),
     });
     return;
   }
@@ -121,11 +130,18 @@ router.get("/public/shares/:token/documents/:docId/file", async (req, res): Prom
 
   const [doc] = await db.select().from(documentsTable).where(eq(documentsTable.id, docId)).limit(1);
   if (!doc) { res.status(404).send("Not found"); return; }
-  // Allow if (a) the share is for this document, or (b) the share is for the
-  // project the document belongs to.
-  const allowed =
+  // Allow if (a) the share is for this document, (b) the share is for the
+  // project the document is directly attached to, or (c) the share is for a
+  // project whose task this document is attached to (task attachments are
+  // stored with projectId=NULL + taskId set, but surface in the project view).
+  let allowed =
     (link.resourceType === "document" && link.resourceId === docId) ||
     (link.resourceType === "project" && doc.projectId === link.resourceId);
+  if (!allowed && link.resourceType === "project" && doc.taskId != null) {
+    const [t] = await db.select({ projectId: tasksTable.projectId })
+      .from(tasksTable).where(eq(tasksTable.id, doc.taskId)).limit(1);
+    if (t?.projectId === link.resourceId) allowed = true;
+  }
   if (!allowed) { res.status(404).send("Not found"); return; }
   await streamDoc(docId, res);
 });
@@ -181,6 +197,7 @@ function formatTask(t: typeof tasksTable.$inferSelect) {
 function formatFolder(f: typeof documentFoldersTable.$inferSelect) {
   return {
     id: f.id, projectId: f.projectId ?? undefined, parentId: f.parentId ?? undefined,
+    taskId: f.taskId ?? undefined,
     name: f.name,
     createdAt: f.createdAt.toISOString(), updatedAt: f.updatedAt.toISOString(),
   };
@@ -190,6 +207,7 @@ function formatDocument(d: typeof documentsTable.$inferSelect) {
   // viewers don't need to know who in the team uploaded the file.
   return {
     id: d.id, projectId: d.projectId ?? undefined, folderId: d.folderId ?? undefined,
+    taskId: d.taskId ?? undefined,
     title: d.title, description: d.description ?? undefined, url: d.url ?? undefined,
     notes: d.notes ?? undefined, category: d.category,
     version: d.version ?? undefined,

@@ -367,7 +367,7 @@ function ProjectView({ token, project, milestones: rawMilestones, tasks, documen
         </TabsContent>
 
         <TabsContent value="documents" className="outline-none">
-          <PublicDocumentsTab token={token} documents={documents} folders={folders} />
+          <PublicDocumentsTab token={token} documents={documents} folders={folders} tasks={tasks} />
         </TabsContent>
       </Tabs>
 
@@ -398,18 +398,55 @@ function buildTree(folders: Folder[]): FolderNode[] {
   return roots;
 }
 
-function PublicDocumentsTab({ token, documents, folders }: { token: string; documents: any[]; folders: Folder[] }) {
+function PublicDocumentsTab({ token, documents, folders, tasks }: { token: string; documents: any[]; folders: (Folder & { taskId?: number | null })[]; tasks: any[] }) {
   const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
-  const tree = useMemo(() => buildTree(folders), [folders]);
+  // When non-null, we're browsing the document tree attached to a specific task
+  // (rendered as a virtual "Task: <name>" entry in the sidebar).
+  const [currentTaskId, setCurrentTaskId] = useState<number | null>(null);
+
+  // Folders visible in the sidebar tree are project-scoped only (taskId == null).
+  // Task-scoped folders are reached via the virtual "Task: <name>" entry.
+  const scopedFolders = useMemo(
+    () => folders.filter(f => (currentTaskId == null ? f.taskId == null : f.taskId === currentTaskId)),
+    [folders, currentTaskId],
+  );
+
+  const tree = useMemo(() => buildTree(scopedFolders), [scopedFolders]);
 
   const folderById = useMemo(() => {
     const m = new Map<number, Folder>();
-    for (const f of folders) m.set(f.id, f);
+    for (const f of scopedFolders) m.set(f.id, f);
     return m;
-  }, [folders]);
+  }, [scopedFolders]);
+
+  // Virtual task folders shown in sidebar: tasks of this project that have ≥1 doc or folder attached.
+  const taskFolderEntries = useMemo(() => {
+    if (currentTaskId != null) return [];
+    const counts = new Map<number, number>();
+    for (const d of documents) if (d.taskId != null) counts.set(d.taskId, (counts.get(d.taskId) ?? 0) + 1);
+    for (const f of folders) if (f.taskId != null && (f.parentId ?? null) == null) counts.set(f.taskId, (counts.get(f.taskId) ?? 0) + 1);
+    return tasks
+      .filter(t => counts.has(t.id))
+      .map(t => ({ id: t.id, name: t.title, count: counts.get(t.id) ?? 0 }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [documents, folders, tasks, currentTaskId]);
+
+  const currentTaskName = currentTaskId != null
+    ? (tasks.find(t => t.id === currentTaskId)?.title ?? `Task ${currentTaskId}`)
+    : null;
+
+  const docsInFolder = useMemo(() => {
+    if (currentTaskId != null) {
+      return documents.filter(d => d.taskId === currentTaskId && (d.folderId ?? null) === currentFolderId);
+    }
+    return documents.filter(d => d.taskId == null && (d.folderId ?? null) === currentFolderId);
+  }, [documents, currentTaskId, currentFolderId]);
 
   const breadcrumbs = useMemo(() => {
-    const out: { id: number | null; name: string }[] = [{ id: null, name: "All Documents" }];
+    const out: { id: number | null; name: string; taskScope?: boolean }[] = [{ id: null, name: "All Documents" }];
+    if (currentTaskId != null) {
+      out.push({ id: null, name: `Task: "${currentTaskName ?? ""}"`, taskScope: true });
+    }
     if (currentFolderId == null) return out;
     const chain: { id: number; name: string }[] = [];
     let cur: number | null = currentFolderId;
@@ -420,12 +457,10 @@ function PublicDocumentsTab({ token, documents, folders }: { token: string; docu
       cur = f.parentId ?? null;
     }
     return out.concat(chain);
-  }, [currentFolderId, folderById]);
+  }, [currentFolderId, folderById, currentTaskId, currentTaskName]);
 
-  const currentSubfolders = folders
-    .filter(f => (f.parentId ?? null) === currentFolderId)
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const docsInFolder = documents.filter(d => (d.folderId ?? null) === currentFolderId);
+  function goAllDocuments() { setCurrentTaskId(null); setCurrentFolderId(null); }
+  function goTaskRoot()     { setCurrentFolderId(null); }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-5">
@@ -434,16 +469,18 @@ function PublicDocumentsTab({ token, documents, folders }: { token: string; docu
           <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">Folders</span>
         </div>
         <button
-          onClick={() => setCurrentFolderId(null)}
+          onClick={goAllDocuments}
           className={`w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 text-sm transition-colors ${
-            currentFolderId === null ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
+            currentTaskId == null && currentFolderId === null ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
           }`}
         >
           <Home className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">All Documents</span>
         </button>
         {tree.length === 0 ? (
-          <div className="text-[11px] font-mono text-muted-foreground/70 px-2 py-3 text-center">No folders</div>
+          currentTaskId == null && taskFolderEntries.length === 0 ? (
+            <div className="text-[11px] font-mono text-muted-foreground/70 px-2 py-3 text-center">No folders</div>
+          ) : null
         ) : (
           <div className="mt-1 space-y-0.5">
             {tree.map(node => (
@@ -451,15 +488,57 @@ function PublicDocumentsTab({ token, documents, folders }: { token: string; docu
             ))}
           </div>
         )}
+
+        {currentTaskId == null && taskFolderEntries.length > 0 && (
+          <>
+            <div className="mt-3 px-2 py-1.5 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+              Task Attachments
+            </div>
+            <div className="space-y-0.5">
+              {taskFolderEntries.map(t => (
+                <button
+                  key={`task-${t.id}`}
+                  onClick={() => { setCurrentTaskId(t.id); setCurrentFolderId(null); }}
+                  className="w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 text-sm transition-colors hover:bg-background/60 text-foreground/80"
+                  title={`Documents attached to task: ${t.name}`}
+                >
+                  <ListChecks className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                  <span className="truncate flex-1">Task: "{t.name}"</span>
+                  <span className="text-[10px] font-mono text-muted-foreground tabular-nums shrink-0">{t.count}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {currentTaskId != null && (
+          <>
+            <div className="mt-3 px-2 py-1.5 text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
+              Task Attachments
+            </div>
+            <button
+              onClick={goTaskRoot}
+              className={`w-full text-left px-2 py-1.5 rounded-md flex items-center gap-2 text-sm transition-colors ${
+                currentFolderId == null ? "bg-primary/10 text-primary" : "hover:bg-background/60 text-foreground/80"
+              }`}
+            >
+              <ListChecks className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+              <span className="truncate">Task: "{currentTaskName}"</span>
+            </button>
+          </>
+        )}
       </div>
 
       <div className="space-y-4 min-w-0">
         <div className="flex items-center gap-1 flex-wrap text-sm">
           {breadcrumbs.map((b, i) => (
-            <span key={`${b.id ?? "root"}-${i}`} className="flex items-center gap-1">
+            <span key={`${b.id ?? (b.taskScope ? "task" : "root")}-${i}`} className="flex items-center gap-1">
               {i > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground" />}
               <button
-                onClick={() => setCurrentFolderId(b.id)}
+                onClick={() => {
+                  if (i === 0) { goAllDocuments(); return; }
+                  if (b.taskScope) { goTaskRoot(); return; }
+                  setCurrentFolderId(b.id);
+                }}
                 className={`hover:text-primary transition-colors ${i === breadcrumbs.length - 1 ? "text-foreground font-medium" : "text-muted-foreground"}`}
               >
                 {b.name}
@@ -468,28 +547,12 @@ function PublicDocumentsTab({ token, documents, folders }: { token: string; docu
           ))}
         </div>
 
-        {currentSubfolders.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {currentSubfolders.map(f => (
-              <button
-                key={f.id}
-                onClick={() => setCurrentFolderId(f.id)}
-                onDoubleClick={() => setCurrentFolderId(f.id)}
-                className="group surface-card ring-hairline border border-border/70 rounded-xl px-3 py-2.5 flex items-center gap-2 text-left hover:border-border hover:-translate-y-0.5 hover:shadow-md transition-all"
-              >
-                <Folder className="w-4 h-4 text-amber-400 shrink-0" />
-                <span className="text-sm font-medium truncate flex-1">{f.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
         {docsInFolder.length === 0 ? (
-          currentSubfolders.length === 0 ? (
-            <div className="surface-card ring-hairline border border-dashed border-border/70 rounded-2xl p-10 text-center text-sm text-muted-foreground font-mono">
-              {currentFolderId == null ? "No documents in this project." : "This folder is empty."}
-            </div>
-          ) : null
+          <div className="surface-card ring-hairline border border-dashed border-border/70 rounded-2xl p-10 text-center text-sm text-muted-foreground font-mono">
+            {currentTaskId == null && currentFolderId == null
+              ? "No documents in this project."
+              : "This folder is empty."}
+          </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {docsInFolder.map(d => <PublicDocTile key={d.id} token={token} doc={d} />)}
