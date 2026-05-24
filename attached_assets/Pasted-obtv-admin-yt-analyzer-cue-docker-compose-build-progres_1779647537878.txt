@@ -1,0 +1,192 @@
+obtv-admin@yt-analyzer:~/cue$ docker compose build --progress=plain app 2>&1 | tee build.log
+--progress is a global compose flag, better use `docker compose --progress xx build ...
+#1 [internal] load local bake definitions
+#1 reading from stdin 880B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 3.82kB done
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:24-alpine
+#3 DONE 0.1s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [base  1/31] FROM docker.io/library/node:24-alpine@sha256:2bdb65ed1dab192432bc31c95f94155ca5ad7fc1392fb7eb7526ab682fa5bf14
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 24.89kB 0.0s done
+#6 DONE 0.0s
+
+#7 [runner  2/24] RUN corepack enable && apk add --no-cache curl
+#7 CACHED
+
+#8 [runner  6/24] COPY lib/api-client-react/package.json lib/api-client-react/
+#8 CACHED
+
+#9 [runner  3/24] WORKDIR /app
+#9 CACHED
+
+#10 [runner  4/24] COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
+#10 CACHED
+
+#11 [runner 10/24] COPY lib/db/package.json lib/db/
+#11 CACHED
+
+#12 [runner  7/24] COPY lib/api-client-react/tsconfig.json lib/api-client-react/
+#12 CACHED
+
+#13 [runner 13/24] COPY artifacts/studio-pm/package.json artifacts/studio-pm/
+#13 CACHED
+
+#14 [runner  8/24] COPY lib/api-zod/package.json lib/api-zod/
+#14 CACHED
+
+#15 [runner 12/24] COPY artifacts/api-server/package.json artifacts/api-server/
+#15 CACHED
+
+#16 [runner 11/24] COPY lib/db/tsconfig.json lib/db/
+#16 CACHED
+
+#17 [runner 14/24] COPY artifacts/mockup-sandbox/package.json artifacts/mockup-sandbox/
+#17 CACHED
+
+#18 [runner  9/24] COPY lib/api-zod/tsconfig.json lib/api-zod/
+#18 CACHED
+
+#19 [runner  5/24] COPY lib/api-spec/package.json lib/api-spec/
+#19 CACHED
+
+#20 [runner 15/24] COPY scripts/package.json scripts/
+#20 CACHED
+
+#21 [base 13/31] COPY lib/db/tsconfig.json lib/db/
+#21 CACHED
+
+#22 [base  2/31] RUN corepack enable
+#22 CACHED
+
+#23 [base 19/31] COPY scripts/package.json scripts/
+#23 CACHED
+
+#24 [base  6/31] COPY lib/api-spec/orval.config.ts lib/api-spec/
+#24 CACHED
+
+#25 [base 10/31] COPY lib/api-zod/package.json lib/api-zod/
+#25 CACHED
+
+#26 [base 17/31] COPY artifacts/studio-pm/package.json artifacts/studio-pm/
+#26 CACHED
+
+#27 [base 16/31] COPY artifacts/api-server/tsconfig.json artifacts/api-server/
+#27 CACHED
+
+#28 [base  5/31] COPY lib/api-spec/package.json lib/api-spec/
+#28 CACHED
+
+#29 [base  3/31] WORKDIR /app
+#29 CACHED
+
+#30 [base  4/31] COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
+#30 CACHED
+
+#31 [base  7/31] COPY lib/api-spec/openapi.yaml lib/api-spec/
+#31 CACHED
+
+#32 [base 18/31] COPY artifacts/studio-pm/tsconfig.json artifacts/studio-pm/
+#32 CACHED
+
+#33 [base 12/31] COPY lib/db/package.json lib/db/
+#33 CACHED
+
+#34 [base 11/31] COPY lib/api-zod/tsconfig.json lib/api-zod/
+#34 CACHED
+
+#35 [base  9/31] COPY lib/api-client-react/tsconfig.json lib/api-client-react/
+#35 CACHED
+
+#36 [base 15/31] COPY artifacts/api-server/package.json artifacts/api-server/
+#36 CACHED
+
+#37 [base  8/31] COPY lib/api-client-react/package.json lib/api-client-react/
+#37 CACHED
+
+#38 [base 14/31] COPY lib/db/drizzle.config.ts lib/db/
+#38 CACHED
+
+#39 [runner 16/24] COPY scripts/tsconfig.json scripts/
+#39 CACHED
+
+#40 [base 20/31] COPY scripts/tsconfig.json scripts/
+#40 CACHED
+
+#41 [base 21/31] RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+#41 0.526 ! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-11.3.0.tgz
+#41 2.319 Scope: all 8 workspace projects
+#41 2.494 ? Verifying lockfile against supply-chain policies (606 entries)...
+#41 6.407 ✓ Lockfile passes supply-chain policies (606 entries in 3.9s)
+#41 6.420 Lockfile is up to date, resolution step is skipped
+#41 6.476 Progress: resolved 1, reused 0, downloaded 0, added 0
+#41 6.681 Packages: +598
+#41 6.681 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#41 7.478 Progress: resolved 598, reused 597, downloaded 0, added 2
+#41 ...
+
+#42 [runner 17/24] RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod
+#42 0.556 ! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-11.3.0.tgz
+#42 2.387 Scope: all 9 workspace projects
+#42 2.567 ? Verifying lockfile against supply-chain policies (606 entries)...
+#42 6.191 ✓ Lockfile passes supply-chain policies (606 entries in 3.6s)
+#42 6.204 Lockfile is up to date, resolution step is skipped
+#42 6.233 Progress: resolved 1, reused 0, downloaded 0, added 0
+#42 6.276 Packages: +231
+#42 6.276 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#42 7.235 Progress: resolved 231, reused 231, downloaded 0, added 230
+#42 7.472 Progress: resolved 231, reused 231, downloaded 0, added 231, done
+#42 7.738
+#42 7.738 devDependencies: skipped
+#42 7.738
+#42 7.741 . preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+#42 7.761 . preinstall: Use pnpm instead
+#42 7.763 . preinstall: Failed
+#42 7.850 [ELIFECYCLE] Command failed with exit code 1.
+#42 ERROR: process "/bin/sh -c pnpm install --frozen-lockfile --prod" did not complete successfully: exit code: 1
+
+#41 [base 21/31] RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+#41 CANCELED
+------
+ > [runner 17/24] RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod:
+6.276 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+7.235 Progress: resolved 231, reused 231, downloaded 0, added 230
+7.472 Progress: resolved 231, reused 231, downloaded 0, added 231, done
+7.738
+7.738 devDependencies: skipped
+7.738
+7.741 . preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+7.761 . preinstall: Use pnpm instead
+7.763 . preinstall: Failed
+7.850 [ELIFECYCLE] Command failed with exit code 1.
+------
+Dockerfile:77
+
+--------------------
+
+  75 |     COPY scripts/tsconfig.json scripts/
+
+  76 |
+
+  77 | >>> RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod
+
+  78 |
+
+  79 |     # Copy built outputs
+
+--------------------
+
+failed to solve: process "/bin/sh -c pnpm install --frozen-lockfile --prod" did not complete successfully: exit code: 1
+
+obtv-admin@yt-analyzer:~/cue$

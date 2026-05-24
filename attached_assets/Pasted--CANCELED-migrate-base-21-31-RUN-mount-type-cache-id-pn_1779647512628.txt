@@ -1,0 +1,44 @@
+ => CANCELED [migrate base 21/31] RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile                                                         9.2s
+ => [app runner 14/24] COPY artifacts/mockup-sandbox/package.json artifacts/mockup-sandbox/                                                                                0.0s
+ => [app runner 15/24] COPY scripts/package.json scripts/                                                                                                                  0.0s
+ => [app runner 16/24] COPY scripts/tsconfig.json scripts/                                                                                                                 0.0s
+ => ERROR [app runner 17/24] RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod                                                       8.3s
+------
+ > [app runner 17/24] RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod:
+0.500 ! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-11.3.0.tgz
+2.325 Scope: all 9 workspace projects
+2.528 ? Verifying lockfile against supply-chain policies (606 entries)...
+6.342 ✓ Lockfile passes supply-chain policies (606 entries in 3.8s)
+6.360 Lockfile is up to date, resolution step is skipped
+6.409 Progress: resolved 1, reused 0, downloaded 0, added 0
+6.460 Packages: +231
+6.460 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+7.412 Progress: resolved 231, reused 231, downloaded 0, added 229
+7.753 Progress: resolved 231, reused 231, downloaded 0, added 231, done
+7.945
+7.945 devDependencies: skipped
+7.945
+7.948 . preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+7.965 . preinstall: Use pnpm instead
+7.966 . preinstall: Failed
+8.032 [ELIFECYCLE] Command failed with exit code 1.
+------
+Dockerfile:77
+
+--------------------
+
+  75 |     COPY scripts/tsconfig.json scripts/
+
+  76 |
+
+  77 | >>> RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod
+
+  78 |
+
+  79 |     # Copy built outputs
+
+--------------------
+
+target app: failed to solve: process "/bin/sh -c pnpm install --frozen-lockfile --prod" did not complete successfully: exit code: 1
+
+obtv-admin@yt-analyzer:~/cue$
