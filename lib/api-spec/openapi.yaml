@@ -538,6 +538,71 @@ paths:
         "204":
           description: Deleted
 
+  # ── Project Members ──────────────────────────────────────────────────────
+  /projects/{projectId}/members:
+    get:
+      operationId: listProjectMembers
+      tags: [project-members]
+      summary: List members assigned to a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Project members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectMember"
+    post:
+      operationId: addProjectMember
+      tags: [project-members]
+      summary: Assign an existing team member to a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddProjectMemberInput"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectMember"
+        "404":
+          description: Project or member not found
+        "409":
+          description: Member already assigned
+
+  /projects/{projectId}/members/{memberId}:
+    delete:
+      operationId: removeProjectMember
+      tags: [project-members]
+      summary: Remove a member from a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Removed
+
   # ── Dashboard ─────────────────────────────────────────────────────────────
   /dashboard/summary:
     get:
@@ -1123,6 +1188,29 @@ components:
         role:       { type: string, enum: [producer, engineer, it, integrator, manager, contractor] }
         department: { type: string }
         avatarUrl:  { type: string }
+
+    # ── Project Member ──────────────────────────────────────────────────────
+    ProjectMember:
+      type: object
+      required: [id, projectId, memberId, name, role, createdAt]
+      properties:
+        id:           { type: integer }
+        projectId:    { type: integer }
+        memberId:     { type: integer }
+        projectRole:  { type: ["string", "null"] }
+        createdAt:    { type: string }
+        name:         { type: string }
+        email:        { type: ["string", "null"] }
+        role:         { type: string }
+        department:   { type: ["string", "null"] }
+        avatarUrl:    { type: ["string", "null"] }
+
+    AddProjectMemberInput:
+      type: object
+      required: [memberId]
+      properties:
+        memberId:    { type: integer }
+        projectRole: { type: string }
 
     # ── Dashboard ────────────────────────────────────────────────────────────
     DashboardSummary:

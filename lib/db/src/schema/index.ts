@@ -2,6 +2,7 @@ export * from "./users";
 export * from "./projects";
 export * from "./milestones";
 export * from "./members";
+export * from "./project_members";
 export * from "./tasks";
 export * from "./task_notes";
 export * from "./comments";

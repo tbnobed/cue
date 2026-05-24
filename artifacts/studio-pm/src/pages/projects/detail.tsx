@@ -5,9 +5,10 @@ import {
   useListFolders, useCreateFolder, useDeleteFolder,
   useUpdateProject, useDeleteProject,
   useCreateMilestone, useUpdateMilestone, useDeleteMilestone,
+  useListProjectMembers, useAddProjectMember, useRemoveProjectMember,
   getGetProjectQueryKey, getGetProjectProgressQueryKey, getListMilestonesQueryKey,
   getListTasksQueryKey, getListDocumentsQueryKey, getListFoldersQueryKey,
-  getListProjectsQueryKey,
+  getListProjectsQueryKey, getListProjectMembersQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
@@ -33,6 +34,7 @@ import {
   Plus, Upload, FolderPlus, Folder, FolderOpen, ChevronRight,
   Trash2, ExternalLink, PenLine, Pencil, Loader2, Circle, Loader, Eye, CheckCircle2, AlertTriangle,
   FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Home, Settings, ListChecks,
+  Users, UserPlus, X,
 } from "lucide-react";
 import { ShareDialog } from "@/components/share-dialog";
 import { TaskDetailDialog } from "@/components/task-detail-dialog";
@@ -119,6 +121,7 @@ export default function ProjectDetail() {
           <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
           <TabsTrigger value="tasks" data-testid="tab-tasks">Tasks</TabsTrigger>
           <TabsTrigger value="documents" data-testid="tab-documents">Documents</TabsTrigger>
+          <TabsTrigger value="team" data-testid="tab-team">Team</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-5 outline-none">
@@ -131,6 +134,10 @@ export default function ProjectDetail() {
 
         <TabsContent value="documents" className="outline-none">
           <DocumentsTab projectId={projectId} />
+        </TabsContent>
+
+        <TabsContent value="team" className="outline-none">
+          <TeamTab projectId={projectId} />
         </TabsContent>
       </Tabs>
     </div>
@@ -1772,6 +1779,228 @@ function EditProjectButton({ project }: {
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+// ─── TEAM ────────────────────────────────────────────────────────────────────
+
+function TeamTab({ projectId }: { projectId: number }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [addOpen, setAddOpen] = useState(false);
+  const [pendingMemberId, setPendingMemberId] = useState<string>("");
+  const [projectRole, setProjectRole] = useState("");
+
+  const { data: assigned, isLoading } = useListProjectMembers(projectId, {
+    query: { enabled: !!projectId, queryKey: getListProjectMembersQueryKey(projectId) },
+  });
+  const { data: allMembers } = useListMembers();
+
+  const addMutation = useAddProjectMember();
+  const removeMutation = useRemoveProjectMember();
+
+  const assignedIds = useMemo(() => new Set((assigned ?? []).map(m => m.memberId)), [assigned]);
+  const available = useMemo(
+    () => (allMembers ?? []).filter(m => !assignedIds.has(m.id)),
+    [allMembers, assignedIds],
+  );
+
+  function resetAddForm() {
+    setPendingMemberId("");
+    setProjectRole("");
+  }
+
+  async function handleAdd() {
+    const memberId = parseInt(pendingMemberId, 10);
+    if (!memberId) return;
+    try {
+      await addMutation.mutateAsync({
+        projectId,
+        data: { memberId, ...(projectRole.trim() ? { projectRole: projectRole.trim() } : {}) },
+      });
+      await qc.invalidateQueries({ queryKey: getListProjectMembersQueryKey(projectId) });
+      toast({ title: "Member added to project" });
+      setAddOpen(false);
+      resetAddForm();
+    } catch (e: any) {
+      toast({ title: "Couldn't add member", description: e?.message ?? "Unknown error", variant: "destructive" });
+    }
+  }
+
+  async function handleRemove(memberId: number, name: string) {
+    try {
+      await removeMutation.mutateAsync({ projectId, memberId });
+      await qc.invalidateQueries({ queryKey: getListProjectMembersQueryKey(projectId) });
+      toast({ title: `Removed ${name} from project` });
+    } catch (e: any) {
+      toast({ title: "Couldn't remove member", description: e?.message ?? "Unknown error", variant: "destructive" });
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
+            <Users className="w-3 h-3" />
+            Project Team
+          </div>
+          <h2 className="text-xl font-semibold tracking-tight">
+            {assigned ? `${assigned.length} ${assigned.length === 1 ? "member" : "members"} assigned` : "Team"}
+          </h2>
+        </div>
+        <Button
+          onClick={() => { resetAddForm(); setAddOpen(true); }}
+          disabled={!available.length}
+          data-testid="button-add-team-member"
+        >
+          <UserPlus className="w-4 h-4 mr-2" />
+          Add member
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-2xl" />)}
+        </div>
+      ) : assigned && assigned.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {assigned.map((m, idx) => {
+            const initials = (m.name || "?")
+              .split(/\s+/).filter(Boolean).slice(0, 2)
+              .map(w => w[0]?.toUpperCase()).join("");
+            return (
+              <motion.div
+                key={m.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03 }}
+                className="group surface-card ring-hairline border border-border/70 rounded-2xl p-4 flex items-center gap-3 relative"
+                data-testid={`project-member-${m.memberId}`}
+              >
+                {m.avatarUrl ? (
+                  <img src={m.avatarUrl} alt="" className="w-11 h-11 rounded-full ring-1 ring-border shrink-0" />
+                ) : (
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary/30 to-primary/5 ring-1 ring-primary/30 text-primary flex items-center justify-center text-sm font-mono font-semibold shrink-0">
+                    {initials || "?"}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="text-[14px] font-semibold tracking-tight truncate">{m.name}</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5 font-mono">
+                    <span className="capitalize">{m.projectRole || m.role}</span>
+                    {m.department && (
+                      <>
+                        <span className="w-0.5 h-0.5 rounded-full bg-border" />
+                        <span>{m.department}</span>
+                      </>
+                    )}
+                  </div>
+                  {m.email && (
+                    <div className="text-[11px] text-muted-foreground/70 truncate mt-0.5">{m.email}</div>
+                  )}
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove from project"
+                      data-testid={`button-remove-member-${m.memberId}`}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove {m.name} from this project?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        They'll stay in your team roster and can be re-added later. Tasks already assigned to them won't be reassigned.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-red-500 hover:bg-red-500/90 text-white"
+                        onClick={() => handleRemove(m.memberId, m.name)}
+                      >
+                        Remove
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </motion.div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="surface-card ring-hairline border border-border/70 rounded-2xl p-12 text-center">
+          <Users className="w-8 h-8 mx-auto text-muted-foreground/50 mb-3" />
+          <div className="text-sm text-muted-foreground font-mono mb-4">No team members assigned yet.</div>
+          {available.length > 0 && (
+            <Button onClick={() => { resetAddForm(); setAddOpen(true); }} variant="outline">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Assign your first member
+            </Button>
+          )}
+        </div>
+      )}
+
+      <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) resetAddForm(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add team member</DialogTitle>
+            <DialogDescription>
+              Assign an existing crew member to this project. To create a brand-new person, use the Team page.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Member</Label>
+              <Select value={pendingMemberId} onValueChange={setPendingMemberId}>
+                <SelectTrigger data-testid="select-member">
+                  <SelectValue placeholder={available.length ? "Choose a member…" : "No available members"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {available.map(m => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.name} <span className="text-muted-foreground">— {m.role}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!available.length && (
+                <p className="text-xs text-muted-foreground">
+                  Every crew member is already on this project, or your roster is empty.
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Project role <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input
+                value={projectRole}
+                onChange={(e) => setProjectRole(e.target.value)}
+                placeholder="e.g. Tech Lead, On-site IT, AV Foreman"
+                data-testid="input-project-role"
+              />
+              <p className="text-xs text-muted-foreground">Overrides their default role just for this project.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleAdd}
+              disabled={!pendingMemberId || addMutation.isPending}
+              data-testid="button-confirm-add-member"
+            >
+              {addMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Add to project
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 

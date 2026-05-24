@@ -554,6 +554,28 @@ export interface MemberUpdate {
   avatarUrl?: string;
 }
 
+export interface ProjectMember {
+  id: number;
+  projectId: number;
+  memberId: number;
+  /** @nullable */
+  projectRole?: string | null;
+  createdAt: string;
+  name: string;
+  /** @nullable */
+  email?: string | null;
+  role: string;
+  /** @nullable */
+  department?: string | null;
+  /** @nullable */
+  avatarUrl?: string | null;
+}
+
+export interface AddProjectMemberInput {
+  memberId: number;
+  projectRole?: string;
+}
+
 export type DashboardSummaryUpcomingDeadlinesItemType = typeof DashboardSummaryUpcomingDeadlinesItemType[keyof typeof DashboardSummaryUpcomingDeadlinesItemType];
 
 

@@ -521,6 +521,50 @@ export const DeleteMemberParams = zod.object({
 
 
 /**
+ * @summary List members assigned to a project
+ */
+export const ListProjectMembersParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const ListProjectMembersResponseItem = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "memberId": zod.number(),
+  "projectRole": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "name": zod.string(),
+  "email": zod.string().nullish(),
+  "role": zod.string(),
+  "department": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish()
+})
+export const ListProjectMembersResponse = zod.array(ListProjectMembersResponseItem)
+
+
+/**
+ * @summary Assign an existing team member to a project
+ */
+export const AddProjectMemberParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const AddProjectMemberBody = zod.object({
+  "memberId": zod.number(),
+  "projectRole": zod.string().optional()
+})
+
+
+/**
+ * @summary Remove a member from a project
+ */
+export const RemoveProjectMemberParams = zod.object({
+  "projectId": zod.coerce.number(),
+  "memberId": zod.coerce.number()
+})
+
+
+/**
  * @summary Global dashboard summary — project counts, task stats, upcoming deadlines
  */
 export const GetDashboardSummaryResponse = zod.object({

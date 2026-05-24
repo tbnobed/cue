@@ -8,6 +8,7 @@
 
 export * from './activityEntry';
 export * from './activityEntryType';
+export * from './addProjectMemberInput';
 export * from './comment';
 export * from './commentInput';
 export * from './dashboardSummary';
@@ -45,6 +46,7 @@ export * from './milestoneUpdateStatus';
 export * from './project';
 export * from './projectInput';
 export * from './projectInputStatus';
+export * from './projectMember';
 export * from './projectProgress';
 export * from './projectProgressByCategoryItem';
 export * from './projectStatus';
