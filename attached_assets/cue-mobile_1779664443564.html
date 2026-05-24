@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cue — Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080912;--bg-2:#0b0d1a;
+  --glass:rgba(255,255,255,.045);--glass-2:rgba(255,255,255,.07);
+  --border:rgba(255,255,255,.09);--border-2:rgba(255,255,255,.16);
+  --text:#edeefb;--text-2:#9aa0c4;--text-3:#646a8c;--text-4:#41465f;
+  --violet:#9384ff;--violet-2:#6d5cff;--violet-dim:rgba(147,132,255,.15);--violet-line:rgba(147,132,255,.4);
+  --blue:#5fa0ff;--blue-dim:rgba(95,160,255,.14);--blue-line:rgba(95,160,255,.42);
+  --cyan:#2fded0;--cyan-dim:rgba(47,222,208,.13);--cyan-line:rgba(47,222,208,.42);
+  --emerald:#41e3a0;--emerald-dim:rgba(65,227,160,.13);--emerald-line:rgba(65,227,160,.42);
+  --amber:#ffc555;--amber-dim:rgba(255,197,85,.14);--amber-line:rgba(255,197,85,.44);
+  --rose:#ff7b9c;--rose-dim:rgba(255,123,156,.14);--rose-line:rgba(255,123,156,.44);
+  --disp:'Bricolage Grotesque',sans-serif;--sans:'Hanken Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;min-height:100vh}
+
+/* page backdrop */
+.bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(110px);mix-blend-mode:screen}
+.b1{width:720px;height:720px;top:-300px;right:-160px;background:radial-gradient(circle,#5b3dff,transparent 68%);opacity:.4}
+.b2{width:640px;height:640px;bottom:-320px;left:-180px;background:radial-gradient(circle,#0fb89e,transparent 68%);opacity:.3}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+.wrap{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:60px 28px 100px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--violet);background:var(--violet-dim);border:1px solid var(--violet-line);border-radius:999px;padding:6px 13px;margin-bottom:20px}
+.eyebrow .d{width:6px;height:6px;border-radius:50%;background:var(--violet);box-shadow:0 0 8px var(--violet)}
+h1.page-t{font-family:var(--disp);font-weight:700;font-size:46px;letter-spacing:-1.4px;line-height:1.02;margin-bottom:12px;
+  background:linear-gradient(120deg,#fff 35%,#c5c9f5);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.lede{font-size:15.5px;color:var(--text-2);max-width:600px;line-height:1.6}
+.lede b{color:var(--text);font-weight:600}
+
+.hint{display:flex;align-items:center;gap:9px;margin-top:18px;font-size:12.5px;color:var(--text-3)}
+.hint .tap{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--violet-dim);border:1px solid var(--violet-line)}
+.hint .tap svg{width:12px;height:12px;color:var(--violet)}
+
+/* ---------- phone frame ---------- */
+.gallery{display:flex;flex-wrap:wrap;gap:54px;justify-content:center;align-items:flex-start;margin-top:56px}
+.device{position:relative}
+.device .label{text-align:center;margin-top:20px;font-family:var(--mono);font-size:11.5px;color:var(--text-3);letter-spacing:.04em}
+.phone{width:340px;height:724px;border-radius:52px;padding:11px;position:relative;
+  background:linear-gradient(160deg,#23263a,#0c0e18 60%);
+  box-shadow:0 0 0 2px rgba(255,255,255,.05),0 50px 90px -30px rgba(0,0,0,.85),0 0 80px -30px rgba(109,92,255,.4)}
+.screen{width:100%;height:100%;border-radius:42px;overflow:hidden;position:relative;background:var(--bg-2);display:flex;flex-direction:column}
+.screen::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:42px;
+  background:radial-gradient(420px 260px at 82% -6%,rgba(91,61,255,.2),transparent 60%),radial-gradient(360px 240px at 8% 108%,rgba(15,184,158,.12),transparent 60%)}
+.island{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:104px;height:30px;background:#000;border-radius:16px;z-index:40}
+.island::after{content:"";position:absolute;right:14px;top:50%;transform:translateY(-50%);width:9px;height:9px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#2a3550,#0a0d16);box-shadow:0 0 0 1px rgba(255,255,255,.06)}
+
+/* status bar */
+.statusbar{flex:0 0 auto;height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 6px;z-index:30;position:relative}
+.statusbar .t{font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.statusbar .icons{display:flex;align-items:center;gap:6px}
+.statusbar .icons svg{width:16px;height:16px;color:var(--text)}
+
+/* app bar */
+.appbar{flex:0 0 auto;display:flex;align-items:center;gap:11px;padding:8px 20px 14px;z-index:20;position:relative}
+.appbar .mk{width:32px;height:32px;border-radius:10px;position:relative;overflow:hidden;flex:0 0 auto;
+  background:linear-gradient(135deg,#171a30,#0a0b16);box-shadow:0 0 0 1px rgba(255,255,255,.07) inset}
+.appbar .mk::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 78% 12%,rgba(91,61,255,.6),transparent 62%)}
+.appbar .mk .s{position:absolute;inset:0;display:grid;place-items:center}
+.appbar .ttl{flex:1}
+.appbar .ttl b{font-family:var(--disp);font-weight:700;font-size:16px;letter-spacing:-.3px;display:block;line-height:1}
+.appbar .ttl span{font-size:10px;color:var(--text-3)}
+.appbar .ab-btn{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:var(--text-2);
+  background:var(--glass);border:1px solid var(--border);position:relative}
+.appbar .ab-btn svg{width:16px;height:16px}
+.appbar .ab-btn .badge{position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;background:var(--rose);border:2px solid var(--bg-2)}
+
+/* scroll body */
+.body{flex:1;overflow:auto;padding:4px 18px 96px;position:relative;z-index:10}
+.body::-webkit-scrollbar{width:0}
+.mview{display:none}.mview.show{display:block;animation:mfade .4s ease}
+@keyframes mfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.mhead{margin:6px 2px 16px}
+.mhead .k{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--violet);margin-bottom:6px}
+.mhead h2{font-family:var(--disp);font-weight:700;font-size:27px;letter-spacing:-.8px;line-height:1.05}
+.mhead p{font-size:12.5px;color:var(--text-3);margin-top:4px}
+
+.glass{background:var(--glass);border:1px solid var(--border);border-radius:18px;backdrop-filter:blur(14px)}
+
+/* stat grid 2x2 */
+.mstats{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:16px}
+.mstat{padding:14px;position:relative;overflow:hidden}
+.mstat::after{content:"";position:absolute;right:-24px;top:-24px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,var(--a),transparent 70%);opacity:.18}
+.mstat .r{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;position:relative}
+.mstat .lab{font-size:10.5px;font-weight:600;color:var(--text-2)}
+.mstat .ic{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:#0a0b16;background:linear-gradient(135deg,var(--a),var(--a2))}
+.mstat .ic svg{width:13px;height:13px}
+.mstat .n{font-family:var(--disp);font-weight:700;font-size:32px;line-height:.9;letter-spacing:-1px;
+  background:linear-gradient(135deg,#fff,var(--a));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.mstat .sub{font-size:10px;color:var(--text-3);margin-top:5px}
+.mstat.violet{--a:#9384ff;--a2:#6d5cff}.mstat.cyan{--a:#2fded0;--a2:#1ab9d8}
+.mstat.emerald{--a:#41e3a0;--a2:#1ec98a}.mstat.rose{--a:#ff7b9c;--a2:#f5547f}
+
+.sect-h{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 11px}
+.sect-h b{font-family:var(--disp);font-weight:600;font-size:15px}
+.sect-h .more{font-size:11.5px;color:var(--violet);font-weight:600;display:flex;align-items:center;gap:3px}
+.sect-h .more svg{width:12px;height:12px}
+.live{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;color:var(--emerald);
+  border:1px solid var(--emerald-line);background:var(--emerald-dim);border-radius:7px;padding:3px 8px}
+.live .dot{width:5px;height:5px;border-radius:50%;background:var(--emerald);box-shadow:0 0 7px var(--emerald);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* deadline card */
+.mdl{display:flex;align-items:center;gap:13px;padding:14px;margin-bottom:10px}
+.mdl .dt{width:46px;flex:0 0 auto;text-align:center;border-radius:11px;padding:7px 0;background:linear-gradient(135deg,var(--violet-dim),rgba(95,160,255,.06));border:1px solid var(--violet-line)}
+.mdl .dt b{display:block;font-family:var(--disp);font-size:18px;font-weight:700;color:#fff;line-height:1}
+.mdl .dt span{font-size:9px;font-weight:600;letter-spacing:.08em;color:var(--violet);text-transform:uppercase}
+.mdl .info{flex:1;min-width:0}
+.mdl .info b{font-size:13.5px;font-weight:600;display:block}
+.mdl .info span{font-size:11px;color:var(--text-3)}
+.mdl .eta{font-size:10px;font-weight:600;color:var(--violet);white-space:nowrap}
+
+/* activity */
+.mlog{padding:4px 0}
+.mact{display:flex;gap:11px;padding:10px 4px;border-bottom:1px solid var(--border)}
+.mact:last-child{border-bottom:none}
+.mact .g{width:28px;height:28px;flex:0 0 auto;border-radius:9px;display:grid;place-items:center;color:#0a0b16}
+.mact .g svg{width:14px;height:14px}
+.g-add{background:linear-gradient(135deg,#a99bff,#6d5cff)}.g-done{background:linear-gradient(135deg,#5ce8ac,#1ec98a)}
+.g-upd{background:linear-gradient(135deg,#56e6da,#1ab9d8)}.g-new{background:linear-gradient(135deg,#7fb2ff,#5fa0ff)}
+.mact .c .t{font-size:12px;line-height:1.4;color:var(--text-2)}
+.mact .c .t em{font-style:normal;color:var(--text);font-weight:600}
+.mact .c .m{font-size:10px;color:var(--text-3);margin-top:2px}
+
+/* project card mobile */
+.mproj{padding:17px;margin-bottom:13px;position:relative;overflow:hidden}
+.mproj::after{content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,var(--a),transparent 70%);opacity:.13}
+.mproj .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;position:relative}
+.mtag{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  border-radius:999px;padding:4px 10px;color:var(--a);border:1px solid var(--aline);background:var(--abg)}
+.mtag .dot{width:5px;height:5px;border-radius:50%;background:var(--a)}
+.mproj.live .mtag .dot{box-shadow:0 0 7px var(--a);animation:pulse 1.8s infinite}
+.mproj .arrow{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;color:var(--text-3);background:var(--glass-2);border:1px solid var(--border)}
+.mproj .arrow svg{width:14px;height:14px}
+.mproj h3{font-family:var(--disp);font-weight:600;font-size:18px;letter-spacing:-.3px;margin-bottom:5px;position:relative}
+.mproj p{font-size:11.5px;color:var(--text-2);line-height:1.5;position:relative}
+.mprog{margin:14px 0 12px;position:relative}
+.mprog .l{display:flex;justify-content:space-between;font-size:10px;font-weight:500;color:var(--text-3);margin-bottom:6px}
+.mprog .l b{color:var(--a);font-weight:700;font-family:var(--mono)}
+.mprog .bar{height:5px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden}
+.mprog .bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--a),var(--a2));box-shadow:0 0 9px var(--aline)}
+.mproj .ft{display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:11px;font-size:10.5px;color:var(--text-3);position:relative}
+.mproj .ft span{display:flex;align-items:center;gap:5px}.mproj .ft svg{width:12px;height:12px;opacity:.7}
+.mproj.violet{--a:#9384ff;--a2:#6d5cff;--abg:var(--violet-dim);--aline:var(--violet-line)}
+.mproj.blue{--a:#5fa0ff;--a2:#3a7bff;--abg:var(--blue-dim);--aline:var(--blue-line)}
+.mproj.emerald{--a:#41e3a0;--a2:#1ec98a;--abg:var(--emerald-dim);--aline:var(--emerald-line)}
+
+/* timeline mobile (vertical) */
+.tlgroup{margin-bottom:18px}
+.tlg-h{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:0 2px}
+.tlg-h .ic{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;color:#0a0b16;background:linear-gradient(135deg,var(--c),var(--c2))}
+.tlg-h .ic svg{width:14px;height:14px}
+.tlg-h b{font-family:var(--disp);font-weight:600;font-size:14.5px;flex:1}
+.tlg-h .st{font-size:9px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:3px 9px}
+.s-violet{color:var(--violet);border:1px solid var(--violet-line);background:var(--violet-dim)}
+.s-emerald{color:var(--emerald);border:1px solid var(--emerald-line);background:var(--emerald-dim)}
+.s-blue{color:var(--blue);border:1px solid var(--blue-line);background:var(--blue-dim)}
+.tlv{--c:#9384ff;--c2:#6d5cff}.tle{--c:#41e3a0;--c2:#1ec98a}.tlb{--c:#5fa0ff;--c2:#3a7bff}
+.tline{position:relative;padding-left:22px}
+.tline::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--border-2),transparent)}
+.tms{position:relative;margin-bottom:10px}
+.tms .nd{position:absolute;left:-22px;top:15px;width:11px;height:11px;border-radius:50%;background:var(--bg-2);border:2.5px solid var(--mc);box-shadow:0 0 9px var(--mc)}
+.tms-c{padding:11px 13px;border-radius:12px;border:1px solid var(--border);border-left:3px solid var(--mc);background:linear-gradient(135deg,var(--mcdim),var(--glass))}
+.tms-c b{font-size:12.5px;font-weight:600;display:block;margin-bottom:5px}
+.tms-c .d{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--text-3)}
+.tms-c .d svg{width:11px;height:11px}
+.tms-c .over{color:var(--rose);font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.tms-c .over::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--rose);box-shadow:0 0 6px var(--rose)}
+.tms.v{--mc:#9384ff;--mcdim:var(--violet-dim)}.tms.r{--mc:#ff7b9c;--mcdim:var(--rose-dim)}
+
+/* team mobile */
+.mteam .row{display:flex;align-items:center;gap:13px;padding:13px;margin-bottom:10px}
+.mteam .av{width:42px;height:42px;border-radius:13px;flex:0 0 auto;display:grid;place-items:center;position:relative;
+  font-weight:700;font-size:13px;color:#0a0b16;background:linear-gradient(135deg,var(--g1),var(--g2))}
+.mteam .av .on{position:absolute;right:-2px;bottom:-2px;width:12px;height:12px;border-radius:50%;background:var(--emerald);border:2.5px solid var(--bg-2);box-shadow:0 0 7px var(--emerald)}
+.mteam .nm b{font-size:14px;font-weight:600;display:block}
+.mteam .nm span{font-size:11px;color:var(--text-3)}
+.mteam .nm span .r{color:var(--violet);font-weight:600}
+
+/* docs mobile */
+.mdoc{display:flex;align-items:center;gap:13px;padding:13px;margin-bottom:10px}
+.mdoc .di{width:40px;height:40px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;font-size:9px;font-weight:700;color:#0a0b16;background:linear-gradient(135deg,#5ce8ac,#1ec98a)}
+.mdoc .dn{flex:1}.mdoc .dn b{font-size:13.5px;font-weight:600}
+.mdoc .dn .m{font-size:10.5px;color:var(--text-3);margin-top:3px}
+.mdoc .dn .m .ty{color:var(--text-2);background:var(--glass-2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-weight:500}
+.mdoc .go{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:var(--text-3);background:var(--glass-2);border:1px solid var(--border)}
+.mdoc .go svg{width:14px;height:14px}
+
+/* tasks empty mobile */
+.mempty{padding:60px 24px;text-align:center;margin-top:20px}
+.mempty .orb{width:64px;height:64px;border-radius:50%;margin:0 auto 20px;background:radial-gradient(circle at 35% 30%,#a99bff,#6d5cff 60%,#2a1f6b);box-shadow:0 0 44px rgba(109,92,255,.55);animation:bob 3s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.mempty b{font-family:var(--disp);font-size:17px;display:block;margin-bottom:7px}
+.mempty span{font-size:12.5px;color:var(--text-3);line-height:1.5}
+.mfilters{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;margin-bottom:6px}
+.mfilters::-webkit-scrollbar{height:0}
+.chip{flex:0 0 auto;font-size:11.5px;color:var(--text-2);background:var(--glass-2);border:1px solid var(--border);border-radius:999px;padding:7px 13px;display:flex;align-items:center;gap:6px}
+.chip svg{width:11px;height:11px;opacity:.6}
+.chip.on{color:var(--violet);border-color:var(--violet-line);background:var(--violet-dim)}
+
+/* FAB */
+.fab{position:absolute;right:18px;bottom:96px;width:54px;height:54px;border-radius:18px;z-index:35;border:none;cursor:pointer;
+  display:grid;place-items:center;color:#0a0b16;background:linear-gradient(135deg,#a99bff,#6d5cff);
+  box-shadow:0 12px 28px -6px rgba(109,92,255,.65),inset 0 1px 0 rgba(255,255,255,.3)}
+.fab svg{width:24px;height:24px}
+.fab:active{transform:scale(.94)}
+
+/* bottom nav */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:30;padding:9px 12px 22px;display:flex;justify-content:space-around;
+  background:linear-gradient(180deg,rgba(11,13,26,.4),rgba(11,13,26,.95));backdrop-filter:blur(18px);border-top:1px solid var(--border)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;color:var(--text-3);padding:5px 0}
+.tab svg{width:21px;height:21px;transition:.18s}
+.tab span{font-size:9.5px;font-weight:600}
+.tab.on{color:var(--violet)}
+.tab.on svg{filter:drop-shadow(0 0 8px rgba(147,132,255,.7))}
+.tab .ind{width:4px;height:4px;border-radius:50%;background:var(--violet);box-shadow:0 0 7px var(--violet);opacity:0;transition:.18s}
+.tab.on .ind{opacity:1}
+
+/* showcase frame specifics: detail */
+.detail-hero{border-radius:18px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,rgba(147,132,255,.18),var(--glass));border:1px solid var(--violet-line)}
+.detail-hero .mtag{margin-bottom:12px}
+.detail-hero h2{font-family:var(--disp);font-weight:700;font-size:22px;letter-spacing:-.5px;line-height:1.1;margin-bottom:8px}
+.detail-hero p{font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:14px}
+.dh-meta{display:flex;gap:18px;font-size:11px;color:var(--text-3)}
+.dh-meta b{display:block;color:var(--text);font-family:var(--disp);font-size:16px;font-weight:700;margin-top:2px}
+.seg{display:flex;gap:4px;background:var(--glass-2);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:14px}
+.seg button{flex:1;border:none;background:none;color:var(--text-3);font-family:var(--sans);font-size:12px;font-weight:600;padding:8px;border-radius:9px;cursor:pointer}
+.seg button.on{background:linear-gradient(135deg,#a99bff,#6d5cff);color:#0a0b16}
+.mtask{display:flex;align-items:center;gap:11px;padding:12px 13px;margin-bottom:8px}
+.mtask .cb{width:20px;height:20px;border-radius:7px;flex:0 0 auto;border:2px solid var(--border-2);display:grid;place-items:center}
+.mtask .cb.done{background:linear-gradient(135deg,#5ce8ac,#1ec98a);border-color:transparent}
+.mtask .cb.done svg{width:12px;height:12px;color:#0a0b16}
+.mtask .tx{flex:1}
+.mtask .tx b{font-size:12.5px;font-weight:600;display:block}
+.mtask .tx.done b{color:var(--text-3);text-decoration:line-through}
+.mtask .tx span{font-size:10px;color:var(--text-3)}
+.mtask .pri{font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:6px;padding:2px 7px}
+.pri-hi{color:var(--rose);background:var(--rose-dim);border:1px solid var(--rose-line)}
+.pri-md{color:var(--amber);background:var(--amber-dim);border:1px solid var(--amber-line)}
+
+/* showcase: sheet */
+.sheet-dim{position:absolute;inset:0;border-radius:42px;background:rgba(4,5,12,.6);backdrop-filter:blur(2px);z-index:36}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:37;border-radius:28px 28px 42px 42px;padding:10px 20px 30px;
+  background:linear-gradient(180deg,#141729,#0c0e1a);border-top:1px solid var(--border-2);box-shadow:0 -20px 50px -10px rgba(0,0,0,.7)}
+.sheet .grab{width:38px;height:4px;border-radius:3px;background:var(--border-2);margin:6px auto 18px}
+.sheet h3{font-family:var(--disp);font-weight:700;font-size:20px;letter-spacing:-.4px;margin-bottom:18px}
+.field{margin-bottom:14px}
+.field label{font-size:11px;font-weight:600;color:var(--text-3);display:block;margin-bottom:7px;letter-spacing:.02em}
+.field .inp{background:var(--glass-2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text)}
+.field .inp.ph{color:var(--text-3)}
+.field-row{display:flex;gap:11px}.field-row .field{flex:1}
+.opts{display:flex;gap:8px}
+.opt{flex:1;text-align:center;font-size:11.5px;font-weight:600;padding:9px;border-radius:10px;border:1px solid var(--border);background:var(--glass-2);color:var(--text-3)}
+.opt.on{color:var(--violet);border-color:var(--violet-line);background:var(--violet-dim)}
+.sheet .submit{margin-top:8px;width:100%;border:none;border-radius:14px;padding:14px;font-family:var(--sans);font-weight:700;font-size:14px;
+  color:#0a0b16;background:linear-gradient(135deg,#a99bff,#6d5cff);box-shadow:0 10px 26px -6px rgba(109,92,255,.5)}
+
+/* showcase: notifications */
+.notif{padding:14px;margin-bottom:10px;display:flex;gap:12px}
+.notif .ic{width:32px;height:32px;border-radius:10px;flex:0 0 auto;display:grid;place-items:center;color:#0a0b16}
+.notif .ic svg{width:15px;height:15px}
+.notif .c b{font-size:12.5px;font-weight:600}
+.notif .c p{font-size:11px;color:var(--text-2);line-height:1.45;margin-top:2px}
+.notif .c .tm{font-size:10px;color:var(--text-4);margin-top:5px}
+.notif.unread{border-color:var(--violet-line)}
+.notif.unread::before{content:"";position:absolute}
+
+.legend{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:40px}
+.legend .l{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2);background:var(--glass);border:1px solid var(--border);border-radius:999px;padding:7px 14px}
+.legend .l b{width:9px;height:9px;border-radius:50%}
+.foot{margin-top:46px;text-align:center;color:var(--text-4);font-family:var(--mono);font-size:11px;letter-spacing:.06em}
+</style>
+</head>
+<body>
+<div class="bg"><div class="blob b1"></div><div class="blob b2"></div></div>
+<div class="grain"></div>
+
+<!-- reusable Cue mark -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="ring" x1="18" y1="14" x2="104" y2="106" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#b6abff"/><stop offset=".5" stop-color="#5fa0ff"/><stop offset="1" stop-color="#2fded0"/></linearGradient>
+  <radialGradient id="dot" cx=".38" cy=".32" r=".8">
+    <stop offset="0" stop-color="#e0daff"/><stop offset=".55" stop-color="#8a78ff"/><stop offset="1" stop-color="#5a45e6"/></radialGradient>
+  <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="4"/></filter>
+  <g id="cuemark">
+    <circle cx="60" cy="60" r="13" fill="#7d6bff" opacity=".55" filter="url(#glow)"/>
+    <circle cx="60" cy="60" r="37" fill="none" stroke="url(#ring)" stroke-width="9"/>
+    <line x1="74" y1="74" x2="101" y2="101" stroke="url(#ring)" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="60" cy="60" r="12.5" fill="url(#dot)"/></g>
+</defs></svg>
+
+<div class="wrap">
+  <div class="eyebrow"><span class="d"></span> Mobile Interface</div>
+  <h1 class="page-t">Cue, in your pocket</h1>
+  <p class="lede">The full <b>Aurora</b> system reflowed for one thumb: a bottom tab bar replaces the sidebar, stats collapse to a 2×2 grid, and the timeline becomes a vertical thread. The center phone is <b>live</b> — tap the tabs to move through every screen.</p>
+  <div class="hint"><span class="tap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11V6a2 2 0 014 0v5M9 11l-2 1a3 3 0 00-1 5l2 3h7l1-5v-4a2 2 0 00-4 0M13 11V8"/></svg></span> Tap the bottom navigation on the center device</div>
+
+  <div class="gallery">
+
+    <!-- ============ STATIC: PROJECT DETAIL ============ -->
+    <div class="device">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="statusbar"><span class="t">9:41</span><span class="icons">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 16h3v4H2zM7 12h3v8H7zM12 8h3v12h-3zM17 4h3v16h-3z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13a10 10 0 0114 0M8.5 16.5a5 5 0 017 0M12 20h.01"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="10" rx="2.5"/><path d="M22 11v2" stroke-linecap="round"/><rect x="4" y="9" width="13" height="6" rx="1" fill="currentColor"/></svg>
+        </span></div>
+        <div class="appbar">
+          <div class="ab-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div>
+          <div class="ttl"><b>Project</b><span>Studio A</span></div>
+          <div class="ab-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></div>
+        </div>
+        <div class="body">
+          <div class="detail-hero">
+            <span class="mtag" style="--a:#9384ff;--aline:var(--violet-line);--abg:var(--violet-dim)"><span class="dot" style="box-shadow:0 0 7px #9384ff"></span>In Progress</span>
+            <h2>Main Control Room</h2>
+            <p>Primary broadcast control room for live news production.</p>
+            <div class="dh-meta">
+              <div>Progress<b>68%</b></div><div>Location<b style="font-size:13px">Bldg 1 · Fl 2</b></div><div>Go-Live<b style="font-size:13px">Jul 29</b></div>
+            </div>
+          </div>
+          <div class="seg"><button class="on">Tasks</button><button>Milestones</button><button>Crew</button></div>
+          <div class="mtask glass"><div class="cb done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4 10-10"/></svg></div><div class="tx done"><b>IP address scheme docs</b><span>Network Engineering</span></div></div>
+          <div class="mtask glass"><div class="cb done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4 10-10"/></svg></div><div class="tx done"><b>Equipment uncrating</b><span>Construction</span></div></div>
+          <div class="mtask glass"><div class="cb"></div><div class="tx"><b>Dante audio network setup</b><span>Broadcast Engineering</span></div><span class="pri pri-hi">High</span></div>
+          <div class="mtask glass"><div class="cb"></div><div class="tx"><b>Electrical panel upgrades</b><span>Construction</span></div><span class="pri pri-md">Med</span></div>
+          <div class="mtask glass"><div class="cb"></div><div class="tx"><b>Rack build &amp; cabling</b><span>Systems Integration</span></div><span class="pri pri-md">Med</span></div>
+        </div>
+      </div></div>
+      <div class="label">Project detail · task list</div>
+    </div>
+
+    <!-- ============ INTERACTIVE PHONE ============ -->
+    <div class="device">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="statusbar"><span class="t" id="clk">9:41</span><span class="icons">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 16h3v4H2zM7 12h3v8H7zM12 8h3v12h-3zM17 4h3v16h-3z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13a10 10 0 0114 0M8.5 16.5a5 5 0 017 0M12 20h.01"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="10" rx="2.5"/><path d="M22 11v2" stroke-linecap="round"/><rect x="4" y="9" width="13" height="6" rx="1" fill="currentColor"/></svg>
+        </span></div>
+        <div class="appbar">
+          <div class="mk"><div class="s"><svg width="22" height="22" viewBox="0 0 120 120"><use href="#cuemark"/></svg></div></div>
+          <div class="ttl"><b id="abtitle">Cue</b><span id="absub">Production Suite</span></div>
+          <div class="ab-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="badge"></span></div>
+        </div>
+        <div class="body" id="body">
+
+          <!-- DASHBOARD -->
+          <div class="mview show" data-v="dashboard">
+            <div class="mhead"><div class="k">Command Center</div><h2>Good afternoon, Admin</h2><p>Here's where things stand today.</p></div>
+            <div class="mstats">
+              <div class="mstat glass violet"><div class="r"><span class="lab">Active</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="6" width="13" height="12" rx="2.5"/><path d="M15 10l6-3v10l-6-3"/></svg></div></div><div class="n">4</div><div class="sub">3 in progress</div></div>
+              <div class="mstat glass cyan"><div class="r"><span class="lab">Tasks</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg></div></div><div class="n">18</div><div class="sub">10 in flight</div></div>
+              <div class="mstat glass emerald"><div class="r"><span class="lab">Done</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg></div></div><div class="n">11</div><div class="sub">+4 today</div></div>
+              <div class="mstat glass rose"><div class="r"><span class="lab">Overdue</span><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div></div><div class="n">3</div><div class="sub">needs action</div></div>
+            </div>
+            <div class="sect-h"><b>Up Next</b><span class="more">All <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></div>
+            <div class="mdl glass"><div class="dt"><b>29</b><span>May</span></div><div class="info"><b>Design Freeze</b><span>Studio C</span></div><div class="eta">6d</div></div>
+            <div class="mdl glass"><div class="dt"><b>31</b><span>May</span></div><div class="info"><b>Rack Build Complete</b><span>Studio A</span></div><div class="eta">8d</div></div>
+            <div class="sect-h"><b>Activity</b><span class="live"><span class="dot"></span>Live</span></div>
+            <div class="mlog glass" style="padding:6px 13px">
+              <div class="mact"><div class="g g-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></div><div class="c"><div class="t">Created <em>"Electrical panel upgrades"</em></div><div class="m">1d ago · Studio B</div></div></div>
+              <div class="mact"><div class="g g-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10"/></svg></div><div class="c"><div class="t">Completed <em>"AV Equipment Delivery"</em></div><div class="m">1d ago · Studio A</div></div></div>
+              <div class="mact"><div class="g g-upd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12h16M12 4v16"/></svg></div><div class="c"><div class="t">Status → <em>in progress</em></div><div class="m">1d ago · Studio B</div></div></div>
+              <div class="mact"><div class="g g-done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10"/></svg></div><div class="c"><div class="t">Completed <em>"Demolition waste removal"</em></div><div class="m">1d ago · Studio B</div></div></div>
+            </div>
+          </div>
+
+          <!-- PROJECTS -->
+          <div class="mview" data-v="projects">
+            <div class="mhead"><div class="k">Projects</div><h2>Active deployments</h2><p>4 studios in motion</p></div>
+            <div class="mproj glass violet live"><div class="top"><span class="mtag"><span class="dot"></span>In Progress</span><div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></div></div><h3>Studio A — Main Control</h3><p>Primary broadcast control room for live news.</p><div class="mprog"><div class="l">Build progress <b>68%</b></div><div class="bar"><i style="width:68%"></i></div></div><div class="ft"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Bldg 1 · Fl 2</span><span>Jul 29</span></div></div>
+            <div class="mproj glass violet live"><div class="top"><span class="mtag"><span class="dot"></span>In Progress</span><div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></div></div><h3>Studio B — Live Sports</h3><p>Multi-camera sports studio with LED wall.</p><div class="mprog"><div class="l">Build progress <b>41%</b></div><div class="bar"><i style="width:41%"></i></div></div><div class="ft"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Bldg 2 · Fl 1</span><span>Sep 14</span></div></div>
+            <div class="mproj glass blue"><div class="top"><span class="mtag"><span class="dot"></span>Planning</span><div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></div></div><h3>Studio C — Post</h3><p>Color grading and audio mixing suites.</p><div class="mprog"><div class="l">Build progress <b>12%</b></div><div class="bar"><i style="width:12%"></i></div></div><div class="ft"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Bldg 1 · Fl 3</span><span>Oct 31</span></div></div>
+            <div class="mproj glass emerald"><div class="top"><span class="mtag"><span class="dot"></span>Completed</span><div class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></div></div><h3>Studio D — Remote</h3><p>Remote production and cloud connectivity hub.</p><div class="mprog"><div class="l">Build progress <b>100%</b></div><div class="bar"><i style="width:100%"></i></div></div><div class="ft"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Bldg 3 · Fl 1</span><span>Feb 28</span></div></div>
+          </div>
+
+          <!-- TASKS -->
+          <div class="mview" data-v="tasks">
+            <div class="mhead"><div class="k">Task Registry</div><h2>Cross-project ops</h2></div>
+            <div class="mfilters"><span class="chip on">All statuses <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span><span class="chip">Categories <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span><span class="chip">Projects <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></div>
+            <div class="mempty glass"><div class="orb"></div><b>Nothing scheduled here yet</b><span>No tasks match these filters. Tap the + to create your first one.</span></div>
+          </div>
+
+          <!-- TIMELINE -->
+          <div class="mview" data-v="timeline">
+            <div class="mhead"><div class="k">Master Timeline</div><h2>Milestones</h2></div>
+            <div class="tlgroup tlv">
+              <div class="tlg-h"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div><b>Studio A — Main Control</b><span class="st s-violet">In Progress</span></div>
+              <div class="tline">
+                <div class="tms r"><div class="nd"></div><div class="tms-c"><b>Structural Rough-In</b><div class="d">Mar 14 <span class="over">overdue</span></div></div></div>
+                <div class="tms r"><div class="nd"></div><div class="tms-c"><b>AV Equipment Delivery</b><div class="d">Apr 29 <span class="over">overdue</span></div></div></div>
+                <div class="tms v"><div class="nd"></div><div class="tms-c"><b>Rack Build Complete</b><div class="d">May 31, 2026</div></div></div>
+                <div class="tms v"><div class="nd"></div><div class="tms-c"><b>Go-Live</b><div class="d">Jul 29, 2026</div></div></div>
+              </div>
+            </div>
+            <div class="tlgroup tlb">
+              <div class="tlg-h"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div><b>Studio C — Post</b><span class="st s-blue">Planning</span></div>
+              <div class="tline">
+                <div class="tms v"><div class="nd"></div><div class="tms-c"><b>Design Freeze</b><div class="d">May 29, 2026</div></div></div>
+                <div class="tms v"><div class="nd"></div><div class="tms-c"><b>Construction Start</b><div class="d">Jun 14, 2026</div></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TEAM -->
+          <div class="mview" data-v="team">
+            <div class="mhead"><div class="k">Personnel Roster</div><h2>Active crew</h2><p>8 members · 6 on shift</p></div>
+            <div class="mteam" id="mteam"></div>
+          </div>
+
+          <!-- DOCS -->
+          <div class="mview" data-v="documents">
+            <div class="mhead"><div class="k">Documents</div><h2>Repository</h2><p>General Library · 1 document</p></div>
+            <div class="mdoc glass"><div class="di">CSV</div><div class="dn"><b>jw hls urls</b><div class="m"><span class="ty">General</span> · May 23 · 4.2 KB</div></div><div class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></div></div>
+          </div>
+
+        </div>
+        <button class="fab" id="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></button>
+        <nav class="tabbar" id="tabbar">
+          <button class="tab on" data-v="dashboard"><span class="ind"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Home</span></button>
+          <button class="tab" data-v="projects"><span class="ind"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="14" height="14" rx="2.5"/><path d="M16 9l6-3v12l-6-3"/></svg><span>Projects</span></button>
+          <button class="tab" data-v="tasks"><span class="ind"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12l3 3 5-6"/></svg><span>Tasks</span></button>
+          <button class="tab" data-v="timeline"><span class="ind"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Timeline</span></button>
+          <button class="tab" data-v="team"><span class="ind"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><path d="M16 6.5a3 3 0 010 5.8M22 20c0-2.7-1.5-4.3-4-4.8"/></svg><span>Team</span></button>
+        </nav>
+      </div></div>
+      <div class="label">Live · tap the tabs ↑</div>
+    </div>
+
+    <!-- ============ STATIC: NEW TASK SHEET ============ -->
+    <div class="device">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="statusbar"><span class="t">9:41</span><span class="icons">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 16h3v4H2zM7 12h3v8H7zM12 8h3v12h-3zM17 4h3v16h-3z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13a10 10 0 0114 0M8.5 16.5a5 5 0 017 0M12 20h.01"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="18" height="10" rx="2.5"/><path d="M22 11v2" stroke-linecap="round"/><rect x="4" y="9" width="13" height="6" rx="1" fill="currentColor"/></svg>
+        </span></div>
+        <div class="appbar">
+          <div class="mk"><div class="s"><svg width="22" height="22" viewBox="0 0 120 120"><use href="#cuemark"/></svg></div></div>
+          <div class="ttl"><b>Tasks</b><span>Cross-project ops</span></div>
+        </div>
+        <div class="body" style="filter:blur(1px);opacity:.5">
+          <div class="mhead"><div class="k">Task Registry</div><h2>Cross-project ops</h2></div>
+          <div class="mfilters"><span class="chip on">All statuses</span><span class="chip">Categories</span></div>
+        </div>
+        <div class="sheet-dim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <h3>New Task</h3>
+          <div class="field"><label>Title</label><div class="inp">Dante audio network setup</div></div>
+          <div class="field"><label>Project</label><div class="inp">Studio A — Main Control Room</div></div>
+          <div class="field-row">
+            <div class="field"><label>Category</label><div class="inp ph">Broadcast Eng.</div></div>
+            <div class="field"><label>Due</label><div class="inp ph">Jun 02</div></div>
+          </div>
+          <div class="field"><label>Priority</label><div class="opts"><span class="opt">Low</span><span class="opt on">Medium</span><span class="opt">High</span></div></div>
+          <button class="submit">Create task</button>
+        </div>
+      </div></div>
+      <div class="label">"New" bottom sheet</div>
+    </div>
+
+  </div>
+
+  <div class="legend">
+    <span class="l"><b style="background:#9384ff"></b>In Progress / Active</span>
+    <span class="l"><b style="background:#5fa0ff"></b>Planning</span>
+    <span class="l"><b style="background:#41e3a0"></b>Completed</span>
+    <span class="l"><b style="background:#2fded0"></b>Data / Tasks</span>
+    <span class="l"><b style="background:#ff7b9c"></b>Overdue</span>
+  </div>
+  <div class="foot">CUE MOBILE · cue.obtv.io · Aurora identity system</div>
+</div>
+
+<script>
+const meta={dashboard:["Cue","Production Suite"],projects:["Projects","4 active"],tasks:["Tasks","Cross-project ops"],
+ timeline:["Timeline","Milestone matrix"],team:["Team","8 crew"],documents:["Documents","Repository"]};
+const grads=[["#a99bff","#6d5cff"],["#7fb2ff","#3a7bff"],["#56e6da","#1ab9d8"],["#5ce8ac","#1ec98a"],["#ffd277","#ff9e3d"],["#ff9bb4","#f5547f"]];
+const team=[["Aisha Okonkwo","Manager","Project Management",true],["Derek Stone","Integrator","Systems Integration",true],
+ ["James Park","Contractor","Construction",false],["Luca Ferreira","Engineer","Broadcast Engineering",true],
+ ["Marcus Webb","Engineer","Broadcast Engineering",true],["Nina Romanov","IT","Network Engineering",true],
+ ["Priya Kapoor","IT","IT Infrastructure",false],["Sarah Chen","Producer","Production",true]];
+document.getElementById('mteam').innerHTML=team.map((p,i)=>{const init=p[0].split(' ').map(s=>s[0]).join('');const g=grads[i%grads.length];
+ return `<div class="row glass"><div class="av" style="--g1:${g[0]};--g2:${g[1]}">${init}${p[3]?'<span class="on"></span>':''}</div>
+ <div class="nm"><b>${p[0]}</b><span><span class="r">${p[1]}</span> · ${p[2]}</span></div></div>`}).join('');
+
+const tabbar=document.getElementById('tabbar'),body=document.getElementById('body');
+tabbar.addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;
+ tabbar.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+ const v=b.dataset.v;body.querySelectorAll('.mview').forEach(s=>s.classList.toggle('show',s.dataset.v===v));
+ document.getElementById('abtitle').textContent=meta[v][0];document.getElementById('absub').textContent=meta[v][1];
+ body.scrollTop=0;});
+document.getElementById('fab').addEventListener('click',()=>{tabbar.querySelector('[data-v="tasks"]').click()});
+
+const clk=document.getElementById('clk');
+function tick(){const d=new Date();let h=d.getHours(),m=String(d.getMinutes()).padStart(2,'0');h=h%12||12;clk.textContent=`${h}:${m}`}
+tick();setInterval(tick,10000);
+</script>
+</body>
+</html>
