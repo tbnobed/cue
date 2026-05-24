@@ -43,7 +43,7 @@ export default function PublicShare() {
         )}
       </header>
 
-      <main className={`w-full px-6 py-8 ${data?.project ? "" : "max-w-4xl mx-auto"}`}>
+      <main className="w-full px-6 py-8">
         {isLoading && (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 rounded-full border-2 border-border border-t-primary animate-spin" />
@@ -725,11 +725,11 @@ function DocumentView({ document, projectName, fileUrl, fileMimeType }:
         <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{document.description}</p>
       )}
       {fileUrl && isPdf && (
-        <iframe src={fileUrl} className="w-full h-[80vh] rounded-xl ring-1 ring-border bg-black/30" title={document.title} />
+        <iframe src={fileUrl} className="w-full h-[calc(100vh-220px)] min-h-[600px] rounded-xl ring-1 ring-border bg-black/30" title={document.title} />
       )}
       {fileUrl && isImage && (
         <div className="surface-card ring-hairline rounded-xl p-4 flex items-center justify-center">
-          <img src={fileUrl} alt={document.title} className="max-w-full max-h-[80vh] rounded" />
+          <img src={fileUrl} alt={document.title} className="max-w-full max-h-[calc(100vh-220px)] rounded" />
         </div>
       )}
       {fileUrl && !isPdf && !isImage && (
