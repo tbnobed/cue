@@ -1,6 +1,6 @@
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Video, CheckSquare, Users, FolderOpen, LogOut } from "lucide-react";
+import { LayoutDashboard, Video, CheckSquare, Users, FolderOpen, LogOut, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import cueMark from "@assets/cue-icon_1779576125630.svg";
 
@@ -21,6 +21,8 @@ export function AppSidebar() {
     { name: "Tasks", href: "/tasks", icon: CheckSquare },
     { name: "Team", href: "/team", icon: Users },
     { name: "Documents", href: "/documents", icon: FolderOpen },
+    // Admin-only entries appended below — gated on `user.isAdmin`.
+    ...(user?.isAdmin ? [{ name: "Users", href: "/admin/users", icon: Shield }] : []),
   ];
 
   return (

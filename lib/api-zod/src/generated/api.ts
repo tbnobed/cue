@@ -457,6 +457,53 @@ export const DeleteCommentParams = zod.object({
 
 
 /**
+ * @summary List all auth accounts (admin only)
+ */
+export const ListAdminUsersResponseItem = zod.object({
+  "id": zod.number(),
+  "email": zod.string().nullish(),
+  "name": zod.string().nullish(),
+  "picture": zod.string().nullish(),
+  "isAdmin": zod.boolean(),
+  "authProvider": zod.enum(['local', 'oidc']).describe('`local` = email\/password, `oidc` = signed in via Authentik. Only local users can be admins.'),
+  "createdAt": zod.string(),
+  "lastLoginAt": zod.string()
+})
+export const ListAdminUsersResponse = zod.array(ListAdminUsersResponseItem)
+
+
+/**
+ * @summary Promote / demote a local user (admin only). OIDC users cannot be promoted.
+ */
+export const UpdateAdminUserParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateAdminUserBody = zod.object({
+  "isAdmin": zod.boolean().optional()
+})
+
+export const UpdateAdminUserResponse = zod.object({
+  "id": zod.number(),
+  "email": zod.string().nullish(),
+  "name": zod.string().nullish(),
+  "picture": zod.string().nullish(),
+  "isAdmin": zod.boolean(),
+  "authProvider": zod.enum(['local', 'oidc']).describe('`local` = email\/password, `oidc` = signed in via Authentik. Only local users can be admins.'),
+  "createdAt": zod.string(),
+  "lastLoginAt": zod.string()
+})
+
+
+/**
+ * @summary Delete an auth account (admin only). Cannot delete yourself.
+ */
+export const DeleteAdminUserParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
  * @summary List all team members
  */
 export const ListMembersResponseItem = zod.object({

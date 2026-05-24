@@ -16,6 +16,7 @@ import configRouter from "./config";
 import authRouter from "./auth";
 import shareLinksRouter from "./share-links";
 import publicSharesRouter from "./public-shares";
+import adminUsersRouter from "./admin-users";
 import { requireAuth } from "../middlewares/require-auth";
 
 const router: IRouter = Router();
@@ -44,5 +45,7 @@ router.use(requireAuth, documentsRouter);
 router.use(requireAuth, foldersRouter);
 router.use(requireAuth, collabRouter);
 router.use(requireAuth, shareLinksRouter);
+// adminUsersRouter does its own requireAdmin check internally on every path.
+router.use(requireAuth, adminUsersRouter);
 
 export default router;

@@ -499,6 +499,36 @@ export interface CommentInput {
   content: string;
 }
 
+/**
+ * `local` = email/password, `oidc` = signed in via Authentik. Only local users can be admins.
+ */
+export type AdminUserAuthProvider = typeof AdminUserAuthProvider[keyof typeof AdminUserAuthProvider];
+
+
+export const AdminUserAuthProvider = {
+  local: 'local',
+  oidc: 'oidc',
+} as const;
+
+export interface AdminUser {
+  id: number;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  picture?: string | null;
+  isAdmin: boolean;
+  /** `local` = email/password, `oidc` = signed in via Authentik. Only local users can be admins. */
+  authProvider: AdminUserAuthProvider;
+  createdAt: string;
+  lastLoginAt: string;
+}
+
+export interface AdminUserUpdate {
+  isAdmin?: boolean;
+}
+
 export type MemberRole = typeof MemberRole[keyof typeof MemberRole];
 
 

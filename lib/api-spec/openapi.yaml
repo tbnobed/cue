@@ -467,6 +467,72 @@ paths:
         "204":
           description: Deleted
 
+  # ── Admin: Users (auth accounts) ─────────────────────────────────────────
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin-users]
+      summary: List all auth accounts (admin only)
+      responses:
+        "200":
+          description: Auth accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+        "403":
+          description: Admin access required
+
+  /admin/users/{id}:
+    patch:
+      operationId: updateAdminUser
+      tags: [admin-users]
+      summary: Promote / demote a local user (admin only). OIDC users cannot be promoted.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "400":
+          description: Cannot demote yourself, or cannot promote an OIDC account
+        "403":
+          description: Admin access required
+        "404":
+          description: User not found
+    delete:
+      operationId: deleteAdminUser
+      tags: [admin-users]
+      summary: Delete an auth account (admin only). Cannot delete yourself.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+        "400":
+          description: Cannot delete yourself
+        "403":
+          description: Admin access required
+        "404":
+          description: User not found
+
   # ── Team Members ─────────────────────────────────────────────────────────
   /members:
     get:
@@ -1169,6 +1235,25 @@ components:
         authorId:   { type: integer }
         authorName: { type: string, minLength: 1 }
         content:    { type: string, minLength: 1 }
+
+    # ── Admin User (auth account) ───────────────────────────────────────────
+    AdminUser:
+      type: object
+      required: [id, isAdmin, authProvider, createdAt, lastLoginAt]
+      properties:
+        id:           { type: integer }
+        email:        { type: ["string", "null"] }
+        name:         { type: ["string", "null"] }
+        picture:      { type: ["string", "null"] }
+        isAdmin:      { type: boolean }
+        authProvider: { type: string, enum: [local, oidc], description: "`local` = email/password, `oidc` = signed in via Authentik. Only local users can be admins." }
+        createdAt:    { type: string }
+        lastLoginAt:  { type: string }
+
+    AdminUserUpdate:
+      type: object
+      properties:
+        isAdmin: { type: boolean }
 
     # ── Member ──────────────────────────────────────────────────────────────
     Member:

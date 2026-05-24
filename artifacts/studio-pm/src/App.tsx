@@ -10,6 +10,7 @@ import ProjectsList from "@/pages/projects";
 import ProjectDetail from "@/pages/projects/detail";
 import Tasks from "@/pages/tasks";
 import Team from "@/pages/team";
+import UsersAdmin from "@/pages/admin/users";
 import Documents from "@/pages/documents";
 import DocumentEditor from "@/pages/documents/editor";
 import Login from "@/pages/login";
@@ -56,6 +57,7 @@ function Routes() {
             <Route path="/projects/:id" component={ProjectDetail} />
             <Route path="/tasks" component={Tasks} />
             <Route path="/team" component={Team} />
+            <Route path="/admin/users" component={UsersAdmin} />
             <Route path="/documents" component={Documents} />
             <Route path="/documents/:id/edit" component={DocumentEditor} />
             <Route component={NotFound} />
