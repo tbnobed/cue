@@ -1460,10 +1460,14 @@ function DocTile({
       const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       const url = `${base}/collabora-launcher.html?docId=${doc.id}&base=${encodeURIComponent(base)}`;
       window.open(url, "_blank", "noopener,noreferrer");
-    } else {
-      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-      window.open(`${base}/documents/${doc.id}/edit`, "_blank", "noopener,noreferrer");
+      return;
     }
+    // Open the actual file in a new tab — uploads stream from /api/uploads/
+    // (auth-gated) and external URLs go to their own location. Either way the
+    // user lands on the file itself, not back on the in-app Documents page.
+    const href = doc.url ?? "";
+    if (!href) return;
+    window.open(href, "_blank", "noopener,noreferrer");
   }
 
   return (
