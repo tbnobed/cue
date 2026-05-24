@@ -525,8 +525,20 @@ export interface AdminUser {
   lastLoginAt: string;
 }
 
+/**
+ * Partial update of an auth account. All fields optional. `password` resets the user's password and is only valid for local accounts.
+ */
 export interface AdminUserUpdate {
   isAdmin?: boolean;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  email?: string | null;
+  /**
+     * Admin-initiated password reset for a local account. Not allowed on OIDC accounts.
+     * @minLength 8
+     */
+  password?: string;
 }
 
 export type MemberRole = typeof MemberRole[keyof typeof MemberRole];

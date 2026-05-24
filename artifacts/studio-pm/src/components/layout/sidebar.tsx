@@ -1,13 +1,22 @@
+import { useState } from "react";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Video, CheckSquare, Users, FolderOpen, LogOut, Shield } from "lucide-react";
+import { LayoutDashboard, Video, CheckSquare, Users, FolderOpen, LogOut, Shield, KeyRound, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import cueMark from "@assets/cue-icon_1779576125630.svg";
 
 export function AppSidebar() {
   const [location] = useLocation();
   const auth = useAuth();
   const user = auth.status === "authenticated" ? auth.user : null;
+  const [changePwOpen, setChangePwOpen] = useState(false);
   const initials = (user?.name || user?.email || "?")
     .split(/[\s@]/)
     .filter(Boolean)
@@ -95,6 +104,18 @@ export function AppSidebar() {
                 <div className="text-[10.5px] text-muted-foreground truncate font-mono">{user.email}</div>
               )}
             </div>
+            {/* OIDC users don't have a local password — hide the key icon. */}
+            {user.authProvider === "local" && (
+              <button
+                type="button"
+                title="Change password"
+                data-testid="button-change-password"
+                onClick={() => setChangePwOpen(true)}
+                className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors shrink-0"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+              </button>
+            )}
             <button
               type="button"
               title="Sign out"
@@ -107,6 +128,94 @@ export function AppSidebar() {
           </div>
         </SidebarFooter>
       )}
+      <ChangePasswordDialog open={changePwOpen} onOpenChange={setChangePwOpen} />
     </Sidebar>
+  );
+}
+
+// ─── Change password (self-service) ────────────────────────────────────────
+function ChangePasswordDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const auth = useAuth();
+  const { toast } = useToast();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  function reset() { setCurrent(""); setNext(""); setConfirm(""); }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (next.length < 8) {
+      toast({ title: "Password too short", description: "Use at least 8 characters.", variant: "destructive" });
+      return;
+    }
+    if (next !== confirm) {
+      toast({ title: "Passwords don't match", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await auth.changePassword({ currentPassword: current, newPassword: next });
+      toast({ title: "Password updated" });
+      reset();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({ title: "Couldn't change password", description: err?.message ?? "Unknown error", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Change password</DialogTitle>
+          <DialogDescription>
+            Verify your current password, then choose a new one. Your other sessions stay signed in.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 py-2" data-testid="form-change-password">
+          <div className="space-y-2">
+            <Label>Current password</Label>
+            <Input
+              type="password" required autoFocus
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+              data-testid="input-current-password"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>New password</Label>
+            <Input
+              type="password" required minLength={8}
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+              placeholder="At least 8 characters"
+              data-testid="input-new-password"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Confirm new password</Label>
+            <Input
+              type="password" required minLength={8}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              data-testid="input-confirm-password"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitting || !current || next.length < 8 || next !== confirm} data-testid="button-submit-change-password">
+              {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Update password
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

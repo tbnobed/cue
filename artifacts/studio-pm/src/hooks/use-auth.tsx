@@ -6,6 +6,7 @@ export type AuthUser = {
   name: string | null;
   picture: string | null;
   isAdmin: boolean;
+  authProvider: "local" | "oidc";
 };
 
 export type AuthConfig = {
@@ -22,6 +23,7 @@ type AuthContextValue = AuthState & {
   signInOidc: (returnTo?: string) => void;
   signInLocal: (email: string, password: string) => Promise<AuthUser>;
   signUp: (input: { email: string; password: string; name?: string; isAdmin?: boolean }) => Promise<AuthUser>;
+  changePassword: (input: { currentPassword: string; newPassword: string }) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -84,6 +86,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return body as AuthUser;
   }
 
+  async function changePassword(input: { currentPassword: string; newPassword: string }): Promise<void> {
+    const res = await fetch("/api/auth/change-password", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const body = await readJson(res);
+    if (!res.ok) throw new Error(body?.error || "Couldn't change password");
+  }
+
   async function signOut() {
     try {
       const res = await fetch("/api/auth/logout", { method: "POST" });
@@ -99,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = `${base}/login`;
   }
 
-  const value: AuthContextValue = { ...state, refresh, signInOidc, signInLocal, signUp, signOut };
+  const value: AuthContextValue = { ...state, refresh, signInOidc, signInLocal, signUp, changePassword, signOut };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

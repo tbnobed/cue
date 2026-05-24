@@ -48,8 +48,12 @@ const LoginBody = z.object({
   password: z.string().min(1).max(200),
 });
 
-function publicUser(u: { id: number; email: string | null; name: string | null; picture: string | null; isAdmin: boolean }) {
-  return { id: u.id, email: u.email, name: u.name, picture: u.picture, isAdmin: u.isAdmin };
+function publicUser(u: { id: number; email: string | null; name: string | null; picture: string | null; isAdmin: boolean; sub: string | null; passwordHash: string | null }) {
+  // `authProvider` lets the client know whether the user has a local password
+  // (and can therefore self-serve a password change). OIDC users sign in via
+  // Authentik and manage their credentials there.
+  const authProvider: "local" | "oidc" = u.passwordHash ? "local" : (u.sub ? "oidc" : "local");
+  return { id: u.id, email: u.email, name: u.name, picture: u.picture, isAdmin: u.isAdmin, authProvider };
 }
 
 async function getSessionUser(userId: number | undefined) {
@@ -89,10 +93,7 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
   const passwordHash = await bcrypt.hash(parsed.data.password, BCRYPT_COST);
   const [user] = await db.insert(usersTable)
     .values({ email, name, passwordHash, isAdmin: makeAdmin, lastLoginAt: new Date() })
-    .returning({
-      id: usersTable.id, email: usersTable.email, name: usersTable.name,
-      picture: usersTable.picture, isAdmin: usersTable.isAdmin,
-    });
+    .returning();
 
   // The new account is NOT signed in — we keep the admin's session intact.
   res.status(201).json(publicUser(user!));
@@ -213,18 +214,49 @@ router.get("/auth/callback", async (req, res): Promise<void> => {
 router.get("/auth/me", async (req, res): Promise<void> => {
   const id = req.session.userId;
   if (!id) { res.status(401).json({ error: "Not authenticated" }); return; }
-  const [user] = await db.select({
-    id: usersTable.id,
-    email: usersTable.email,
-    name: usersTable.name,
-    picture: usersTable.picture,
-    isAdmin: usersTable.isAdmin,
-  }).from(usersTable).where(eq(usersTable.id, id));
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
   if (!user) {
     req.session.destroy(() => res.status(401).json({ error: "Not authenticated" }));
     return;
   }
   res.json(publicUser(user));
+});
+
+// POST /api/auth/change-password — local accounts only.
+// Verifies the current password first (defeats lost-laptop-with-open-session
+// attacks). OIDC accounts have no password to change — they manage credentials
+// in the IdP.
+const ChangePasswordBody = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(8).max(200),
+});
+router.post("/auth/change-password", async (req, res): Promise<void> => {
+  const id = req.session.userId;
+  if (!id) { res.status(401).json({ error: "Not authenticated" }); return; }
+  const parsed = ChangePasswordBody.safeParse(req.body);
+  if (!parsed.success) {
+    // Surface the most user-relevant message instead of a blanket "password too short".
+    const issues = parsed.error.issues;
+    const newPwIssue = issues.find(i => i.path[0] === "newPassword");
+    const currentPwIssue = issues.find(i => i.path[0] === "currentPassword");
+    const msg = newPwIssue
+      ? "New password must be at least 8 characters."
+      : currentPwIssue
+        ? "Current password is required."
+        : "Invalid request.";
+    res.status(400).json({ error: msg });
+    return;
+  }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+  if (!user || !user.passwordHash) {
+    res.status(400).json({ error: "This account doesn't use a local password." });
+    return;
+  }
+  const ok = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
+  if (!ok) { res.status(401).json({ error: "Current password is incorrect." }); return; }
+  const newHash = await bcrypt.hash(parsed.data.newPassword, BCRYPT_COST);
+  await db.update(usersTable).set({ passwordHash: newHash }).where(eq(usersTable.id, id));
+  res.json({ ok: true });
 });
 
 // POST /api/auth/logout — destroy session, return Authentik end-session URL if available

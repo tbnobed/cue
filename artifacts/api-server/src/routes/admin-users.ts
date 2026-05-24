@@ -1,8 +1,11 @@
 import { Router } from "express";
+import bcrypt from "bcryptjs";
 import { db, usersTable } from "@workspace/db";
-import { eq, asc, sql } from "drizzle-orm";
+import { eq, asc, sql, and, isNotNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin } from "../middlewares/require-auth";
+
+const BCRYPT_COST = 12;
 
 const router = Router();
 
@@ -34,6 +37,11 @@ router.get("/admin/users", async (_req, res) => {
 
 const UpdateBody = z.object({
   isAdmin: z.boolean().optional(),
+  // Empty-string / null on name + email means "clear it".
+  name: z.string().max(120).nullable().optional(),
+  email: z.string().email().max(254).nullable().optional(),
+  // Admin-initiated password reset. Local accounts only.
+  password: z.string().min(8).max(200).optional(),
 });
 
 // PATCH /api/admin/users/:id — currently only toggles `isAdmin`.
@@ -60,6 +68,10 @@ router.patch("/admin/users/:id", async (req, res): Promise<void> => {
   const [target] = await db.select().from(usersTable).where(eq(usersTable.id, id));
   if (!target) { res.status(404).json({ error: "User not found" }); return; }
 
+  // Build the patch object incrementally so we can apply same-row invariants
+  // (self-demote, OIDC-promote, OIDC-password-reset, email-collision).
+  const patch: Partial<typeof usersTable.$inferInsert> = {};
+
   if (parsed.data.isAdmin !== undefined) {
     if (id === req.session.userId && parsed.data.isAdmin === false) {
       res.status(400).json({ error: "You can't remove your own admin rights." });
@@ -69,9 +81,45 @@ router.patch("/admin/users/:id", async (req, res): Promise<void> => {
       res.status(400).json({ error: "OIDC accounts can't be promoted to admin." });
       return;
     }
-    await db.update(usersTable)
-      .set({ isAdmin: parsed.data.isAdmin })
-      .where(eq(usersTable.id, id));
+    patch.isAdmin = parsed.data.isAdmin;
+  }
+
+  if (parsed.data.name !== undefined) {
+    const trimmed = parsed.data.name?.trim();
+    patch.name = trimmed ? trimmed : null;
+  }
+
+  if (parsed.data.email !== undefined) {
+    const trimmed = parsed.data.email?.trim().toLowerCase();
+    if (trimmed) {
+      // Block collisions with existing local accounts (case-insensitive).
+      const dupes = await db.select({ id: usersTable.id })
+        .from(usersTable)
+        .where(and(
+          eq(sql`lower(${usersTable.email})`, trimmed),
+          isNotNull(usersTable.passwordHash),
+          ne(usersTable.id, id),
+        ));
+      if (dupes.length > 0) {
+        res.status(409).json({ error: "Another account already uses that email." });
+        return;
+      }
+      patch.email = trimmed;
+    } else {
+      patch.email = null;
+    }
+  }
+
+  if (parsed.data.password !== undefined) {
+    if (target.sub) {
+      res.status(400).json({ error: "Can't set a password on an Authentik account." });
+      return;
+    }
+    patch.passwordHash = await bcrypt.hash(parsed.data.password, BCRYPT_COST);
+  }
+
+  if (Object.keys(patch).length > 0) {
+    await db.update(usersTable).set(patch).where(eq(usersTable.id, id));
   }
 
   const [updated] = await db.select().from(usersTable).where(eq(usersTable.id, id));

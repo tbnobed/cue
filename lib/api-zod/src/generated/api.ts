@@ -479,9 +479,16 @@ export const UpdateAdminUserParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const updateAdminUserBodyPasswordMin = 8;
+
+
+
 export const UpdateAdminUserBody = zod.object({
-  "isAdmin": zod.boolean().optional()
-})
+  "isAdmin": zod.boolean().optional(),
+  "name": zod.string().nullish(),
+  "email": zod.string().email().nullish(),
+  "password": zod.string().min(updateAdminUserBodyPasswordMin).optional().describe('Admin-initiated password reset for a local account. Not allowed on OIDC accounts.')
+}).describe('Partial update of an auth account. All fields optional. `password` resets the user\'s password and is only valid for local accounts.')
 
 export const UpdateAdminUserResponse = zod.object({
   "id": zod.number(),

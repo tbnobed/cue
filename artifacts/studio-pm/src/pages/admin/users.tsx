@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Redirect } from "wouter";
 import {
   useListAdminUsers,
@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
 import {
-  UserPlus, Shield, ShieldOff, Trash2, Loader2, KeyRound, Globe, Mail,
+  UserPlus, Shield, ShieldOff, Trash2, Loader2, KeyRound, Globe, Mail, Pencil,
 } from "lucide-react";
 
 export default function UsersAdmin() {
@@ -158,6 +158,7 @@ function UserRow({ user, currentUserId, idx }: { user: AdminUser; currentUserId:
   const update = useUpdateAdminUser();
   const del = useDeleteAdminUser();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const isSelf = user.id === currentUserId;
   const initials = (user.name || user.email || "?")
@@ -248,6 +249,16 @@ function UserRow({ user, currentUserId, idx }: { user: AdminUser; currentUserId:
           <Button
             variant="ghost"
             size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60"
+            onClick={() => setEditOpen(true)}
+            title="Edit account"
+            data-testid={`button-edit-user-${user.id}`}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-red-400/10 disabled:opacity-30"
             onClick={() => setConfirmDelete(true)}
             disabled={isSelf || del.isPending}
@@ -258,6 +269,8 @@ function UserRow({ user, currentUserId, idx }: { user: AdminUser; currentUserId:
           </Button>
         </div>
       </motion.div>
+
+      <EditUserDialog user={user} open={editOpen} onOpenChange={setEditOpen} />
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
@@ -298,6 +311,127 @@ function fmtDate(iso: string) {
   const days = Math.floor(hrs / 24);
   if (days < 30) return `${days}d ago`;
   return d.toLocaleDateString();
+}
+
+// ─── Edit user dialog ───────────────────────────────────────────────────────
+//
+// Admin can rename, change email, and (local only) reset the password.
+// Password is intentionally blank on open — empty submit means "don't touch it".
+
+function EditUserDialog({
+  user, open, onOpenChange,
+}: { user: AdminUser; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const update = useUpdateAdminUser();
+
+  const [name, setName] = useState(user.name ?? "");
+  const [email, setEmail] = useState(user.email ?? "");
+  const [password, setPassword] = useState("");
+
+  // Re-sync form when opening a different row, or when the row updates.
+  // Empty `password` is the "leave unchanged" sentinel.
+  useEffect(() => {
+    if (open) {
+      setName(user.name ?? "");
+      setEmail(user.email ?? "");
+      setPassword("");
+    }
+  }, [open, user.id, user.name, user.email]);
+
+  const isOidc = user.authProvider === "oidc";
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const payload: { name?: string | null; email?: string | null; password?: string } = {};
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    if (trimmedName !== (user.name ?? "")) payload.name = trimmedName ? trimmedName : null;
+    if (trimmedEmail !== (user.email ?? "")) payload.email = trimmedEmail ? trimmedEmail : null;
+    if (password) {
+      if (password.length < 8) {
+        toast({ title: "Password too short", description: "Use at least 8 characters.", variant: "destructive" });
+        return;
+      }
+      payload.password = password;
+    }
+    if (Object.keys(payload).length === 0) {
+      onOpenChange(false);
+      return;
+    }
+    try {
+      await update.mutateAsync({ id: user.id, data: payload });
+      await qc.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
+      toast({ title: `Updated ${trimmedEmail || trimmedName || `user #${user.id}`}` });
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({ title: "Couldn't update user", description: err?.message ?? "Unknown error", variant: "destructive" });
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit {user.email || `user #${user.id}`}</DialogTitle>
+          <DialogDescription>
+            {isOidc
+              ? "Authentik manages this user's password. Name and email are overwritten from the IdP on next sign-in."
+              : "Rename, change the sign-in email, or reset the password. Leave the password field blank to keep it unchanged."}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 py-2" data-testid={`form-edit-user-${user.id}`}>
+          <div className="space-y-2">
+            <Label>Display name</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Jane Doe"
+              data-testid="input-edit-name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <div className="relative">
+              <Mail className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                type="email"
+                className="pl-9"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@studio.com"
+                data-testid="input-edit-email"
+              />
+            </div>
+          </div>
+          {!isOidc && (
+            <div className="space-y-2">
+              <Label>New password</Label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Leave blank to keep current password"
+                data-testid="input-edit-password"
+              />
+              <p className="text-[11px] text-muted-foreground font-mono">
+                Admin reset — no current password required. Share new credentials out-of-band.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={update.isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={update.isPending} data-testid="button-submit-edit-user">
+              {update.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save changes
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 // ─── Add local user dialog ──────────────────────────────────────────────────
