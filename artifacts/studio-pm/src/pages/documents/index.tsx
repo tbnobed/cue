@@ -161,6 +161,7 @@ export default function Documents() {
           <NewDocumentButton
             projectId={uploadStudio ? parseInt(uploadStudio) : null}
             category={uploadCategory}
+            collaboraEnabled={collaboraEnabled}
             scopeLabel={uploadStudio
               ? (projects?.find(p => String(p.id) === uploadStudio)?.name ?? "this project")
               : "the General Library"}

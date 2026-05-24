@@ -28,6 +28,7 @@ export interface NewDocumentButtonProps {
   folderId?: number | null;
   category?: string;
   scopeLabel?: string;
+  collaboraEnabled?: boolean;
   size?: "default" | "sm";
   variant?: "default" | "outline" | "secondary" | "ghost";
   className?: string;
@@ -35,7 +36,7 @@ export interface NewDocumentButtonProps {
 
 export function NewDocumentButton({
   projectId = null, taskId = null, folderId = null,
-  category = "general", scopeLabel,
+  category = "general", scopeLabel, collaboraEnabled = false,
   size = "default", variant = "outline", className,
 }: NewDocumentButtonProps) {
   const { toast } = useToast();
@@ -73,7 +74,13 @@ export function NewDocumentButton({
       const doc = await res.json();
       qc.invalidateQueries({ queryKey: getListDocumentsQueryKey() });
       reset();
-      navigate(`/documents/${doc.id}/edit`);
+      if (collaboraEnabled) {
+        const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+        const url = `${base}/collabora-launcher.html?docId=${doc.id}&base=${encodeURIComponent(base)}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+      } else {
+        navigate(`/documents/${doc.id}/edit`);
+      }
     } catch (err: any) {
       toast({ title: err?.message || "Failed to create document", variant: "destructive" });
       setSubmitting(false);
@@ -116,7 +123,7 @@ export function NewDocumentButton({
               New {format ? FORMAT_META[format].label.toLowerCase() : "document"}
             </DialogTitle>
             <DialogDescription>
-              Creates a blank file{scopeLabel ? ` in ${scopeLabel}` : ""} and opens it in the editor.
+              Creates a blank file{scopeLabel ? ` in ${scopeLabel}` : ""} and opens it in {collaboraEnabled ? "Collabora" : "the editor"}.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">

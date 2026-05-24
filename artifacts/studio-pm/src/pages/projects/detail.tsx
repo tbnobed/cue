@@ -1326,6 +1326,7 @@ function DocumentsTab({ projectId }: { projectId: number }) {
               taskId={currentTaskId}
               folderId={currentFolderId}
               category={uploadCategory}
+              collaboraEnabled={!!appConfig?.collaboraEnabled}
               scopeLabel={currentTaskName ? `Task: ${currentTaskName}` : "this project"}
               className="h-9"
             />
