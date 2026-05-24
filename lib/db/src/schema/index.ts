@@ -11,3 +11,4 @@ export * from "./documents";
 export * from "./document_folders";
 export * from "./collab_docs";
 export * from "./share_links";
+export * from "./user_sessions";
