@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, X, AlertTriangle, Clock, CheckCircle2, Circle, Loader2, Eye, Trash2, Pencil } from "lucide-react";
 import { ShareDialog } from "@/components/share-dialog";
+import { TaskDetailDialog } from "@/components/task-detail-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -67,6 +68,7 @@ export default function Tasks() {
   const [createOpen, setCreateOpen] = useState(false);
   // null = create mode, number = edit mode (task id being edited)
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [detailTask, setDetailTask] = useState<any | null>(null);
   const [form, setForm] = useState({
     title: "", description: "", projectId: "", milestoneId: "", assigneeId: "",
     status: "todo", priority: "medium", category: "general", dueDate: "",
@@ -283,8 +285,13 @@ export default function Tasks() {
                     </SelectContent>
                   </Select>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
+                  {/* Info — click to expand */}
+                  <button
+                    type="button"
+                    className="flex-1 min-w-0 text-left cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => setDetailTask(task)}
+                    data-testid={`button-open-task-${task.id}`}
+                  >
                     <div className="text-sm font-medium truncate text-foreground">{task.title}</div>
                     <div className="text-[11px] text-muted-foreground font-mono flex gap-1.5 flex-wrap mt-0.5 items-center">
                       <span className="text-foreground/70">{task.projectName}</span>
@@ -301,7 +308,7 @@ export default function Tasks() {
                         </>
                       )}
                     </div>
-                  </div>
+                  </button>
 
                   {/* Priority */}
                   <span className={`text-[10px] font-mono uppercase tracking-[0.12em] ${PRIORITY_TONE[task.priority as Priority]}`}>
@@ -338,6 +345,15 @@ export default function Tasks() {
           </AnimatePresence>
         </div>
       )}
+
+      {/* Task detail dialog (read view, opens on row click) */}
+      <TaskDetailDialog
+        task={detailTask}
+        open={!!detailTask}
+        onOpenChange={(o) => { if (!o) setDetailTask(null); }}
+        onEdit={(t) => openEdit(t)}
+        shareSlot={detailTask ? <ShareDialog resourceType="task" resourceId={detailTask.id} resourceTitle={detailTask.title} triggerVariant="button" /> : null}
+      />
 
       {/* Create / Edit Task Modal */}
       <Dialog open={createOpen} onOpenChange={o => { setCreateOpen(o); if (!o) resetForm(); }}>

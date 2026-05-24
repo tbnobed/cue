@@ -34,6 +34,7 @@ import {
   FileText, FileSpreadsheet, FileImage, FileCode, FileArchive, Home, Settings,
 } from "lucide-react";
 import { ShareDialog } from "@/components/share-dialog";
+import { TaskDetailDialog } from "@/components/task-detail-dialog";
 
 const STATUS_TONE: Record<string, string> = {
   planning:    "text-blue-400 bg-blue-500/10 ring-blue-500/20",
@@ -725,6 +726,7 @@ function TasksTab({ projectId }: { projectId: number }) {
 
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [detailTask, setDetailTask] = useState<any | null>(null);
   const [form, setForm] = useState({
     title: "", description: "", milestoneId: "", assigneeId: "",
     status: "todo", priority: "medium", category: "general", dueDate: "",
@@ -858,7 +860,12 @@ function TasksTab({ projectId }: { projectId: number }) {
                       {TASK_STATUS.map(s => <SelectItem key={s} value={s} className="capitalize">{s.replace("_", " ")}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <div className="flex-1 min-w-0">
+                  <button
+                    type="button"
+                    className="flex-1 min-w-0 text-left cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => setDetailTask(task)}
+                    data-testid={`button-open-task-${task.id}`}
+                  >
                     <div className="text-sm font-medium truncate">{task.title}</div>
                     <div className="text-[11px] text-muted-foreground font-mono flex gap-1.5 flex-wrap mt-0.5">
                       <span className="capitalize">{task.category}</span>
@@ -871,7 +878,7 @@ function TasksTab({ projectId }: { projectId: number }) {
                         </>
                       )}
                     </div>
-                  </div>
+                  </button>
                   <span className={`text-[10px] font-mono uppercase tracking-[0.12em] ${PRIORITY_TONE[task.priority] ?? ""}`}>
                     {task.priority}
                   </span>
@@ -895,6 +902,14 @@ function TasksTab({ projectId }: { projectId: number }) {
           </AnimatePresence>
         </div>
       )}
+
+      <TaskDetailDialog
+        task={detailTask}
+        open={!!detailTask}
+        onOpenChange={(o) => { if (!o) setDetailTask(null); }}
+        onEdit={(t) => openEdit(t)}
+        shareSlot={detailTask ? <ShareDialog resourceType="task" resourceId={detailTask.id} resourceTitle={detailTask.title} triggerVariant="button" /> : null}
+      />
 
       <Dialog open={open} onOpenChange={o => { setOpen(o); if (!o) resetForm(); }}>
         <DialogContent className="max-w-xl">

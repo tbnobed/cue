@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { TaskDetailDialog } from "@/components/task-detail-dialog";
 
 /**
  * Public, unauthenticated read-only view of a shared resource. Loaded at
@@ -170,6 +171,7 @@ function ProjectView({ token, project, milestones, tasks, documents, folders }: 
   folders: any[];
 }) {
   const tone = STATUS_TONE[project.status] ?? "text-muted-foreground bg-muted/40 ring-border/60";
+  const [detailTask, setDetailTask] = useState<any | null>(null);
 
   // Compute progress client-side (same blend as the server uses)
   const totalTasks = tasks.length;
@@ -296,7 +298,13 @@ function ProjectView({ token, project, milestones, tasks, documents, folders }: 
             {tasks.map(t => {
               const isOverdue = t.dueDate && new Date(t.dueDate) < new Date() && t.status !== "done";
               return (
-                <div key={t.id} className="flex items-center gap-4 px-4 py-3">
+                <button
+                  type="button"
+                  key={t.id}
+                  onClick={() => setDetailTask(t)}
+                  className="w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-background/40 transition-colors"
+                  data-testid={`button-open-task-${t.id}`}
+                >
                   <span className={`inline-flex items-center gap-1.5 w-[132px] text-[11px] font-medium px-2 py-1 rounded-md ring-1 ring-inset ${TASK_TONE[t.status] ?? TASK_TONE.todo}`}>
                     {TASK_ICONS[t.status]}
                     <span className="capitalize">{t.status?.replace("_", " ")}</span>
@@ -318,7 +326,7 @@ function ProjectView({ token, project, milestones, tasks, documents, folders }: 
                   <span className={`text-[10px] font-mono uppercase tracking-[0.12em] ${PRIORITY_TONE[t.priority] ?? ""}`}>
                     {t.priority}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -329,6 +337,12 @@ function ProjectView({ token, project, milestones, tasks, documents, folders }: 
           <PublicDocumentsTab token={token} documents={documents} folders={folders} />
         </TabsContent>
       </Tabs>
+
+      <TaskDetailDialog
+        task={detailTask}
+        open={!!detailTask}
+        onOpenChange={(o) => { if (!o) setDetailTask(null); }}
+      />
     </motion.div>
   );
 }
