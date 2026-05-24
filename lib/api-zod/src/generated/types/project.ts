@@ -25,6 +25,11 @@ export interface Project {
   completedDate?: string | null;
   /** @nullable */
   budget?: number | null;
+  /**
+     * Owner user id. Null means unowned (admin-only operations).
+     * @nullable
+     */
+  ownerUserId?: number | null;
   createdAt: string;
   updatedAt?: string;
 }

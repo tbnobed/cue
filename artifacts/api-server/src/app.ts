@@ -4,8 +4,6 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { getSessionMiddleware } from "./lib/session";
-import { requireAuth } from "./middlewares/require-auth";
-import { uploadsDir } from "./lib/uploads-dir.js";
 
 const app: Express = express();
 
@@ -36,9 +34,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(getSessionMiddleware());
 
-// Uploaded files contain potentially sensitive project docs — gate behind session.
-// Collabora fetches files via the separate /api/wopi/* HMAC-signed channel, not here.
-app.use("/api/uploads", requireAuth, express.static(uploadsDir));
+// Uploaded files contain potentially sensitive project docs. Authenticated
+// download is now served by routes/uploads.ts via the /api router below — it
+// resolves filename → document → project and enforces requireProjectAccess
+// (the old express.static here only checked auth, not project visibility).
+// Collabora fetches files via the separate /api/wopi/* HMAC-signed channel.
 app.use("/api", router);
 
 // Centralised error handler so async failures don't crash the worker silently

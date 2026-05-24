@@ -48,6 +48,7 @@ import type {
   ProjectInput,
   ProjectMember,
   ProjectProgress,
+  ProjectTransferInput,
   ProjectUpdate,
   PublicShare,
   ShareLink,
@@ -516,6 +517,78 @@ export const useDeleteProject = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDeleteProjectMutationOptions(options));
+    }
+
+export const getTransferProjectUrl = (id: number,) => {
+
+
+
+
+  return `/api/projects/${id}/transfer`
+}
+
+/**
+ * @summary Transfer ownership of a project to another user
+ */
+export const transferProject = async (id: number,
+    projectTransferInput: ProjectTransferInput, options?: RequestInit): Promise<Project> => {
+
+  return customFetch<Project>(getTransferProjectUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      projectTransferInput,)
+  }
+);}
+
+
+
+
+export const getTransferProjectMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transferProject>>, TError,{id: number;data: BodyType<ProjectTransferInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof transferProject>>, TError,{id: number;data: BodyType<ProjectTransferInput>}, TContext> => {
+
+const mutationKey = ['transferProject'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof transferProject>>, {id: number;data: BodyType<ProjectTransferInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  transferProject(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TransferProjectMutationResult = NonNullable<Awaited<ReturnType<typeof transferProject>>>
+    export type TransferProjectMutationBody = BodyType<ProjectTransferInput>
+    export type TransferProjectMutationError = ErrorType<void>
+
+    /**
+ * @summary Transfer ownership of a project to another user
+ */
+export const useTransferProject = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transferProject>>, TError,{id: number;data: BodyType<ProjectTransferInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof transferProject>>,
+        TError,
+        {id: number;data: BodyType<ProjectTransferInput>},
+        TContext
+      > => {
+      return useMutation(getTransferProjectMutationOptions(options));
     }
 
 export const getGetProjectProgressUrl = (id: number,) => {

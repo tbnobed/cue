@@ -5,7 +5,7 @@ import { and, eq, desc } from "drizzle-orm";
 import { z } from "zod/v4";
 import { notifyShareLink, actorFromUserId } from "../lib/notifications.js";
 import { isEmailEnabled } from "../lib/email.js";
-import { logger } from "../lib/logger.js";
+import { requireProjectManage, resourceProjectId } from "../lib/access.js";
 
 // ── Abuse controls for /share-links/:id/email ────────────────────────────
 // The endpoint is reachable by any authenticated user and lets them dispatch
@@ -101,6 +101,14 @@ function formatLink(link: typeof shareLinksTable.$inferSelect) {
 
 router.get("/share-links", async (req, res): Promise<void> => {
   const q = ListQuery.parse(req.query);
+  // Listing links of a resource is a strong existence signal — gate the
+  // same way as create/email/revoke: must be able to manage the project.
+  const pid = await resourceProjectId(q.resourceType, q.resourceId);
+  if (pid === null) {
+    if (!req.authUser!.isAdmin) { res.status(404).json({ error: "Not found" }); return; }
+  } else if (!(await requireProjectManage(req, res, pid))) {
+    return;
+  }
   const rows = await db
     .select()
     .from(shareLinksTable)
@@ -119,6 +127,14 @@ router.post("/share-links", async (req, res): Promise<void> => {
   const exists = await resourceExists(body.resourceType, body.resourceId);
   if (!exists) {
     res.status(404).json({ error: `${body.resourceType} ${body.resourceId} not found` });
+    return;
+  }
+  // Gate: only project owners/admins may mint share links. Global docs
+  // (no parent project) are admin-only.
+  const pid = await resourceProjectId(body.resourceType, body.resourceId);
+  if (pid === null) {
+    if (!req.authUser!.isAdmin) { res.status(403).json({ error: "Only an admin can share global documents." }); return; }
+  } else if (!(await requireProjectManage(req, res, pid))) {
     return;
   }
 
@@ -166,6 +182,13 @@ router.post("/share-links/:id/email", async (req, res): Promise<void> => {
   const [link] = await db.select().from(shareLinksTable).where(eq(shareLinksTable.id, id));
   if (!link) { res.status(404).json({ error: "Share link not found" }); return; }
   if (!isActive(link)) { res.status(400).json({ error: "Share link is revoked or expired" }); return; }
+  // Gate: emailing a share link is a privileged broadcast — owners/admins only.
+  const pid = await resourceProjectId(link.resourceType as "project" | "task" | "document", link.resourceId);
+  if (pid === null) {
+    if (!req.authUser!.isAdmin) { res.status(403).json({ error: "Only an admin can email links for global documents." }); return; }
+  } else if (!(await requireProjectManage(req, res, pid))) {
+    return;
+  }
 
   const raw = Array.isArray(body.recipients)
     ? body.recipients
@@ -234,6 +257,14 @@ router.post("/share-links/:id/email", async (req, res): Promise<void> => {
 
 router.delete("/share-links/:id", async (req, res): Promise<void> => {
   const { id } = IdParam.parse(req.params);
+  const [link] = await db.select().from(shareLinksTable).where(eq(shareLinksTable.id, id)).limit(1);
+  if (!link) { res.status(204).send(); return; }
+  const pid = await resourceProjectId(link.resourceType as "project" | "task" | "document", link.resourceId);
+  if (pid === null) {
+    if (!req.authUser!.isAdmin) { res.status(403).json({ error: "Only an admin can revoke links for global documents." }); return; }
+  } else if (!(await requireProjectManage(req, res, pid))) {
+    return;
+  }
   await db.update(shareLinksTable)
     .set({ revokedAt: new Date() })
     .where(eq(shareLinksTable.id, id));

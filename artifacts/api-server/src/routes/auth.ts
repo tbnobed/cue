@@ -5,6 +5,7 @@ import { db, usersTable } from "@workspace/db";
 import { eq, and, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generators, getOidcClient, isAuthConfigured, readOidcConfig } from "../lib/oidc";
+import { linkUserToMembersByEmail } from "../lib/access";
 
 const router = Router();
 
@@ -95,6 +96,16 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
     .values({ email, name, passwordHash, isAdmin: makeAdmin, lastLoginAt: new Date() })
     .returning();
 
+  // Auto-link the new user to any roster entry that was added before they
+  // had an account (admin pre-creates a member row for someone, then later
+  // creates their login). Idempotent — never overwrites existing links.
+  try {
+    const linked = await linkUserToMembersByEmail(user!.id, email);
+    if (linked > 0) req.log.info({ userId: user!.id, linked }, "linked user to existing member(s) by email");
+  } catch (err) {
+    req.log.error({ err, userId: user!.id }, "linkUserToMembersByEmail failed (signup)");
+  }
+
   // The new account is NOT signed in — we keep the admin's session intact.
   res.status(201).json(publicUser(user!));
 });
@@ -121,6 +132,13 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 
   await db.update(usersTable).set({ lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
+  // Re-link on every login (cheap & idempotent) so a roster entry added
+  // between logins picks up the user_id without an admin action.
+  try {
+    await linkUserToMembersByEmail(user.id, user.email ?? email);
+  } catch (err) {
+    req.log.error({ err, userId: user.id }, "linkUserToMembersByEmail failed (login)");
+  }
   await regenerateSession(req);
   req.session.userId = user.id;
   await saveSession(req);
@@ -195,6 +213,14 @@ router.get("/auth/callback", async (req, res): Promise<void> => {
       })
       .returning({ id: usersTable.id });
     const userId = row!.id;
+    // Re-link on every OIDC login. Authentik changing the user's primary
+    // email also updates the link to whatever roster row matches the new
+    // address.
+    try {
+      await linkUserToMembersByEmail(userId, email);
+    } catch (err) {
+      req.log.error({ err, userId }, "linkUserToMembersByEmail failed (oidc)");
+    }
 
     const returnTo = stored.returnTo && stored.returnTo.startsWith("/") ? stored.returnTo : "/";
     // Rotate the session id on the auth boundary (defends against fixation).

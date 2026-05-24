@@ -53,6 +53,7 @@ export * from './projectMember';
 export * from './projectProgress';
 export * from './projectProgressByCategoryItem';
 export * from './projectStatus';
+export * from './projectTransferInput';
 export * from './projectUpdate';
 export * from './projectUpdateStatus';
 export * from './publicShare';

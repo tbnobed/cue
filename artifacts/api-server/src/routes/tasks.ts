@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { tasksTable, membersTable, projectsTable, milestonesTable, taskNotesTable } from "@workspace/db";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import {
   ListTasksQueryParams,
   CreateTaskBody,
@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-zod";
 import { getSessionAuthor } from "../lib/session-author.js";
 import { notifyTaskEvent, actorFromUserId } from "../lib/notifications.js";
+import { requireProjectAccess, visibleProjectIdsCached } from "../lib/access.js";
 
 function diffTask(
   before: typeof tasksTable.$inferSelect,
@@ -39,7 +40,20 @@ router.get("/tasks", async (req, res): Promise<void> => {
   const params = ListTasksQueryParams.safeParse(req.query);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
-  let tasks = await db.select().from(tasksTable).orderBy(tasksTable.createdAt);
+  const visible = await visibleProjectIdsCached(req);
+  // Empty visibility means non-admin with no projects — return [] immediately.
+  if (visible !== "all" && visible.length === 0) { res.json([]); return; }
+  // If the caller asked for a specific project they can't see, treat it as
+  // "no tasks" rather than 403/404 (the list endpoint already shouldn't be
+  // a discovery oracle).
+  const requested = params.data.projectId;
+  if (visible !== "all" && requested !== undefined && !visible.includes(requested)) {
+    res.json([]); return;
+  }
+
+  let tasks = visible === "all"
+    ? await db.select().from(tasksTable).orderBy(tasksTable.createdAt)
+    : await db.select().from(tasksTable).where(inArray(tasksTable.projectId, visible)).orderBy(tasksTable.createdAt);
 
   const { projectId, milestoneId, assigneeId, status, category } = params.data;
   if (projectId !== undefined) tasks = tasks.filter(t => t.projectId === projectId);
@@ -55,6 +69,7 @@ router.get("/tasks", async (req, res): Promise<void> => {
 router.post("/tasks", async (req, res): Promise<void> => {
   const parsed = CreateTaskBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  if (!(await requireProjectAccess(req, res, parsed.data.projectId))) return;
   const [task] = await db.insert(tasksTable).values(parsed.data).returning();
   const enriched = await enrichTasks([task]);
   res.status(201).json(enriched[0]);
@@ -69,11 +84,17 @@ router.post("/tasks", async (req, res): Promise<void> => {
   })();
 });
 
-router.get("/tasks/upcoming", async (_req, res): Promise<void> => {
+// MUST stay registered before /tasks/:id — Express matches in order and the
+// param route would otherwise capture "/tasks/upcoming".
+router.get("/tasks/upcoming", async (req, res): Promise<void> => {
+  const visible = await visibleProjectIdsCached(req);
+  if (visible !== "all" && visible.length === 0) { res.json([]); return; }
   const today = new Date().toISOString().split("T")[0];
   const future = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-  const tasks = await db.select().from(tasksTable).orderBy(tasksTable.dueDate);
-  const filtered = tasks.filter(t => t.status !== "done" && t.dueDate && t.dueDate >= today && t.dueDate <= future);
+  const all = visible === "all"
+    ? await db.select().from(tasksTable).orderBy(tasksTable.dueDate)
+    : await db.select().from(tasksTable).where(inArray(tasksTable.projectId, visible)).orderBy(tasksTable.dueDate);
+  const filtered = all.filter(t => t.status !== "done" && t.dueDate && t.dueDate >= today && t.dueDate <= future);
   res.json(await enrichTasks(filtered));
 });
 
@@ -81,6 +102,7 @@ router.get("/tasks/:id", async (req, res): Promise<void> => {
   const { id } = GetTaskParams.parse(req.params);
   const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, id));
   if (!task) { res.status(404).json({ error: "Not found" }); return; }
+  if (!(await requireProjectAccess(req, res, task.projectId))) return;
   const enriched = await enrichTasks([task]);
   res.json(enriched[0]);
 });
@@ -96,6 +118,12 @@ router.patch("/tasks/:id", async (req, res): Promise<void> => {
 
   const [existing] = await db.select().from(tasksTable).where(eq(tasksTable.id, id));
   if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+  if (!(await requireProjectAccess(req, res, existing.projectId))) return;
+  // Prevent re-parenting a task to a project the caller can't see.
+  if (typeof (rest as { projectId?: number }).projectId === "number"
+      && (rest as { projectId: number }).projectId !== existing.projectId) {
+    if (!(await requireProjectAccess(req, res, (rest as { projectId: number }).projectId))) return;
+  }
 
   const updateData: Record<string, unknown> = { ...rest, updatedAt: new Date() };
   if (rest.status === "done" && !rest.completedAt) {
@@ -140,19 +168,19 @@ router.patch("/tasks/:id", async (req, res): Promise<void> => {
 router.delete("/tasks/:id", async (req, res): Promise<void> => {
   const { id } = DeleteTaskParams.parse(req.params);
   const [before] = await db.select().from(tasksTable).where(eq(tasksTable.id, id));
+  if (!before) { res.status(404).json({ error: "Not found" }); return; }
+  if (!(await requireProjectAccess(req, res, before.projectId))) return;
   await db.delete(tasksTable).where(eq(tasksTable.id, id));
   res.status(204).send();
-  if (before) {
-    void (async () => {
-      const project = await lookupProject(before.projectId);
-      if (!project) return;
-      const actor = await actorFromUserId(req.session?.userId);
-      await notifyTaskEvent("deleted", {
-        id: before.id, projectId: before.projectId, title: before.title,
-        status: before.status, priority: before.priority, assigneeId: before.assigneeId, dueDate: before.dueDate,
-      }, project, actor);
-    })();
-  }
+  void (async () => {
+    const project = await lookupProject(before.projectId);
+    if (!project) return;
+    const actor = await actorFromUserId(req.session?.userId);
+    await notifyTaskEvent("deleted", {
+      id: before.id, projectId: before.projectId, title: before.title,
+      status: before.status, priority: before.priority, assigneeId: before.assigneeId, dueDate: before.dueDate,
+    }, project, actor);
+  })();
 });
 
 async function enrichTasks(tasks: (typeof tasksTable.$inferSelect)[]) {

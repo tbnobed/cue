@@ -1,14 +1,33 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { projectsTable, tasksTable, milestonesTable, activityTable } from "@workspace/db";
+import { inArray } from "drizzle-orm";
+import { visibleProjectIdsCached } from "../lib/access.js";
 
 const router = Router();
 
-router.get("/dashboard/summary", async (_req, res): Promise<void> => {
+router.get("/dashboard/summary", async (req, res): Promise<void> => {
+  const visible = await visibleProjectIdsCached(req);
+  // Non-admin with zero projects → empty dashboard, skip the queries.
+  if (visible !== "all" && visible.length === 0) {
+    res.json({
+      totalProjects: 0, activeProjects: 0,
+      totalTasks: 0, completedTasks: 0, overdueTasks: 0,
+      upcomingDeadlines: [], tasksByStatus: [], tasksByCategory: [],
+    });
+    return;
+  }
   const [projects, tasks, milestones] = await Promise.all([
-    db.select().from(projectsTable),
-    db.select().from(tasksTable),
-    db.select().from(milestonesTable).orderBy(milestonesTable.dueDate),
+    visible === "all"
+      ? db.select().from(projectsTable)
+      : db.select().from(projectsTable).where(inArray(projectsTable.id, visible)),
+    visible === "all"
+      ? db.select().from(tasksTable)
+      : db.select().from(tasksTable).where(inArray(tasksTable.projectId, visible)),
+    (visible === "all"
+      ? db.select().from(milestonesTable)
+      : db.select().from(milestonesTable).where(inArray(milestonesTable.projectId, visible))
+    ).orderBy(milestonesTable.dueDate),
   ]);
 
   const now = new Date().toISOString().split("T")[0];
@@ -68,8 +87,16 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
   });
 });
 
-router.get("/dashboard/activity", async (_req, res): Promise<void> => {
-  const activity = await db.select().from(activityTable).orderBy(activityTable.createdAt).limit(30);
+router.get("/dashboard/activity", async (req, res): Promise<void> => {
+  const visible = await visibleProjectIdsCached(req);
+  if (visible !== "all" && visible.length === 0) { res.json([]); return; }
+  // Filter activity to visible projects only. Fetch a larger window then trim
+  // post-filter, since the activity table can include rows for projects the
+  // caller can't see and we still want 30 visible items in the response.
+  const all = visible === "all"
+    ? await db.select().from(activityTable).orderBy(activityTable.createdAt).limit(30)
+    : await db.select().from(activityTable).where(inArray(activityTable.projectId, visible)).orderBy(activityTable.createdAt).limit(30);
+  const activity = all;
   res.json(
     activity.reverse().map(a => ({
       id: a.id,

@@ -8,9 +8,13 @@ import {
   UpdateMemberBody,
   DeleteMemberParams,
 } from "@workspace/api-zod";
+import { linkMemberToUserByEmail } from "../lib/access.js";
 
 const router = Router();
 
+// The team directory is intentionally global to all authenticated users —
+// project members need to discover one another (e.g. to assign a task).
+// Per-project visibility lives on tasks/projects, not on the roster.
 router.get("/members", async (_req, res): Promise<void> => {
   const members = await db.select().from(membersTable).orderBy(membersTable.name);
   res.json(members.map(fmt));
@@ -20,6 +24,13 @@ router.post("/members", async (req, res): Promise<void> => {
   const parsed = CreateMemberBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [m] = await db.insert(membersTable).values(parsed.data).returning();
+  // If the roster entry has an email and a matching user exists, bind them
+  // now (so that user immediately sees projects this member is on, without
+  // waiting for their next login).
+  if (m.email) {
+    try { await linkMemberToUserByEmail(m.id, m.email); }
+    catch (err) { req.log.error({ err, memberId: m.id }, "linkMemberToUserByEmail failed (create)"); }
+  }
   res.status(201).json(fmt(m));
 });
 
@@ -29,6 +40,11 @@ router.patch("/members/:id", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [m] = await db.update(membersTable).set(parsed.data).where(eq(membersTable.id, id)).returning();
   if (!m) { res.status(404).json({ error: "Not found" }); return; }
+  // Email changed → re-attempt link (only takes effect if user_id is NULL).
+  if (parsed.data.email && m.email) {
+    try { await linkMemberToUserByEmail(m.id, m.email); }
+    catch (err) { req.log.error({ err, memberId: m.id }, "linkMemberToUserByEmail failed (update)"); }
+  }
   res.json(fmt(m));
 });
 
@@ -52,6 +68,7 @@ function fmt(m: typeof membersTable.$inferSelect) {
     location: m.location ?? null,
     company: m.company ?? null,
     notes: m.notes ?? null,
+    userId: m.userId ?? null,
     createdAt: m.createdAt.toISOString(),
   };
 }

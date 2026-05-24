@@ -8,11 +8,13 @@ import {
   AddProjectMemberBody,
   RemoveProjectMemberParams,
 } from "@workspace/api-zod";
+import { requireProjectAccess, requireProjectManage } from "../lib/access.js";
 
 const router = Router();
 
 router.get("/projects/:projectId/members", async (req, res): Promise<void> => {
   const { projectId } = ListProjectMembersParams.parse(req.params);
+  if (!(await requireProjectAccess(req, res, projectId))) return;
   const rows = await db
     .select({
       id: projectMembersTable.id,
@@ -35,6 +37,7 @@ router.get("/projects/:projectId/members", async (req, res): Promise<void> => {
 
 router.post("/projects/:projectId/members", async (req, res): Promise<void> => {
   const { projectId } = AddProjectMemberParams.parse(req.params);
+  if (!(await requireProjectManage(req, res, projectId))) return;
   const parsed = AddProjectMemberBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
@@ -82,6 +85,7 @@ router.post("/projects/:projectId/members", async (req, res): Promise<void> => {
 
 router.delete("/projects/:projectId/members/:memberId", async (req, res): Promise<void> => {
   const { projectId, memberId } = RemoveProjectMemberParams.parse(req.params);
+  if (!(await requireProjectManage(req, res, projectId))) return;
   await db.delete(projectMembersTable).where(and(
     eq(projectMembersTable.projectId, projectId),
     eq(projectMembersTable.memberId, memberId),

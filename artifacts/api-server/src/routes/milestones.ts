@@ -10,17 +10,20 @@ import {
   UpdateMilestoneBody,
   DeleteMilestoneParams,
 } from "@workspace/api-zod";
+import { requireProjectAccess } from "../lib/access.js";
 
 const router = Router();
 
 router.get("/projects/:projectId/milestones", async (req, res): Promise<void> => {
   const { projectId } = ListMilestonesParams.parse(req.params);
+  if (!(await requireProjectAccess(req, res, projectId))) return;
   const milestones = await db.select().from(milestonesTable).where(eq(milestonesTable.projectId, projectId)).orderBy(milestonesTable.dueDate);
   res.json(milestones.map(fmt));
 });
 
 router.post("/projects/:projectId/milestones", async (req, res): Promise<void> => {
   const { projectId } = CreateMilestoneParams.parse(req.params);
+  if (!(await requireProjectAccess(req, res, projectId))) return;
   const parsed = CreateMilestoneBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [m] = await db.insert(milestonesTable).values({ ...parsed.data, projectId }).returning();
@@ -31,6 +34,9 @@ router.patch("/milestones/:id", async (req, res): Promise<void> => {
   const { id } = UpdateMilestoneParams.parse(req.params);
   const parsed = UpdateMilestoneBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const [existing] = await db.select({ projectId: milestonesTable.projectId }).from(milestonesTable).where(eq(milestonesTable.id, id));
+  if (!existing) { res.status(404).json({ error: "Not found" }); return; }
+  if (!(await requireProjectAccess(req, res, existing.projectId))) return;
   const [m] = await db.update(milestonesTable).set(parsed.data).where(eq(milestonesTable.id, id)).returning();
   if (!m) { res.status(404).json({ error: "Not found" }); return; }
   res.json(fmt(m));
@@ -38,6 +44,9 @@ router.patch("/milestones/:id", async (req, res): Promise<void> => {
 
 router.delete("/milestones/:id", async (req, res): Promise<void> => {
   const { id } = DeleteMilestoneParams.parse(req.params);
+  const [existing] = await db.select({ projectId: milestonesTable.projectId }).from(milestonesTable).where(eq(milestonesTable.id, id));
+  if (!existing) { res.status(204).send(); return; }
+  if (!(await requireProjectAccess(req, res, existing.projectId))) return;
   await db.delete(milestonesTable).where(eq(milestonesTable.id, id));
   res.status(204).send();
 });

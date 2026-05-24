@@ -132,6 +132,37 @@ paths:
         "204":
           description: Deleted
 
+  /projects/{id}/transfer:
+    post:
+      operationId: transferProject
+      tags: [projects]
+      summary: Transfer ownership of a project to another user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectTransferInput"
+      responses:
+        "200":
+          description: Project with updated ownerUserId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "400":
+          description: Invalid recipient
+        "403":
+          description: Forbidden — not owner or admin
+        "404":
+          description: Not found
+
   /projects/{id}/progress:
     get:
       operationId: getProjectProgress
@@ -1012,8 +1043,17 @@ components:
         targetDate:     { type: ["string", "null"] }
         completedDate:  { type: ["string", "null"] }
         budget:         { type: ["number", "null"] }
+        ownerUserId:    { type: ["integer", "null"], description: "Owner user id. Null means unowned (admin-only operations)." }
         createdAt:      { type: string }
         updatedAt:      { type: string }
+
+    ProjectTransferInput:
+      type: object
+      required: [newOwnerUserId]
+      properties:
+        newOwnerUserId:
+          type: ["integer", "null"]
+          description: "New owner user id, or null to clear the owner (admin-only)."
 
     ProjectInput:
       type: object

@@ -37,8 +37,21 @@ export interface Project {
   completedDate?: string | null;
   /** @nullable */
   budget?: number | null;
+  /**
+     * Owner user id. Null means unowned (admin-only operations).
+     * @nullable
+     */
+  ownerUserId?: number | null;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface ProjectTransferInput {
+  /**
+     * New owner user id, or null to clear the owner (admin-only).
+     * @nullable
+     */
+  newOwnerUserId: number | null;
 }
 
 export type ProjectInputStatus = typeof ProjectInputStatus[keyof typeof ProjectInputStatus];

@@ -31,6 +31,7 @@ export const ListProjectsResponseItem = zod.object({
   "targetDate": zod.string().nullish(),
   "completedDate": zod.string().nullish(),
   "budget": zod.number().nullish(),
+  "ownerUserId": zod.number().nullish().describe('Owner user id. Null means unowned (admin-only operations).'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })
@@ -73,6 +74,7 @@ export const GetProjectResponse = zod.object({
   "targetDate": zod.string().nullish(),
   "completedDate": zod.string().nullish(),
   "budget": zod.number().nullish(),
+  "ownerUserId": zod.number().nullish().describe('Owner user id. Null means unowned (admin-only operations).'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })
@@ -111,6 +113,7 @@ export const UpdateProjectResponse = zod.object({
   "targetDate": zod.string().nullish(),
   "completedDate": zod.string().nullish(),
   "budget": zod.number().nullish(),
+  "ownerUserId": zod.number().nullish().describe('Owner user id. Null means unowned (admin-only operations).'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 })
@@ -121,6 +124,34 @@ export const UpdateProjectResponse = zod.object({
  */
 export const DeleteProjectParams = zod.object({
   "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Transfer ownership of a project to another user
+ */
+export const TransferProjectParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const TransferProjectBody = zod.object({
+  "newOwnerUserId": zod.number().nullable().describe('New owner user id, or null to clear the owner (admin-only).')
+})
+
+export const TransferProjectResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "status": zod.enum(['planning', 'in_progress', 'on_hold', 'completed']),
+  "phase": zod.string().nullish(),
+  "startDate": zod.string().nullish(),
+  "targetDate": zod.string().nullish(),
+  "completedDate": zod.string().nullish(),
+  "budget": zod.number().nullish(),
+  "ownerUserId": zod.number().nullish().describe('Owner user id. Null means unowned (admin-only operations).'),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional()
 })
 
 
@@ -941,6 +972,7 @@ export const GetPublicShareResponse = zod.object({
   "targetDate": zod.string().nullish(),
   "completedDate": zod.string().nullish(),
   "budget": zod.number().nullish(),
+  "ownerUserId": zod.number().nullish().describe('Owner user id. Null means unowned (admin-only operations).'),
   "createdAt": zod.string(),
   "updatedAt": zod.string().optional()
 }).optional(),

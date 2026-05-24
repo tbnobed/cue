@@ -17,6 +17,7 @@ import authRouter from "./auth";
 import shareLinksRouter from "./share-links";
 import publicSharesRouter from "./public-shares";
 import adminUsersRouter from "./admin-users";
+import uploadsRouter from "./uploads";
 import { requireAuth } from "../middlewares/require-auth";
 
 const router: IRouter = Router();
@@ -45,6 +46,9 @@ router.use(requireAuth, documentsRouter);
 router.use(requireAuth, foldersRouter);
 router.use(requireAuth, collabRouter);
 router.use(requireAuth, shareLinksRouter);
+// uploadsRouter resolves filename → document → project and gates with
+// requireProjectAccess (replacing the old unsafe express.static mount).
+router.use(requireAuth, uploadsRouter);
 // adminUsersRouter does its own requireAdmin check internally on every path.
 router.use(requireAuth, adminUsersRouter);
 
