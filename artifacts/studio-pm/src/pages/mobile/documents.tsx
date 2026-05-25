@@ -9,13 +9,8 @@ const CAT_LABEL: Record<DocumentCategory, string> = {
   as_built: "ASB", safety: "SFT", general: "DOC",
 };
 const CAT_TONE: Record<DocumentCategory, "" | "violet" | "blue" | "amber" | "rose"> = {
-  spec: "",        // default emerald
-  plan: "blue",
-  permit: "amber",
-  vendor: "violet",
-  as_built: "blue",
-  safety: "rose",
-  general: "",
+  spec: "", plan: "blue", permit: "amber", vendor: "violet",
+  as_built: "blue", safety: "rose", general: "",
 };
 const CAT_FULL: Record<DocumentCategory, string> = {
   spec: "Spec", plan: "Plan", permit: "Permit", vendor: "Vendor",
@@ -54,15 +49,36 @@ export default function MobileDocuments() {
 
 function DocTile({ doc }: { doc: Document }) {
   const tone = CAT_TONE[doc.category] ?? "";
+  const inner = (
+    <>
+      <div className={`ti ${tone}`}>{CAT_LABEL[doc.category] ?? "DOC"}</div>
+      <div className="tn">{doc.title}</div>
+      <div className="tc">{CAT_FULL[doc.category] ?? doc.category}</div>
+    </>
+  );
+  // Documents with a `url` are external links (Google Docs, SharePoint, etc.) —
+  // open the URL directly. Only documents without a URL (uploaded files) route
+  // through the in-app editor.
+  if (doc.url) {
+    return (
+      <a
+        href={doc.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="tile m-glass"
+        data-testid={`mobile-doc-${doc.id}`}
+      >
+        {inner}
+      </a>
+    );
+  }
   return (
     <Link
       href={`/documents/${doc.id}/edit`}
       className="tile m-glass"
       data-testid={`mobile-doc-${doc.id}`}
     >
-      <div className={`ti ${tone}`}>{CAT_LABEL[doc.category] ?? "DOC"}</div>
-      <div className="tn">{doc.title}</div>
-      <div className="tc">{CAT_FULL[doc.category] ?? doc.category}</div>
+      {inner}
     </Link>
   );
 }

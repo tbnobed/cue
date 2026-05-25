@@ -222,21 +222,44 @@ function DocsList({ items }: { items: Document[] }) {
   }
   return (
     <>
-      {items.map((d) => (
-        <Link
-          key={d.id}
-          href={`/documents/${d.id}/edit`}
-          className="mdoc m-glass"
-          data-testid={`mobile-detail-doc-${d.id}`}
-        >
-          <div className={`di ${DOC_TONE[d.category] ?? ""}`}>{DOC_LABEL[d.category] ?? "DOC"}</div>
-          <div className="dn">
-            <b>{d.title}</b>
-            <div className="m"><span className="ty">{d.category}</span>{d.version ? `v${d.version}` : "—"}</div>
-          </div>
-          <div className="go"><ChevronRight /></div>
-        </Link>
-      ))}
+      {items.map((d) => {
+        const body = (
+          <>
+            <div className={`di ${DOC_TONE[d.category] ?? ""}`}>{DOC_LABEL[d.category] ?? "DOC"}</div>
+            <div className="dn">
+              <b>{d.title}</b>
+              <div className="m"><span className="ty">{d.category}</span>{d.version ? `v${d.version}` : "—"}</div>
+            </div>
+            <div className="go"><ChevronRight /></div>
+          </>
+        );
+        // External link docs open their URL directly; uploaded files go through
+        // the in-app editor.
+        if (d.url) {
+          return (
+            <a
+              key={d.id}
+              href={d.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mdoc m-glass"
+              data-testid={`mobile-detail-doc-${d.id}`}
+            >
+              {body}
+            </a>
+          );
+        }
+        return (
+          <Link
+            key={d.id}
+            href={`/documents/${d.id}/edit`}
+            className="mdoc m-glass"
+            data-testid={`mobile-detail-doc-${d.id}`}
+          >
+            {body}
+          </Link>
+        );
+      })}
     </>
   );
 }
