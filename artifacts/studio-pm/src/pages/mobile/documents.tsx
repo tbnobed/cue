@@ -2,16 +2,24 @@ import {
   useListDocuments, type Document, type DocumentCategory,
 } from "@workspace/api-client-react";
 import { Link } from "wouter";
-import { ChevronRight, Loader2 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Loader2 } from "lucide-react";
 
 const CAT_LABEL: Record<DocumentCategory, string> = {
   spec: "SPC", plan: "PLN", permit: "PMT", vendor: "VEN",
   as_built: "ASB", safety: "SFT", general: "DOC",
 };
-const CAT_TONE: Record<DocumentCategory, "" | "violet" | "blue" | "amber"> = {
-  spec: "", plan: "blue", permit: "amber", vendor: "violet",
-  as_built: "", safety: "amber", general: "blue",
+const CAT_TONE: Record<DocumentCategory, "" | "violet" | "blue" | "amber" | "rose"> = {
+  spec: "",        // default emerald
+  plan: "blue",
+  permit: "amber",
+  vendor: "violet",
+  as_built: "blue",
+  safety: "rose",
+  general: "",
+};
+const CAT_FULL: Record<DocumentCategory, string> = {
+  spec: "Spec", plan: "Plan", permit: "Permit", vendor: "Vendor",
+  as_built: "As-Built", safety: "Safety", general: "Doc",
 };
 
 export default function MobileDocuments() {
@@ -36,34 +44,25 @@ export default function MobileDocuments() {
           <span>Upload specs, plans, permits, and more from the desktop app.</span>
         </div>
       ) : (
-        (docs ?? []).map((d) => <DocRow key={d.id} doc={d} />)
+        <div className="mdocgrid">
+          {(docs ?? []).map((d) => <DocTile key={d.id} doc={d} />)}
+        </div>
       )}
     </>
   );
 }
 
-function DocRow({ doc }: { doc: Document }) {
+function DocTile({ doc }: { doc: Document }) {
   const tone = CAT_TONE[doc.category] ?? "";
-  const meta = [
-    doc.projectName,
-    formatDistanceToNow(new Date(doc.createdAt), { addSuffix: true }),
-  ].filter(Boolean).join(" · ");
-
   return (
     <Link
-      href={doc.projectId ? `/projects/${doc.projectId}` : "/documents"}
-      className="mdoc m-glass"
+      href={`/documents/${doc.id}/edit`}
+      className="tile m-glass"
       data-testid={`mobile-doc-${doc.id}`}
     >
-      <div className={`di ${tone}`}>{CAT_LABEL[doc.category] ?? "DOC"}</div>
-      <div className="dn">
-        <b>{doc.title}</b>
-        <div className="m">
-          <span className="ty">{doc.category}</span>
-          {meta}
-        </div>
-      </div>
-      <div className="go"><ChevronRight /></div>
+      <div className={`ti ${tone}`}>{CAT_LABEL[doc.category] ?? "DOC"}</div>
+      <div className="tn">{doc.title}</div>
+      <div className="tc">{CAT_FULL[doc.category] ?? doc.category}</div>
     </Link>
   );
 }
