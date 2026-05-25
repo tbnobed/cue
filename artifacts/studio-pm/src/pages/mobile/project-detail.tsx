@@ -10,9 +10,9 @@ import {
   type Task, type TaskPriority, type Document,
 } from "@workspace/api-client-react";
 import { Check, Loader2, ChevronRight } from "lucide-react";
-import { Link } from "wouter";
 import { format } from "date-fns";
 import { useMobileTitle } from "@/components/layout/mobile-shell";
+import { useOpenDocument } from "@/lib/open-document";
 
 type Tab = "tasks" | "milestones" | "crew" | "docs";
 
@@ -217,49 +217,29 @@ const DOC_TONE: Record<string, "" | "violet" | "blue" | "amber"> = {
 };
 
 function DocsList({ items }: { items: Document[] }) {
+  const open = useOpenDocument();
   if (items.length === 0) {
     return <Empty title="No documents yet" sub="Upload specs, plans, and permits from the desktop." />;
   }
   return (
     <>
-      {items.map((d) => {
-        const body = (
-          <>
-            <div className={`di ${DOC_TONE[d.category] ?? ""}`}>{DOC_LABEL[d.category] ?? "DOC"}</div>
-            <div className="dn">
-              <b>{d.title}</b>
-              <div className="m"><span className="ty">{d.category}</span>{d.version ? `v${d.version}` : "—"}</div>
-            </div>
-            <div className="go"><ChevronRight /></div>
-          </>
-        );
-        // External link docs open their URL directly; uploaded files go through
-        // the in-app editor.
-        if (d.url) {
-          return (
-            <a
-              key={d.id}
-              href={d.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mdoc m-glass"
-              data-testid={`mobile-detail-doc-${d.id}`}
-            >
-              {body}
-            </a>
-          );
-        }
-        return (
-          <Link
-            key={d.id}
-            href={`/documents/${d.id}/edit`}
-            className="mdoc m-glass"
-            data-testid={`mobile-detail-doc-${d.id}`}
-          >
-            {body}
-          </Link>
-        );
-      })}
+      {items.map((d) => (
+        <button
+          key={d.id}
+          type="button"
+          onClick={() => open(d)}
+          className="mdoc m-glass"
+          data-testid={`mobile-detail-doc-${d.id}`}
+          style={{ width: "100%", textAlign: "left" }}
+        >
+          <div className={`di ${DOC_TONE[d.category] ?? ""}`}>{DOC_LABEL[d.category] ?? "DOC"}</div>
+          <div className="dn">
+            <b>{d.title}</b>
+            <div className="m"><span className="ty">{d.category}</span>{d.version ? `v${d.version}` : "—"}</div>
+          </div>
+          <div className="go"><ChevronRight /></div>
+        </button>
+      ))}
     </>
   );
 }

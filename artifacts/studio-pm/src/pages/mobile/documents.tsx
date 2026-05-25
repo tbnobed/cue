@@ -1,8 +1,8 @@
 import {
   useListDocuments, type Document, type DocumentCategory,
 } from "@workspace/api-client-react";
-import { Link } from "wouter";
 import { Loader2 } from "lucide-react";
+import { useOpenDocument } from "@/lib/open-document";
 
 const CAT_LABEL: Record<DocumentCategory, string> = {
   spec: "SPC", plan: "PLN", permit: "PMT", vendor: "VEN",
@@ -19,6 +19,7 @@ const CAT_FULL: Record<DocumentCategory, string> = {
 
 export default function MobileDocuments() {
   const { data: docs, isLoading } = useListDocuments({});
+  const open = useOpenDocument();
 
   return (
     <>
@@ -40,45 +41,27 @@ export default function MobileDocuments() {
         </div>
       ) : (
         <div className="mdocgrid">
-          {(docs ?? []).map((d) => <DocTile key={d.id} doc={d} />)}
+          {(docs ?? []).map((d) => (
+            <DocTile key={d.id} doc={d} onOpen={() => open(d)} />
+          ))}
         </div>
       )}
     </>
   );
 }
 
-function DocTile({ doc }: { doc: Document }) {
+function DocTile({ doc, onOpen }: { doc: Document; onOpen: () => void }) {
   const tone = CAT_TONE[doc.category] ?? "";
-  const inner = (
-    <>
-      <div className={`ti ${tone}`}>{CAT_LABEL[doc.category] ?? "DOC"}</div>
-      <div className="tn">{doc.title}</div>
-      <div className="tc">{CAT_FULL[doc.category] ?? doc.category}</div>
-    </>
-  );
-  // Documents with a `url` are external links (Google Docs, SharePoint, etc.) —
-  // open the URL directly. Only documents without a URL (uploaded files) route
-  // through the in-app editor.
-  if (doc.url) {
-    return (
-      <a
-        href={doc.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="tile m-glass"
-        data-testid={`mobile-doc-${doc.id}`}
-      >
-        {inner}
-      </a>
-    );
-  }
   return (
-    <Link
-      href={`/documents/${doc.id}/edit`}
+    <button
+      type="button"
+      onClick={onOpen}
       className="tile m-glass"
       data-testid={`mobile-doc-${doc.id}`}
     >
-      {inner}
-    </Link>
+      <div className={`ti ${tone}`}>{CAT_LABEL[doc.category] ?? "DOC"}</div>
+      <div className="tn">{doc.title}</div>
+      <div className="tc">{CAT_FULL[doc.category] ?? doc.category}</div>
+    </button>
   );
 }
