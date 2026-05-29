@@ -37,6 +37,7 @@ import {
   Users, UserPlus, X, ChevronDown, Phone, Mail, StickyNote,
 } from "lucide-react";
 import { ShareDialog } from "@/components/share-dialog";
+import { CallSheetsTab } from "@/components/call-sheets-tab";
 import { TaskDetailDialog } from "@/components/task-detail-dialog";
 import { AddLinkDialog } from "@/components/add-link-dialog";
 import { NewDocumentButton } from "@/components/new-document-button";
@@ -123,6 +124,7 @@ export default function ProjectDetail() {
           <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
           <TabsTrigger value="tasks" data-testid="tab-tasks">Tasks</TabsTrigger>
           <TabsTrigger value="documents" data-testid="tab-documents">Documents</TabsTrigger>
+          <TabsTrigger value="call-sheets" data-testid="tab-call-sheets">Call Sheets</TabsTrigger>
           <TabsTrigger value="team" data-testid="tab-team">Team</TabsTrigger>
         </TabsList>
 
@@ -136,6 +138,10 @@ export default function ProjectDetail() {
 
         <TabsContent value="documents" className="outline-none">
           <DocumentsTab projectId={projectId} />
+        </TabsContent>
+
+        <TabsContent value="call-sheets" className="outline-none">
+          <CallSheetsTab projectId={projectId} projectName={project.name} />
         </TabsContent>
 
         <TabsContent value="team" className="outline-none">

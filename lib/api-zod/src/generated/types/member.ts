@@ -41,6 +41,18 @@ export interface Member {
   company?: string | null;
   /** @nullable */
   notes?: string | null;
+  /**
+     * Standard full-day crew rate in whole dollars. Pre-fills a crew invite's rate.
+     * @minimum 0
+     * @nullable
+     */
+  fullDayRate?: number | null;
+  /**
+     * Standard half-day crew rate in whole dollars.
+     * @minimum 0
+     * @nullable
+     */
+  halfDayRate?: number | null;
   /** When true, an OIDC sign-in matching this member's email lands ACTIVE — skips the admin-must-approve step on /admin/users. The user still has to verify their email (via Cue or the IdP) before signing in. */
   preApproved?: boolean;
   createdAt: string;

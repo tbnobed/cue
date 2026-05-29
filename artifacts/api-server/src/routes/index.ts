@@ -16,6 +16,8 @@ import configRouter from "./config";
 import authRouter from "./auth";
 import shareLinksRouter from "./share-links";
 import publicSharesRouter from "./public-shares";
+import callSheetsRouter from "./call-sheets";
+import publicCrewRouter from "./public-crew";
 import adminUsersRouter from "./admin-users";
 import uploadsRouter from "./uploads";
 import { requireAuth } from "../middlewares/require-auth";
@@ -31,6 +33,8 @@ router.use(authRouter);
 router.use(wopiRouter);
 // public share viewer — read-only, gated by opaque random token.
 router.use(publicSharesRouter);
+// public crew availability reply — anonymous, gated by opaque random token.
+router.use(publicCrewRouter);
 
 // --- Authenticated routes ---
 // All product data routes require a signed-in user.
@@ -46,6 +50,7 @@ router.use(requireAuth, documentsRouter);
 router.use(requireAuth, foldersRouter);
 router.use(requireAuth, collabRouter);
 router.use(requireAuth, shareLinksRouter);
+router.use(requireAuth, callSheetsRouter);
 // uploadsRouter resolves filename → document → project and gates with
 // requireProjectAccess (replacing the old unsafe express.static mount).
 router.use(requireAuth, uploadsRouter);

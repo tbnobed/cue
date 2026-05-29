@@ -3,18 +3,20 @@ import { useRoute } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetProject, useGetProjectProgress, useListMilestones, useListTasks,
-  useListProjectMembers, useUpdateTask, useListDocuments,
+  useListProjectMembers, useUpdateTask, useListDocuments, useListCallSheets,
   getGetProjectQueryKey, getGetProjectProgressQueryKey,
   getListMilestonesQueryKey, getListProjectMembersQueryKey, getListDocumentsQueryKey,
   getListTasksQueryKey, getGetDashboardSummaryQueryKey, getGetDashboardActivityQueryKey,
-  type Task, type TaskPriority, type Document,
+  getListCallSheetsQueryKey,
+  type Task, type TaskPriority, type Document, type CallSheet,
 } from "@workspace/api-client-react";
-import { Check, Loader2, ChevronRight } from "lucide-react";
+import { Check, Loader2, ChevronRight, CalendarDays, Clock, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { useMobileTitle } from "@/components/layout/mobile-shell";
 import { useOpenDocument } from "@/lib/open-document";
+import { printCallSheet } from "@/lib/print-call-sheet";
 
-type Tab = "tasks" | "milestones" | "crew" | "docs";
+type Tab = "tasks" | "milestones" | "crew" | "sheets" | "docs";
 
 const STATUS_LABEL: Record<string, string> = {
   in_progress: "In Progress",
@@ -51,6 +53,9 @@ export default function MobileProjectDetail() {
   const { data: docs } = useListDocuments(docsParams, {
     query: { enabled: id > 0, queryKey: getListDocumentsQueryKey(docsParams) },
   });
+  const { data: sheets } = useListCallSheets(id, {
+    query: { enabled: id > 0, queryKey: getListCallSheetsQueryKey(id) },
+  });
 
   const [tab, setTab] = useState<Tab>("tasks");
 
@@ -84,7 +89,7 @@ export default function MobileProjectDetail() {
       </div>
 
       <div className="seg" role="tablist">
-        {(["tasks", "milestones", "crew", "docs"] as Tab[]).map((t) => (
+        {(["tasks", "milestones", "crew", "sheets", "docs"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -94,7 +99,7 @@ export default function MobileProjectDetail() {
             aria-selected={tab === t}
             data-testid={`mobile-detail-tab-${t}`}
           >
-            {t === "tasks" ? "Tasks" : t === "milestones" ? "Milestones" : t === "crew" ? "Crew" : "Docs"}
+            {t === "tasks" ? "Tasks" : t === "milestones" ? "Milestones" : t === "crew" ? "Crew" : t === "sheets" ? "Call Sheets" : "Docs"}
           </button>
         ))}
       </div>
@@ -107,6 +112,9 @@ export default function MobileProjectDetail() {
       )}
       {tab === "crew" && (
         <CrewList items={crew ?? []} />
+      )}
+      {tab === "sheets" && (
+        <CallSheetsList items={sheets ?? []} projectName={project.name} />
       )}
       {tab === "docs" && (
         <DocsList items={docs ?? []} />
@@ -206,6 +214,56 @@ function CrewList({ items }: { items: Array<{ id: number; name: string; role: st
   );
 }
 
+
+const SHEET_STATUS_LABEL: Record<string, string> = {
+  draft: "Draft", sent: "Sent", final: "Final",
+};
+
+function CallSheetsList({ items, projectName }: { items: CallSheet[]; projectName: string }) {
+  if (items.length === 0) {
+    return <Empty title="No call sheets" sub="Create call sheets from the desktop." />;
+  }
+  return (
+    <>
+      {items.map((s) => {
+        const confirmed = (s.crew ?? []).filter((c) => c.status === "confirmed" || c.status === "available").length;
+        const total = (s.crew ?? []).length;
+        return (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => printCallSheet(s, projectName)}
+            className="mdoc m-glass"
+            data-testid={`mobile-call-sheet-${s.id}`}
+            style={{ width: "100%", textAlign: "left" }}
+          >
+            <div className="dn" style={{ flex: 1 }}>
+              <b>{s.title?.trim() || format(new Date(s.date), "EEE, MMM d")}</b>
+              <div className="m" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                  <CalendarDays style={{ width: 11, height: 11 }} />{format(new Date(s.date), "MMM d, yyyy")}
+                </span>
+                {s.callTime && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <Clock style={{ width: 11, height: 11 }} />{s.callTime}
+                  </span>
+                )}
+                {s.location && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <MapPin style={{ width: 11, height: 11 }} />{s.location}
+                  </span>
+                )}
+                <span className="ty">{SHEET_STATUS_LABEL[s.status] ?? s.status}</span>
+                {total > 0 && <span>{confirmed}/{total} crew</span>}
+              </div>
+            </div>
+            <div className="go"><ChevronRight /></div>
+          </button>
+        );
+      })}
+    </>
+  );
+}
 
 const DOC_LABEL: Record<string, string> = {
   spec: "SPC", plan: "PLN", permit: "PMT", vendor: "VEN",

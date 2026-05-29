@@ -547,6 +547,12 @@ export const DeleteAdminUserParams = zod.object({
 /**
  * @summary List all team members
  */
+export const listMembersResponseFullDayRateMin = 0;
+
+export const listMembersResponseHalfDayRateMin = 0;
+
+
+
 export const ListMembersResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -560,6 +566,8 @@ export const ListMembersResponseItem = zod.object({
   "location": zod.string().nullish().describe('City, timezone, or site assignment.'),
   "company": zod.string().nullish().describe('External company, for contractors\/integrators.'),
   "notes": zod.string().nullish(),
+  "fullDayRate": zod.number().min(listMembersResponseFullDayRateMin).nullish().describe('Standard full-day crew rate in whole dollars. Pre-fills a crew invite\'s rate.'),
+  "halfDayRate": zod.number().min(listMembersResponseHalfDayRateMin).nullish().describe('Standard half-day crew rate in whole dollars.'),
   "preApproved": zod.boolean().optional().describe('When true, an OIDC sign-in matching this member\'s email lands ACTIVE — skips the admin-must-approve step on \/admin\/users. The user still has to verify their email (via Cue or the IdP) before signing in.'),
   "createdAt": zod.string()
 })
@@ -569,6 +577,10 @@ export const ListMembersResponse = zod.array(ListMembersResponseItem)
 /**
  * @summary Create a team member
  */
+
+export const createMemberBodyFullDayRateMin = 0;
+
+export const createMemberBodyHalfDayRateMin = 0;
 
 
 
@@ -584,6 +596,8 @@ export const CreateMemberBody = zod.object({
   "location": zod.string().optional(),
   "company": zod.string().optional(),
   "notes": zod.string().optional(),
+  "fullDayRate": zod.number().min(createMemberBodyFullDayRateMin).optional().describe('Standard full-day crew rate in whole dollars.'),
+  "halfDayRate": zod.number().min(createMemberBodyHalfDayRateMin).optional().describe('Standard half-day crew rate in whole dollars.'),
   "preApproved": zod.boolean().optional().describe('Pre-approve this member so their first OIDC sign-in (after email verification) lands ACTIVE, no admin approval needed.')
 })
 
@@ -613,6 +627,12 @@ export const UpdateMemberParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const updateMemberBodyFullDayRateMin = 0;
+
+export const updateMemberBodyHalfDayRateMin = 0;
+
+
+
 export const UpdateMemberBody = zod.object({
   "name": zod.string().optional(),
   "role": zod.enum(['producer', 'engineer', 'it', 'integrator', 'manager', 'contractor']).optional(),
@@ -625,8 +645,16 @@ export const UpdateMemberBody = zod.object({
   "location": zod.string().nullish(),
   "company": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "fullDayRate": zod.number().min(updateMemberBodyFullDayRateMin).nullish(),
+  "halfDayRate": zod.number().min(updateMemberBodyHalfDayRateMin).nullish(),
   "preApproved": zod.boolean().optional().describe('Only affects users who have NOT yet signed in. Flipping this on existing OIDC users does NOT retroactively activate them — use PATCH \/api\/admin\/users\/:id for that.')
 }).describe('Partial update. Send `null` for an optional field to clear it; omit to leave unchanged.')
+
+export const updateMemberResponseFullDayRateMin = 0;
+
+export const updateMemberResponseHalfDayRateMin = 0;
+
+
 
 export const UpdateMemberResponse = zod.object({
   "id": zod.number(),
@@ -641,6 +669,8 @@ export const UpdateMemberResponse = zod.object({
   "location": zod.string().nullish().describe('City, timezone, or site assignment.'),
   "company": zod.string().nullish().describe('External company, for contractors\/integrators.'),
   "notes": zod.string().nullish(),
+  "fullDayRate": zod.number().min(updateMemberResponseFullDayRateMin).nullish().describe('Standard full-day crew rate in whole dollars. Pre-fills a crew invite\'s rate.'),
+  "halfDayRate": zod.number().min(updateMemberResponseHalfDayRateMin).nullish().describe('Standard half-day crew rate in whole dollars.'),
   "preApproved": zod.boolean().optional().describe('When true, an OIDC sign-in matching this member\'s email lands ACTIVE — skips the admin-must-approve step on \/admin\/users. The user still has to verify their email (via Cue or the IdP) before signing in.'),
   "createdAt": zod.string()
 })
@@ -695,6 +725,340 @@ export const AddProjectMemberBody = zod.object({
 export const RemoveProjectMemberParams = zod.object({
   "projectId": zod.coerce.number(),
   "memberId": zod.coerce.number()
+})
+
+
+/**
+ * @summary List call sheets for a project (newest shoot date first)
+ */
+export const ListCallSheetsParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const listCallSheetsResponseCrewItemDayRateMin = 0;
+
+
+
+export const ListCallSheetsResponseItem = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "title": zod.string().nullish().describe('Override for the printed header; falls back to the project name.'),
+  "date": zod.string().describe('Shoot date, YYYY-MM-DD.'),
+  "callTime": zod.string().nullish().describe('Free text, e.g. \'11:00am\'.'),
+  "wrapTime": zod.string().nullish(),
+  "location": zod.string().nullish().describe('Studio(s), e.g. \'The Plex Studios - STUDIO E\'.'),
+  "billingNote": zod.string().nullish().describe('Billing banner, e.g. \'BILLING IS A HALF DAY RATE FOR ALL CREW\'.'),
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['draft', 'sent', 'final']),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional(),
+  "crew": zod.array(zod.object({
+  "id": zod.number(),
+  "callSheetId": zod.number(),
+  "position": zod.string().describe('Role on the shoot, e.g. \'Camera Operator\'.'),
+  "memberId": zod.number().nullish().describe('Roster member, or null for an ad-hoc freelancer.'),
+  "name": zod.string(),
+  "email": zod.string().nullish(),
+  "rateType": zod.enum(['full', 'half']),
+  "dayRate": zod.number().min(listCallSheetsResponseCrewItemDayRateMin).nullish().describe('Day rate in whole dollars for this booking.'),
+  "status": zod.enum(['pending', 'invited', 'available', 'unavailable', 'confirmed']),
+  "responseNote": zod.string().nullish(),
+  "invitedAt": zod.string().nullish(),
+  "respondedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})).optional().describe('Crew lines on this sheet. Present on detail responses.')
+})
+export const ListCallSheetsResponse = zod.array(ListCallSheetsResponseItem)
+
+
+/**
+ * @summary Create a call sheet for a shoot day
+ */
+export const CreateCallSheetParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const CreateCallSheetBody = zod.object({
+  "title": zod.string().optional(),
+  "date": zod.string().describe('Shoot date, YYYY-MM-DD.'),
+  "callTime": zod.string().optional(),
+  "wrapTime": zod.string().optional(),
+  "location": zod.string().optional(),
+  "billingNote": zod.string().optional(),
+  "notes": zod.string().optional(),
+  "status": zod.enum(['draft', 'sent', 'final']).optional()
+})
+
+
+/**
+ * @summary Get a call sheet with its crew lines
+ */
+export const GetCallSheetParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const getCallSheetResponseCrewItemDayRateMin = 0;
+
+
+
+export const GetCallSheetResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "title": zod.string().nullish().describe('Override for the printed header; falls back to the project name.'),
+  "date": zod.string().describe('Shoot date, YYYY-MM-DD.'),
+  "callTime": zod.string().nullish().describe('Free text, e.g. \'11:00am\'.'),
+  "wrapTime": zod.string().nullish(),
+  "location": zod.string().nullish().describe('Studio(s), e.g. \'The Plex Studios - STUDIO E\'.'),
+  "billingNote": zod.string().nullish().describe('Billing banner, e.g. \'BILLING IS A HALF DAY RATE FOR ALL CREW\'.'),
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['draft', 'sent', 'final']),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional(),
+  "crew": zod.array(zod.object({
+  "id": zod.number(),
+  "callSheetId": zod.number(),
+  "position": zod.string().describe('Role on the shoot, e.g. \'Camera Operator\'.'),
+  "memberId": zod.number().nullish().describe('Roster member, or null for an ad-hoc freelancer.'),
+  "name": zod.string(),
+  "email": zod.string().nullish(),
+  "rateType": zod.enum(['full', 'half']),
+  "dayRate": zod.number().min(getCallSheetResponseCrewItemDayRateMin).nullish().describe('Day rate in whole dollars for this booking.'),
+  "status": zod.enum(['pending', 'invited', 'available', 'unavailable', 'confirmed']),
+  "responseNote": zod.string().nullish(),
+  "invitedAt": zod.string().nullish(),
+  "respondedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})).optional().describe('Crew lines on this sheet. Present on detail responses.')
+})
+
+
+/**
+ * @summary Update a call sheet
+ */
+export const UpdateCallSheetParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateCallSheetBody = zod.object({
+  "title": zod.string().nullish(),
+  "date": zod.string().optional(),
+  "callTime": zod.string().nullish(),
+  "wrapTime": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "billingNote": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['draft', 'sent', 'final']).optional()
+}).describe('Partial update. Send `null` to clear an optional field; omit to leave unchanged.')
+
+export const updateCallSheetResponseCrewItemDayRateMin = 0;
+
+
+
+export const UpdateCallSheetResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "title": zod.string().nullish().describe('Override for the printed header; falls back to the project name.'),
+  "date": zod.string().describe('Shoot date, YYYY-MM-DD.'),
+  "callTime": zod.string().nullish().describe('Free text, e.g. \'11:00am\'.'),
+  "wrapTime": zod.string().nullish(),
+  "location": zod.string().nullish().describe('Studio(s), e.g. \'The Plex Studios - STUDIO E\'.'),
+  "billingNote": zod.string().nullish().describe('Billing banner, e.g. \'BILLING IS A HALF DAY RATE FOR ALL CREW\'.'),
+  "notes": zod.string().nullish(),
+  "status": zod.enum(['draft', 'sent', 'final']),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string().optional(),
+  "crew": zod.array(zod.object({
+  "id": zod.number(),
+  "callSheetId": zod.number(),
+  "position": zod.string().describe('Role on the shoot, e.g. \'Camera Operator\'.'),
+  "memberId": zod.number().nullish().describe('Roster member, or null for an ad-hoc freelancer.'),
+  "name": zod.string(),
+  "email": zod.string().nullish(),
+  "rateType": zod.enum(['full', 'half']),
+  "dayRate": zod.number().min(updateCallSheetResponseCrewItemDayRateMin).nullish().describe('Day rate in whole dollars for this booking.'),
+  "status": zod.enum(['pending', 'invited', 'available', 'unavailable', 'confirmed']),
+  "responseNote": zod.string().nullish(),
+  "invitedAt": zod.string().nullish(),
+  "respondedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})).optional().describe('Crew lines on this sheet. Present on detail responses.')
+})
+
+
+/**
+ * @summary Delete a call sheet (and its crew lines)
+ */
+export const DeleteCallSheetParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * Generates a public reply token for each eligible crew line (one with an
+email that hasn't responded yet) and emails them an availability link.
+Idempotent-ish: already-responded lines are skipped. Requires SendGrid.
+
+ * @summary Email availability invites to all pending crew lines that have an email
+ */
+export const SendCallSheetInvitesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SendCallSheetInvitesResponse = zod.object({
+  "sent": zod.number().describe('How many invite emails the provider accepted.'),
+  "total": zod.number().describe('How many crew lines were eligible (have an email).')
+})
+
+
+/**
+ * @summary Add a crew line to a call sheet
+ */
+export const AddCrewInviteParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const addCrewInviteBodyDayRateMin = 0;
+
+
+
+export const AddCrewInviteBody = zod.object({
+  "position": zod.string().min(1),
+  "memberId": zod.number().optional().describe('When set, name\/email\/rates are pre-filled from the member if omitted.'),
+  "name": zod.string(),
+  "email": zod.string().optional(),
+  "rateType": zod.enum(['full', 'half']).optional(),
+  "dayRate": zod.number().min(addCrewInviteBodyDayRateMin).optional()
+})
+
+
+/**
+ * @summary Update a crew line
+ */
+export const UpdateCrewInviteParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const updateCrewInviteBodyDayRateMin = 0;
+
+
+
+export const UpdateCrewInviteBody = zod.object({
+  "position": zod.string().min(1).optional(),
+  "memberId": zod.number().nullish(),
+  "name": zod.string().optional(),
+  "email": zod.string().nullish(),
+  "rateType": zod.enum(['full', 'half']).optional(),
+  "dayRate": zod.number().min(updateCrewInviteBodyDayRateMin).nullish(),
+  "status": zod.enum(['pending', 'invited', 'available', 'unavailable', 'confirmed']).optional()
+}).describe('Partial update of a crew line. Send `null` to clear an optional field.')
+
+export const updateCrewInviteResponseDayRateMin = 0;
+
+
+
+export const UpdateCrewInviteResponse = zod.object({
+  "id": zod.number(),
+  "callSheetId": zod.number(),
+  "position": zod.string().describe('Role on the shoot, e.g. \'Camera Operator\'.'),
+  "memberId": zod.number().nullish().describe('Roster member, or null for an ad-hoc freelancer.'),
+  "name": zod.string(),
+  "email": zod.string().nullish(),
+  "rateType": zod.enum(['full', 'half']),
+  "dayRate": zod.number().min(updateCrewInviteResponseDayRateMin).nullish().describe('Day rate in whole dollars for this booking.'),
+  "status": zod.enum(['pending', 'invited', 'available', 'unavailable', 'confirmed']),
+  "responseNote": zod.string().nullish(),
+  "invitedAt": zod.string().nullish(),
+  "respondedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Remove a crew line
+ */
+export const DeleteCrewInviteParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Email (or re-email) the availability invite for a single crew line
+ */
+export const SendCrewInviteParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SendCrewInviteResponse = zod.object({
+  "sent": zod.number().describe('How many invite emails the provider accepted.'),
+  "total": zod.number().describe('How many crew lines were eligible (have an email).')
+})
+
+
+/**
+ * @summary Public — fetch the invite + shoot details for a reply token
+ */
+export const GetPublicCrewInviteParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const getPublicCrewInviteResponseDayRateMin = 0;
+
+
+
+export const GetPublicCrewInviteResponse = zod.object({
+  "position": zod.string(),
+  "name": zod.string(),
+  "rateType": zod.enum(['full', 'half']),
+  "dayRate": zod.number().min(getPublicCrewInviteResponseDayRateMin).nullish(),
+  "status": zod.enum(['pending', 'invited', 'available', 'unavailable', 'confirmed']),
+  "responseNote": zod.string().nullish(),
+  "projectName": zod.string(),
+  "title": zod.string().nullish(),
+  "date": zod.string(),
+  "callTime": zod.string().nullish(),
+  "wrapTime": zod.string().nullish(),
+  "location": zod.string().nullish()
+})
+
+
+/**
+ * @summary Public — submit an availability response for a reply token
+ */
+export const RespondCrewInviteParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const respondCrewInviteBodyNoteMax = 2000;
+
+
+
+export const RespondCrewInviteBody = zod.object({
+  "answer": zod.enum(['available', 'unavailable']),
+  "note": zod.string().max(respondCrewInviteBodyNoteMax).optional().describe('Optional note from the invitee.')
+})
+
+export const respondCrewInviteResponseDayRateMin = 0;
+
+
+
+export const RespondCrewInviteResponse = zod.object({
+  "position": zod.string(),
+  "name": zod.string(),
+  "rateType": zod.enum(['full', 'half']),
+  "dayRate": zod.number().min(respondCrewInviteResponseDayRateMin).nullish(),
+  "status": zod.enum(['pending', 'invited', 'available', 'unavailable', 'confirmed']),
+  "responseNote": zod.string().nullish(),
+  "projectName": zod.string(),
+  "title": zod.string().nullish(),
+  "date": zod.string(),
+  "callTime": zod.string().nullish(),
+  "wrapTime": zod.string().nullish(),
+  "location": zod.string().nullish()
 })
 
 

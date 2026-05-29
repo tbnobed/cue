@@ -622,6 +622,18 @@ export interface Member {
   company?: string | null;
   /** @nullable */
   notes?: string | null;
+  /**
+     * Standard full-day crew rate in whole dollars. Pre-fills a crew invite's rate.
+     * @minimum 0
+     * @nullable
+     */
+  fullDayRate?: number | null;
+  /**
+     * Standard half-day crew rate in whole dollars.
+     * @minimum 0
+     * @nullable
+     */
+  halfDayRate?: number | null;
   /** When true, an OIDC sign-in matching this member's email lands ACTIVE — skips the admin-must-approve step on /admin/users. The user still has to verify their email (via Cue or the IdP) before signing in. */
   preApproved?: boolean;
   createdAt: string;
@@ -652,6 +664,16 @@ export interface MemberInput {
   location?: string;
   company?: string;
   notes?: string;
+  /**
+     * Standard full-day crew rate in whole dollars.
+     * @minimum 0
+     */
+  fullDayRate?: number;
+  /**
+     * Standard half-day crew rate in whole dollars.
+     * @minimum 0
+     */
+  halfDayRate?: number;
   /** Pre-approve this member so their first OIDC sign-in (after email verification) lands ACTIVE, no admin approval needed. */
   preApproved?: boolean;
 }
@@ -692,6 +714,16 @@ export interface MemberUpdate {
   company?: string | null;
   /** @nullable */
   notes?: string | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  fullDayRate?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  halfDayRate?: number | null;
   /** Only affects users who have NOT yet signed in. Flipping this on existing OIDC users does NOT retroactively activate them — use PATCH /api/admin/users/:id for that. */
   preApproved?: boolean;
 }
@@ -725,6 +757,278 @@ export interface ProjectMember {
 export interface AddProjectMemberInput {
   memberId: number;
   projectRole?: string;
+}
+
+export type CallSheetStatus = typeof CallSheetStatus[keyof typeof CallSheetStatus];
+
+
+export const CallSheetStatus = {
+  draft: 'draft',
+  sent: 'sent',
+  final: 'final',
+} as const;
+
+export type CrewInviteRateType = typeof CrewInviteRateType[keyof typeof CrewInviteRateType];
+
+
+export const CrewInviteRateType = {
+  full: 'full',
+  half: 'half',
+} as const;
+
+export type CrewInviteStatus = typeof CrewInviteStatus[keyof typeof CrewInviteStatus];
+
+
+export const CrewInviteStatus = {
+  pending: 'pending',
+  invited: 'invited',
+  available: 'available',
+  unavailable: 'unavailable',
+  confirmed: 'confirmed',
+} as const;
+
+export interface CrewInvite {
+  id: number;
+  callSheetId: number;
+  /** Role on the shoot, e.g. 'Camera Operator'. */
+  position: string;
+  /**
+     * Roster member, or null for an ad-hoc freelancer.
+     * @nullable
+     */
+  memberId?: number | null;
+  name: string;
+  /** @nullable */
+  email?: string | null;
+  rateType: CrewInviteRateType;
+  /**
+     * Day rate in whole dollars for this booking.
+     * @minimum 0
+     * @nullable
+     */
+  dayRate?: number | null;
+  status: CrewInviteStatus;
+  /** @nullable */
+  responseNote?: string | null;
+  /** @nullable */
+  invitedAt?: string | null;
+  /** @nullable */
+  respondedAt?: string | null;
+  createdAt: string;
+}
+
+export interface CallSheet {
+  id: number;
+  projectId: number;
+  /**
+     * Override for the printed header; falls back to the project name.
+     * @nullable
+     */
+  title?: string | null;
+  /** Shoot date, YYYY-MM-DD. */
+  date: string;
+  /**
+     * Free text, e.g. '11:00am'.
+     * @nullable
+     */
+  callTime?: string | null;
+  /** @nullable */
+  wrapTime?: string | null;
+  /**
+     * Studio(s), e.g. 'The Plex Studios - STUDIO E'.
+     * @nullable
+     */
+  location?: string | null;
+  /**
+     * Billing banner, e.g. 'BILLING IS A HALF DAY RATE FOR ALL CREW'.
+     * @nullable
+     */
+  billingNote?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  status: CallSheetStatus;
+  /** @nullable */
+  createdBy?: number | null;
+  createdAt: string;
+  updatedAt?: string;
+  /** Crew lines on this sheet. Present on detail responses. */
+  crew?: CrewInvite[];
+}
+
+export type CallSheetInputStatus = typeof CallSheetInputStatus[keyof typeof CallSheetInputStatus];
+
+
+export const CallSheetInputStatus = {
+  draft: 'draft',
+  sent: 'sent',
+  final: 'final',
+} as const;
+
+export interface CallSheetInput {
+  title?: string;
+  /** Shoot date, YYYY-MM-DD. */
+  date: string;
+  callTime?: string;
+  wrapTime?: string;
+  location?: string;
+  billingNote?: string;
+  notes?: string;
+  status?: CallSheetInputStatus;
+}
+
+export type CallSheetUpdateStatus = typeof CallSheetUpdateStatus[keyof typeof CallSheetUpdateStatus];
+
+
+export const CallSheetUpdateStatus = {
+  draft: 'draft',
+  sent: 'sent',
+  final: 'final',
+} as const;
+
+/**
+ * Partial update. Send `null` to clear an optional field; omit to leave unchanged.
+ */
+export interface CallSheetUpdate {
+  /** @nullable */
+  title?: string | null;
+  date?: string;
+  /** @nullable */
+  callTime?: string | null;
+  /** @nullable */
+  wrapTime?: string | null;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  billingNote?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  status?: CallSheetUpdateStatus;
+}
+
+export type CrewInviteInputRateType = typeof CrewInviteInputRateType[keyof typeof CrewInviteInputRateType];
+
+
+export const CrewInviteInputRateType = {
+  full: 'full',
+  half: 'half',
+} as const;
+
+export interface CrewInviteInput {
+  /** @minLength 1 */
+  position: string;
+  /** When set, name/email/rates are pre-filled from the member if omitted. */
+  memberId?: number;
+  name: string;
+  email?: string;
+  rateType?: CrewInviteInputRateType;
+  /** @minimum 0 */
+  dayRate?: number;
+}
+
+export type CrewInviteUpdateRateType = typeof CrewInviteUpdateRateType[keyof typeof CrewInviteUpdateRateType];
+
+
+export const CrewInviteUpdateRateType = {
+  full: 'full',
+  half: 'half',
+} as const;
+
+export type CrewInviteUpdateStatus = typeof CrewInviteUpdateStatus[keyof typeof CrewInviteUpdateStatus];
+
+
+export const CrewInviteUpdateStatus = {
+  pending: 'pending',
+  invited: 'invited',
+  available: 'available',
+  unavailable: 'unavailable',
+  confirmed: 'confirmed',
+} as const;
+
+/**
+ * Partial update of a crew line. Send `null` to clear an optional field.
+ */
+export interface CrewInviteUpdate {
+  /** @minLength 1 */
+  position?: string;
+  /** @nullable */
+  memberId?: number | null;
+  name?: string;
+  /** @nullable */
+  email?: string | null;
+  rateType?: CrewInviteUpdateRateType;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  dayRate?: number | null;
+  status?: CrewInviteUpdateStatus;
+}
+
+export interface CrewSendResult {
+  /** How many invite emails the provider accepted. */
+  sent: number;
+  /** How many crew lines were eligible (have an email). */
+  total: number;
+}
+
+export type PublicCrewInviteRateType = typeof PublicCrewInviteRateType[keyof typeof PublicCrewInviteRateType];
+
+
+export const PublicCrewInviteRateType = {
+  full: 'full',
+  half: 'half',
+} as const;
+
+export type PublicCrewInviteStatus = typeof PublicCrewInviteStatus[keyof typeof PublicCrewInviteStatus];
+
+
+export const PublicCrewInviteStatus = {
+  pending: 'pending',
+  invited: 'invited',
+  available: 'available',
+  unavailable: 'unavailable',
+  confirmed: 'confirmed',
+} as const;
+
+export interface PublicCrewInvite {
+  position: string;
+  name: string;
+  rateType: PublicCrewInviteRateType;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  dayRate?: number | null;
+  status: PublicCrewInviteStatus;
+  /** @nullable */
+  responseNote?: string | null;
+  projectName: string;
+  /** @nullable */
+  title?: string | null;
+  date: string;
+  /** @nullable */
+  callTime?: string | null;
+  /** @nullable */
+  wrapTime?: string | null;
+  /** @nullable */
+  location?: string | null;
+}
+
+export type CrewRespondInputAnswer = typeof CrewRespondInputAnswer[keyof typeof CrewRespondInputAnswer];
+
+
+export const CrewRespondInputAnswer = {
+  available: 'available',
+  unavailable: 'unavailable',
+} as const;
+
+export interface CrewRespondInput {
+  answer: CrewRespondInputAnswer;
+  /**
+     * Optional note from the invitee.
+     * @maxLength 2000
+     */
+  note?: string;
 }
 
 export type DashboardSummaryUpcomingDeadlinesItemType = typeof DashboardSummaryUpcomingDeadlinesItemType[keyof typeof DashboardSummaryUpcomingDeadlinesItemType];

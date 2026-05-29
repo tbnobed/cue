@@ -1,0 +1,1 @@
+- [Dev DB schema drift](dev-db-schema-drift.md) — drizzle push blocked by share_links drift; apply new columns/tables via raw psql, watch for "column does not exist" 500s.

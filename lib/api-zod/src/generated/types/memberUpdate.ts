@@ -31,6 +31,16 @@ export interface MemberUpdate {
   company?: string | null;
   /** @nullable */
   notes?: string | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  fullDayRate?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  halfDayRate?: number | null;
   /** Only affects users who have NOT yet signed in. Flipping this on existing OIDC users does NOT retroactively activate them — use PATCH /api/admin/users/:id for that. */
   preApproved?: boolean;
 }

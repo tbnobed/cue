@@ -17,6 +17,12 @@ export const membersTable = pgTable("members", {
   location: text("location"),
   company: text("company"),
   notes: text("notes"),
+  // Standard crew day rates in whole dollars (nullable). These pre-fill a
+  // crew invite's rate when this member is booked on a call sheet; the rate
+  // can still be overridden per booking. Whole dollars keeps the contract and
+  // the printable call sheet simple — TV day rates are conventionally whole $.
+  fullDayRate: integer("full_day_rate"),
+  halfDayRate: integer("half_day_rate"),
   // If false, this member's email is never used for project/task notifications.
   // Defaults to true so existing rows opt in automatically after `pnpm run push`.
   emailNotifications: boolean("email_notifications").notNull().default(true),

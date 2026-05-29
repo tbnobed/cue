@@ -40,13 +40,15 @@ type FormState = {
   company: string;
   avatarUrl: string;
   notes: string;
+  fullDayRate: string;
+  halfDayRate: string;
   preApproved: boolean;
 };
 
 const EMPTY: FormState = {
   name: "", email: "", role: "engineer", department: "",
   title: "", phone: "", mobilePhone: "", location: "", company: "",
-  avatarUrl: "", notes: "", preApproved: false,
+  avatarUrl: "", notes: "", fullDayRate: "", halfDayRate: "", preApproved: false,
 };
 
 function fromMember(m: Member): FormState {
@@ -62,6 +64,8 @@ function fromMember(m: Member): FormState {
     company: m.company ?? "",
     avatarUrl: m.avatarUrl ?? "",
     notes: m.notes ?? "",
+    fullDayRate: m.fullDayRate != null ? String(m.fullDayRate) : "",
+    halfDayRate: m.halfDayRate != null ? String(m.halfDayRate) : "",
     preApproved: m.preApproved ?? false,
   };
 }
@@ -71,13 +75,25 @@ const OPTIONAL_KEYS = [
   "location", "company", "avatarUrl", "notes",
 ] as const satisfies readonly (keyof FormState)[];
 
+/** Parse a whole-dollar rate input to an int, or undefined when blank/invalid. */
+function parseRate(s: string): number | undefined {
+  const v = s.trim();
+  if (!v) return undefined;
+  const n = parseInt(v, 10);
+  return Number.isNaN(n) || n < 0 ? undefined : n;
+}
+
 /** For creates: drop empty strings so we don't write blanks. */
 function toCreatePayload(f: FormState): MemberInput {
-  const out = { name: f.name.trim(), role: f.role } as MemberInput & Record<string, string | boolean>;
+  const out = { name: f.name.trim(), role: f.role } as MemberInput & Record<string, string | number | boolean>;
   for (const k of OPTIONAL_KEYS) {
     const v = (f[k] ?? "").trim();
     if (v) out[k] = v;
   }
+  const full = parseRate(f.fullDayRate);
+  const half = parseRate(f.halfDayRate);
+  if (full != null) out.fullDayRate = full;
+  if (half != null) out.halfDayRate = half;
   // Only send preApproved when the admin opted in — server default is false,
   // so omitting it for the common case keeps the wire payload tight.
   if (f.preApproved) out.preApproved = true;
@@ -91,6 +107,10 @@ function toUpdatePayload(f: FormState): MemberUpdate {
     const v = (f[k] ?? "").trim();
     out[k] = v ? v : null;
   }
+  const full = parseRate(f.fullDayRate);
+  const half = parseRate(f.halfDayRate);
+  (out as Record<string, number | null>).fullDayRate = full ?? null;
+  (out as Record<string, number | null>).halfDayRate = half ?? null;
   // preApproved is a non-nullable boolean on the server, so always send the
   // current state (no null sentinel).
   out.preApproved = f.preApproved;
@@ -511,6 +531,22 @@ function MemberFormDialog({ open, onOpenChange, mode, member }: {
                   {...field("notes")}
                   placeholder="On-call hours, badge access, vendor PO number, anything you'd otherwise stick on a Post-it."
                 />
+              </div>
+
+              {/* Standard day rates — prefill crew lines on call sheets, still
+                  overridable per booking. Whole dollars. */}
+              <div className="space-y-2 md:col-span-2 pt-2 border-t border-border/40">
+                <Label className="text-[11px] uppercase tracking-[0.15em] font-mono text-muted-foreground">
+                  Day rates
+                </Label>
+              </div>
+              <div className="space-y-2">
+                <Label>Full day rate ($)</Label>
+                <Input type="number" min={0} {...field("fullDayRate")} placeholder="e.g. 750" data-testid="input-member-full-rate" />
+              </div>
+              <div className="space-y-2">
+                <Label>Half day rate ($)</Label>
+                <Input type="number" min={0} {...field("halfDayRate")} placeholder="e.g. 400" data-testid="input-member-half-rate" />
               </div>
 
               {/* Access controls — only meaningful for invited (email-having) members

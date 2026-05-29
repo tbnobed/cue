@@ -24,8 +24,16 @@ import type {
   AddProjectMemberInput,
   AdminUser,
   AdminUserUpdate,
+  CallSheet,
+  CallSheetInput,
+  CallSheetUpdate,
   Comment,
   CommentInput,
+  CrewInvite,
+  CrewInviteInput,
+  CrewInviteUpdate,
+  CrewRespondInput,
+  CrewSendResult,
   DashboardSummary,
   Document,
   DocumentFolder,
@@ -51,6 +59,7 @@ import type {
   ProjectProgress,
   ProjectTransferInput,
   ProjectUpdate,
+  PublicCrewInvite,
   PublicShare,
   ShareLink,
   ShareLinkEmailInput,
@@ -2581,6 +2590,881 @@ export const useRemoveProjectMember = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getRemoveProjectMemberMutationOptions(options));
+    }
+
+export const getListCallSheetsUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/call-sheets`
+}
+
+/**
+ * @summary List call sheets for a project (newest shoot date first)
+ */
+export const listCallSheets = async (projectId: number, options?: RequestInit): Promise<CallSheet[]> => {
+
+  return customFetch<CallSheet[]>(getListCallSheetsUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCallSheetsQueryKey = (projectId: number,) => {
+    return [
+    `/api/projects/${projectId}/call-sheets`
+    ] as const;
+    }
+
+
+export const getListCallSheetsQueryOptions = <TData = Awaited<ReturnType<typeof listCallSheets>>, TError = ErrorType<void>>(projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCallSheets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCallSheetsQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCallSheets>>> = ({ signal }) => listCallSheets(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(projectId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCallSheets>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCallSheetsQueryResult = NonNullable<Awaited<ReturnType<typeof listCallSheets>>>
+export type ListCallSheetsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List call sheets for a project (newest shoot date first)
+ */
+
+export function useListCallSheets<TData = Awaited<ReturnType<typeof listCallSheets>>, TError = ErrorType<void>>(
+ projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCallSheets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCallSheetsQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateCallSheetUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/call-sheets`
+}
+
+/**
+ * @summary Create a call sheet for a shoot day
+ */
+export const createCallSheet = async (projectId: number,
+    callSheetInput: CallSheetInput, options?: RequestInit): Promise<CallSheet> => {
+
+  return customFetch<CallSheet>(getCreateCallSheetUrl(projectId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      callSheetInput,)
+  }
+);}
+
+
+
+
+export const getCreateCallSheetMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCallSheet>>, TError,{projectId: number;data: BodyType<CallSheetInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCallSheet>>, TError,{projectId: number;data: BodyType<CallSheetInput>}, TContext> => {
+
+const mutationKey = ['createCallSheet'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCallSheet>>, {projectId: number;data: BodyType<CallSheetInput>}> = (props) => {
+          const {projectId,data} = props ?? {};
+
+          return  createCallSheet(projectId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCallSheetMutationResult = NonNullable<Awaited<ReturnType<typeof createCallSheet>>>
+    export type CreateCallSheetMutationBody = BodyType<CallSheetInput>
+    export type CreateCallSheetMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a call sheet for a shoot day
+ */
+export const useCreateCallSheet = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCallSheet>>, TError,{projectId: number;data: BodyType<CallSheetInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCallSheet>>,
+        TError,
+        {projectId: number;data: BodyType<CallSheetInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCallSheetMutationOptions(options));
+    }
+
+export const getGetCallSheetUrl = (id: number,) => {
+
+
+
+
+  return `/api/call-sheets/${id}`
+}
+
+/**
+ * @summary Get a call sheet with its crew lines
+ */
+export const getCallSheet = async (id: number, options?: RequestInit): Promise<CallSheet> => {
+
+  return customFetch<CallSheet>(getGetCallSheetUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCallSheetQueryKey = (id: number,) => {
+    return [
+    `/api/call-sheets/${id}`
+    ] as const;
+    }
+
+
+export const getGetCallSheetQueryOptions = <TData = Awaited<ReturnType<typeof getCallSheet>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCallSheet>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCallSheetQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCallSheet>>> = ({ signal }) => getCallSheet(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCallSheet>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCallSheetQueryResult = NonNullable<Awaited<ReturnType<typeof getCallSheet>>>
+export type GetCallSheetQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a call sheet with its crew lines
+ */
+
+export function useGetCallSheet<TData = Awaited<ReturnType<typeof getCallSheet>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCallSheet>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCallSheetQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateCallSheetUrl = (id: number,) => {
+
+
+
+
+  return `/api/call-sheets/${id}`
+}
+
+/**
+ * @summary Update a call sheet
+ */
+export const updateCallSheet = async (id: number,
+    callSheetUpdate: CallSheetUpdate, options?: RequestInit): Promise<CallSheet> => {
+
+  return customFetch<CallSheet>(getUpdateCallSheetUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      callSheetUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateCallSheetMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCallSheet>>, TError,{id: number;data: BodyType<CallSheetUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCallSheet>>, TError,{id: number;data: BodyType<CallSheetUpdate>}, TContext> => {
+
+const mutationKey = ['updateCallSheet'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCallSheet>>, {id: number;data: BodyType<CallSheetUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateCallSheet(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCallSheetMutationResult = NonNullable<Awaited<ReturnType<typeof updateCallSheet>>>
+    export type UpdateCallSheetMutationBody = BodyType<CallSheetUpdate>
+    export type UpdateCallSheetMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a call sheet
+ */
+export const useUpdateCallSheet = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCallSheet>>, TError,{id: number;data: BodyType<CallSheetUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCallSheet>>,
+        TError,
+        {id: number;data: BodyType<CallSheetUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateCallSheetMutationOptions(options));
+    }
+
+export const getDeleteCallSheetUrl = (id: number,) => {
+
+
+
+
+  return `/api/call-sheets/${id}`
+}
+
+/**
+ * @summary Delete a call sheet (and its crew lines)
+ */
+export const deleteCallSheet = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteCallSheetUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteCallSheetMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCallSheet>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteCallSheet>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteCallSheet'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteCallSheet>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteCallSheet(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteCallSheetMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCallSheet>>>
+
+    export type DeleteCallSheetMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a call sheet (and its crew lines)
+ */
+export const useDeleteCallSheet = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCallSheet>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteCallSheet>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteCallSheetMutationOptions(options));
+    }
+
+export const getSendCallSheetInvitesUrl = (id: number,) => {
+
+
+
+
+  return `/api/call-sheets/${id}/send`
+}
+
+/**
+ * Generates a public reply token for each eligible crew line (one with an
+email that hasn't responded yet) and emails them an availability link.
+Idempotent-ish: already-responded lines are skipped. Requires SendGrid.
+
+ * @summary Email availability invites to all pending crew lines that have an email
+ */
+export const sendCallSheetInvites = async (id: number, options?: RequestInit): Promise<CrewSendResult> => {
+
+  return customFetch<CrewSendResult>(getSendCallSheetInvitesUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSendCallSheetInvitesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCallSheetInvites>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendCallSheetInvites>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['sendCallSheetInvites'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendCallSheetInvites>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  sendCallSheetInvites(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendCallSheetInvitesMutationResult = NonNullable<Awaited<ReturnType<typeof sendCallSheetInvites>>>
+
+    export type SendCallSheetInvitesMutationError = ErrorType<void>
+
+    /**
+ * @summary Email availability invites to all pending crew lines that have an email
+ */
+export const useSendCallSheetInvites = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCallSheetInvites>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendCallSheetInvites>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getSendCallSheetInvitesMutationOptions(options));
+    }
+
+export const getAddCrewInviteUrl = (id: number,) => {
+
+
+
+
+  return `/api/call-sheets/${id}/crew`
+}
+
+/**
+ * @summary Add a crew line to a call sheet
+ */
+export const addCrewInvite = async (id: number,
+    crewInviteInput: CrewInviteInput, options?: RequestInit): Promise<CrewInvite> => {
+
+  return customFetch<CrewInvite>(getAddCrewInviteUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      crewInviteInput,)
+  }
+);}
+
+
+
+
+export const getAddCrewInviteMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addCrewInvite>>, TError,{id: number;data: BodyType<CrewInviteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addCrewInvite>>, TError,{id: number;data: BodyType<CrewInviteInput>}, TContext> => {
+
+const mutationKey = ['addCrewInvite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addCrewInvite>>, {id: number;data: BodyType<CrewInviteInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addCrewInvite(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddCrewInviteMutationResult = NonNullable<Awaited<ReturnType<typeof addCrewInvite>>>
+    export type AddCrewInviteMutationBody = BodyType<CrewInviteInput>
+    export type AddCrewInviteMutationError = ErrorType<void>
+
+    /**
+ * @summary Add a crew line to a call sheet
+ */
+export const useAddCrewInvite = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addCrewInvite>>, TError,{id: number;data: BodyType<CrewInviteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addCrewInvite>>,
+        TError,
+        {id: number;data: BodyType<CrewInviteInput>},
+        TContext
+      > => {
+      return useMutation(getAddCrewInviteMutationOptions(options));
+    }
+
+export const getUpdateCrewInviteUrl = (id: number,) => {
+
+
+
+
+  return `/api/crew/${id}`
+}
+
+/**
+ * @summary Update a crew line
+ */
+export const updateCrewInvite = async (id: number,
+    crewInviteUpdate: CrewInviteUpdate, options?: RequestInit): Promise<CrewInvite> => {
+
+  return customFetch<CrewInvite>(getUpdateCrewInviteUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      crewInviteUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateCrewInviteMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCrewInvite>>, TError,{id: number;data: BodyType<CrewInviteUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCrewInvite>>, TError,{id: number;data: BodyType<CrewInviteUpdate>}, TContext> => {
+
+const mutationKey = ['updateCrewInvite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCrewInvite>>, {id: number;data: BodyType<CrewInviteUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateCrewInvite(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCrewInviteMutationResult = NonNullable<Awaited<ReturnType<typeof updateCrewInvite>>>
+    export type UpdateCrewInviteMutationBody = BodyType<CrewInviteUpdate>
+    export type UpdateCrewInviteMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a crew line
+ */
+export const useUpdateCrewInvite = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCrewInvite>>, TError,{id: number;data: BodyType<CrewInviteUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCrewInvite>>,
+        TError,
+        {id: number;data: BodyType<CrewInviteUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateCrewInviteMutationOptions(options));
+    }
+
+export const getDeleteCrewInviteUrl = (id: number,) => {
+
+
+
+
+  return `/api/crew/${id}`
+}
+
+/**
+ * @summary Remove a crew line
+ */
+export const deleteCrewInvite = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteCrewInviteUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteCrewInviteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCrewInvite>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteCrewInvite>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteCrewInvite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteCrewInvite>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteCrewInvite(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteCrewInviteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCrewInvite>>>
+
+    export type DeleteCrewInviteMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove a crew line
+ */
+export const useDeleteCrewInvite = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCrewInvite>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteCrewInvite>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteCrewInviteMutationOptions(options));
+    }
+
+export const getSendCrewInviteUrl = (id: number,) => {
+
+
+
+
+  return `/api/crew/${id}/send`
+}
+
+/**
+ * @summary Email (or re-email) the availability invite for a single crew line
+ */
+export const sendCrewInvite = async (id: number, options?: RequestInit): Promise<CrewSendResult> => {
+
+  return customFetch<CrewSendResult>(getSendCrewInviteUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSendCrewInviteMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCrewInvite>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendCrewInvite>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['sendCrewInvite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendCrewInvite>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  sendCrewInvite(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendCrewInviteMutationResult = NonNullable<Awaited<ReturnType<typeof sendCrewInvite>>>
+
+    export type SendCrewInviteMutationError = ErrorType<void>
+
+    /**
+ * @summary Email (or re-email) the availability invite for a single crew line
+ */
+export const useSendCrewInvite = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCrewInvite>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendCrewInvite>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getSendCrewInviteMutationOptions(options));
+    }
+
+export const getGetPublicCrewInviteUrl = (token: string,) => {
+
+
+
+
+  return `/api/crew/respond/${token}`
+}
+
+/**
+ * @summary Public — fetch the invite + shoot details for a reply token
+ */
+export const getPublicCrewInvite = async (token: string, options?: RequestInit): Promise<PublicCrewInvite> => {
+
+  return customFetch<PublicCrewInvite>(getGetPublicCrewInviteUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicCrewInviteQueryKey = (token: string,) => {
+    return [
+    `/api/crew/respond/${token}`
+    ] as const;
+    }
+
+
+export const getGetPublicCrewInviteQueryOptions = <TData = Awaited<ReturnType<typeof getPublicCrewInvite>>, TError = ErrorType<void>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicCrewInvite>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicCrewInviteQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicCrewInvite>>> = ({ signal }) => getPublicCrewInvite(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(token), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicCrewInvite>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicCrewInviteQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicCrewInvite>>>
+export type GetPublicCrewInviteQueryError = ErrorType<void>
+
+
+/**
+ * @summary Public — fetch the invite + shoot details for a reply token
+ */
+
+export function useGetPublicCrewInvite<TData = Awaited<ReturnType<typeof getPublicCrewInvite>>, TError = ErrorType<void>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicCrewInvite>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicCrewInviteQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRespondCrewInviteUrl = (token: string,) => {
+
+
+
+
+  return `/api/crew/respond/${token}`
+}
+
+/**
+ * @summary Public — submit an availability response for a reply token
+ */
+export const respondCrewInvite = async (token: string,
+    crewRespondInput: CrewRespondInput, options?: RequestInit): Promise<PublicCrewInvite> => {
+
+  return customFetch<PublicCrewInvite>(getRespondCrewInviteUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      crewRespondInput,)
+  }
+);}
+
+
+
+
+export const getRespondCrewInviteMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof respondCrewInvite>>, TError,{token: string;data: BodyType<CrewRespondInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof respondCrewInvite>>, TError,{token: string;data: BodyType<CrewRespondInput>}, TContext> => {
+
+const mutationKey = ['respondCrewInvite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof respondCrewInvite>>, {token: string;data: BodyType<CrewRespondInput>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  respondCrewInvite(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RespondCrewInviteMutationResult = NonNullable<Awaited<ReturnType<typeof respondCrewInvite>>>
+    export type RespondCrewInviteMutationBody = BodyType<CrewRespondInput>
+    export type RespondCrewInviteMutationError = ErrorType<void>
+
+    /**
+ * @summary Public — submit an availability response for a reply token
+ */
+export const useRespondCrewInvite = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof respondCrewInvite>>, TError,{token: string;data: BodyType<CrewRespondInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof respondCrewInvite>>,
+        TError,
+        {token: string;data: BodyType<CrewRespondInput>},
+        TContext
+      > => {
+      return useMutation(getRespondCrewInviteMutationOptions(options));
     }
 
 export const getGetDashboardSummaryUrl = () => {

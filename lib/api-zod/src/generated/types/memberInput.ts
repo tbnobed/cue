@@ -20,6 +20,16 @@ export interface MemberInput {
   location?: string;
   company?: string;
   notes?: string;
+  /**
+     * Standard full-day crew rate in whole dollars.
+     * @minimum 0
+     */
+  fullDayRate?: number;
+  /**
+     * Standard half-day crew rate in whole dollars.
+     * @minimum 0
+     */
+  halfDayRate?: number;
   /** Pre-approve this member so their first OIDC sign-in (after email verification) lands ACTIVE, no admin approval needed. */
   preApproved?: boolean;
 }

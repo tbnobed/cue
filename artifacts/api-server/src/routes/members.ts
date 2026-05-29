@@ -189,6 +189,8 @@ function fmt(m: typeof membersTable.$inferSelect) {
     location: m.location ?? null,
     company: m.company ?? null,
     notes: m.notes ?? null,
+    fullDayRate: m.fullDayRate ?? null,
+    halfDayRate: m.halfDayRate ?? null,
     preApproved: m.preApproved,
     userId: m.userId ?? null,
     createdAt: m.createdAt.toISOString(),

@@ -18,6 +18,7 @@ import DocumentEditor from "@/pages/documents/editor";
 import Login from "@/pages/login";
 import Privacy from "@/pages/privacy";
 import PublicShare from "@/pages/public-share";
+import CrewRespond from "@/pages/crew-respond";
 import NotFound from "@/pages/not-found";
 
 // Mobile-only page variants. Below 768px we swap the AppShell for the
@@ -119,6 +120,8 @@ function Routes() {
       <Route path="/privacy" component={Privacy} />
       {/* Public, unauthenticated share viewer — must live outside AuthedShell. */}
       <Route path="/s/:token" component={PublicShare} />
+      {/* Public, no-login crew availability reply — outside AuthedShell. */}
+      <Route path="/crew/:token" component={CrewRespond} />
       <Route>
         <ResponsiveAuthed />
       </Route>

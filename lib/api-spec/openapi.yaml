@@ -26,6 +26,10 @@ tags:
     description: Document operations
   - name: folders
     description: Document folder operations
+  - name: call-sheets
+    description: Per-project call sheet (crew list) operations
+  - name: crew
+    description: Crew invite and public availability-reply operations
 
 paths:
   /healthz:
@@ -727,6 +731,239 @@ paths:
         "204":
           description: Removed
 
+  # ── Call Sheets ───────────────────────────────────────────────────────────
+  /projects/{projectId}/call-sheets:
+    get:
+      operationId: listCallSheets
+      tags: [call-sheets]
+      summary: List call sheets for a project (newest shoot date first)
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Call sheets
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CallSheet" }
+        "404": { description: Project not found }
+    post:
+      operationId: createCallSheet
+      tags: [call-sheets]
+      summary: Create a call sheet for a shoot day
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CallSheetInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CallSheet" }
+        "404": { description: Project not found }
+
+  /call-sheets/{id}:
+    get:
+      operationId: getCallSheet
+      tags: [call-sheets]
+      summary: Get a call sheet with its crew lines
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Call sheet with crew
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CallSheet" }
+        "404": { description: Not found }
+    patch:
+      operationId: updateCallSheet
+      tags: [call-sheets]
+      summary: Update a call sheet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CallSheetUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CallSheet" }
+        "404": { description: Not found }
+    delete:
+      operationId: deleteCallSheet
+      tags: [call-sheets]
+      summary: Delete a call sheet (and its crew lines)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Deleted }
+
+  /call-sheets/{id}/send:
+    post:
+      operationId: sendCallSheetInvites
+      tags: [crew]
+      summary: Email availability invites to all pending crew lines that have an email
+      description: |
+        Generates a public reply token for each eligible crew line (one with an
+        email that hasn't responded yet) and emails them an availability link.
+        Idempotent-ish: already-responded lines are skipped. Requires SendGrid.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Invites dispatched
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CrewSendResult" }
+        "404": { description: Call sheet not found }
+        "503": { description: Email is not configured on this server }
+
+  # ── Crew lines ────────────────────────────────────────────────────────────
+  /call-sheets/{id}/crew:
+    post:
+      operationId: addCrewInvite
+      tags: [crew]
+      summary: Add a crew line to a call sheet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CrewInviteInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CrewInvite" }
+        "404": { description: Call sheet not found }
+
+  /crew/{id}:
+    patch:
+      operationId: updateCrewInvite
+      tags: [crew]
+      summary: Update a crew line
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CrewInviteUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CrewInvite" }
+        "404": { description: Not found }
+    delete:
+      operationId: deleteCrewInvite
+      tags: [crew]
+      summary: Remove a crew line
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Deleted }
+
+  /crew/{id}/send:
+    post:
+      operationId: sendCrewInvite
+      tags: [crew]
+      summary: Email (or re-email) the availability invite for a single crew line
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Invite dispatched
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CrewSendResult" }
+        "400": { description: Crew line has no email address }
+        "404": { description: Not found }
+        "503": { description: Email is not configured on this server }
+
+  # ── Public crew reply (NO AUTH) ───────────────────────────────────────────
+  /crew/respond/{token}:
+    get:
+      operationId: getPublicCrewInvite
+      tags: [crew]
+      summary: Public — fetch the invite + shoot details for a reply token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Public invite view
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicCrewInvite" }
+        "404": { description: Invalid or expired link }
+    post:
+      operationId: respondCrewInvite
+      tags: [crew]
+      summary: Public — submit an availability response for a reply token
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CrewRespondInput" }
+      responses:
+        "200":
+          description: Response recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicCrewInvite" }
+        "404": { description: Invalid or expired link }
+
   # ── Dashboard ─────────────────────────────────────────────────────────────
   /dashboard/summary:
     get:
@@ -1393,6 +1630,8 @@ components:
         location:     { type: ["string", "null"], description: "City, timezone, or site assignment." }
         company:      { type: ["string", "null"], description: "External company, for contractors/integrators." }
         notes:        { type: ["string", "null"] }
+        fullDayRate:  { type: ["integer", "null"], minimum: 0, description: "Standard full-day crew rate in whole dollars. Pre-fills a crew invite's rate." }
+        halfDayRate:  { type: ["integer", "null"], minimum: 0, description: "Standard half-day crew rate in whole dollars." }
         preApproved:  { type: boolean, description: "When true, an OIDC sign-in matching this member's email lands ACTIVE — skips the admin-must-approve step on /admin/users. The user still has to verify their email (via Cue or the IdP) before signing in." }
         createdAt:    { type: string }
 
@@ -1411,6 +1650,8 @@ components:
         location:     { type: string }
         company:      { type: string }
         notes:        { type: string }
+        fullDayRate:  { type: integer, minimum: 0, description: "Standard full-day crew rate in whole dollars." }
+        halfDayRate:  { type: integer, minimum: 0, description: "Standard half-day crew rate in whole dollars." }
         preApproved:  { type: boolean, description: "Pre-approve this member so their first OIDC sign-in (after email verification) lands ACTIVE, no admin approval needed." }
 
     MemberUpdate:
@@ -1428,6 +1669,8 @@ components:
         location:     { type: ["string", "null"] }
         company:      { type: ["string", "null"] }
         notes:        { type: ["string", "null"] }
+        fullDayRate:  { type: ["integer", "null"], minimum: 0 }
+        halfDayRate:  { type: ["integer", "null"], minimum: 0 }
         preApproved:  { type: boolean, description: "Only affects users who have NOT yet signed in. Flipping this on existing OIDC users does NOT retroactively activate them — use PATCH /api/admin/users/:id for that." }
 
     InviteMemberResult:
@@ -1460,6 +1703,128 @@ components:
       properties:
         memberId:    { type: integer }
         projectRole: { type: string }
+
+    # ── Call Sheets / Crew ───────────────────────────────────────────────────
+    CallSheet:
+      type: object
+      required: [id, projectId, date, status, createdAt]
+      properties:
+        id:          { type: integer }
+        projectId:   { type: integer }
+        title:       { type: ["string", "null"], description: "Override for the printed header; falls back to the project name." }
+        date:        { type: string, description: "Shoot date, YYYY-MM-DD." }
+        callTime:    { type: ["string", "null"], description: "Free text, e.g. '11:00am'." }
+        wrapTime:    { type: ["string", "null"] }
+        location:    { type: ["string", "null"], description: "Studio(s), e.g. 'The Plex Studios - STUDIO E'." }
+        billingNote: { type: ["string", "null"], description: "Billing banner, e.g. 'BILLING IS A HALF DAY RATE FOR ALL CREW'." }
+        notes:       { type: ["string", "null"] }
+        status:      { type: string, enum: [draft, sent, final] }
+        createdBy:   { type: ["integer", "null"] }
+        createdAt:   { type: string }
+        updatedAt:   { type: string }
+        crew:
+          type: array
+          description: "Crew lines on this sheet. Present on detail responses."
+          items: { $ref: "#/components/schemas/CrewInvite" }
+
+    CallSheetInput:
+      type: object
+      required: [date]
+      properties:
+        title:       { type: string }
+        date:        { type: string, description: "Shoot date, YYYY-MM-DD." }
+        callTime:    { type: string }
+        wrapTime:    { type: string }
+        location:    { type: string }
+        billingNote: { type: string }
+        notes:       { type: string }
+        status:      { type: string, enum: [draft, sent, final] }
+
+    CallSheetUpdate:
+      type: object
+      description: "Partial update. Send `null` to clear an optional field; omit to leave unchanged."
+      properties:
+        title:       { type: ["string", "null"] }
+        date:        { type: string }
+        callTime:    { type: ["string", "null"] }
+        wrapTime:    { type: ["string", "null"] }
+        location:    { type: ["string", "null"] }
+        billingNote: { type: ["string", "null"] }
+        notes:       { type: ["string", "null"] }
+        status:      { type: string, enum: [draft, sent, final] }
+
+    CrewInvite:
+      type: object
+      required: [id, callSheetId, position, name, rateType, status, createdAt]
+      properties:
+        id:           { type: integer }
+        callSheetId:  { type: integer }
+        position:     { type: string, description: "Role on the shoot, e.g. 'Camera Operator'." }
+        memberId:     { type: ["integer", "null"], description: "Roster member, or null for an ad-hoc freelancer." }
+        name:         { type: string }
+        email:        { type: ["string", "null"] }
+        rateType:     { type: string, enum: [full, half] }
+        dayRate:      { type: ["integer", "null"], minimum: 0, description: "Day rate in whole dollars for this booking." }
+        status:       { type: string, enum: [pending, invited, available, unavailable, confirmed] }
+        responseNote: { type: ["string", "null"] }
+        invitedAt:    { type: ["string", "null"] }
+        respondedAt:  { type: ["string", "null"] }
+        createdAt:    { type: string }
+
+    CrewInviteInput:
+      type: object
+      required: [position, name]
+      properties:
+        position:  { type: string, minLength: 1 }
+        memberId:  { type: integer, description: "When set, name/email/rates are pre-filled from the member if omitted." }
+        name:      { type: string }
+        email:     { type: string }
+        rateType:  { type: string, enum: [full, half] }
+        dayRate:   { type: integer, minimum: 0 }
+
+    CrewInviteUpdate:
+      type: object
+      description: "Partial update of a crew line. Send `null` to clear an optional field."
+      properties:
+        position:  { type: string, minLength: 1 }
+        memberId:  { type: ["integer", "null"] }
+        name:      { type: string }
+        email:     { type: ["string", "null"] }
+        rateType:  { type: string, enum: [full, half] }
+        dayRate:   { type: ["integer", "null"], minimum: 0 }
+        status:    { type: string, enum: [pending, invited, available, unavailable, confirmed] }
+
+    CrewSendResult:
+      type: object
+      required: [sent, total]
+      properties:
+        sent:  { type: integer, description: "How many invite emails the provider accepted." }
+        total: { type: integer, description: "How many crew lines were eligible (have an email)." }
+
+    # Public, no-login view of a single crew invite resolved by token.
+    PublicCrewInvite:
+      type: object
+      required: [position, name, rateType, status, projectName, date]
+      properties:
+        position:    { type: string }
+        name:        { type: string }
+        rateType:    { type: string, enum: [full, half] }
+        dayRate:     { type: ["integer", "null"], minimum: 0 }
+        status:      { type: string, enum: [pending, invited, available, unavailable, confirmed] }
+        responseNote: { type: ["string", "null"] }
+        projectName: { type: string }
+        title:       { type: ["string", "null"] }
+        date:        { type: string }
+        callTime:    { type: ["string", "null"] }
+        wrapTime:    { type: ["string", "null"] }
+        location:    { type: ["string", "null"] }
+
+    CrewRespondInput:
+      type: object
+      required: [answer]
+      properties:
+        answer: { type: string, enum: [available, unavailable] }
+        note:   { type: string, maxLength: 2000, description: "Optional note from the invitee." }
 
     # ── Dashboard ────────────────────────────────────────────────────────────
     DashboardSummary:
