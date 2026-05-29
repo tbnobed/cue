@@ -188,9 +188,19 @@ router.post(
     // conversions so the next open re-converts the new contents.
     invalidateCacheForFile(fileId);
 
-    const now = new Date();
-    await db.update(documentsTable).set({ updatedAt: now }).where(eq(documentsTable.id, fileId));
-    res.json({ LastModifiedTime: now.toISOString() });
+    // CRITICAL: the LastModifiedTime we return here MUST equal the one the next
+    // CheckFileInfo will report, or Collabora concludes the file changed
+    // underneath it and shows the "Document has been changed in storage"
+    // conflict dialog after every save. CheckFileInfo derives both
+    // LastModifiedTime and Version from the on-disk `stat.mtimeMs`, so we must
+    // return that same disk mtime here — NOT a fresh `new Date()` wall-clock
+    // value (which differs from the file's actual mtime by a few ms). We also
+    // pin the DB `updatedAt` to the disk mtime so the composite Version field
+    // stays consistent across polls.
+    const stat = fs.statSync(fp);
+    const modified = new Date(stat.mtimeMs);
+    await db.update(documentsTable).set({ updatedAt: modified }).where(eq(documentsTable.id, fileId));
+    res.json({ LastModifiedTime: modified.toISOString() });
   },
 );
 
