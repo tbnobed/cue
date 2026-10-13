@@ -7,4 +7,10 @@ TBN produces specials throughout the year and lacks a consistent shared filing a
 
 **Why:** The user wants to learn from existing teams and connect existing tools rather than duplicate their processes.
 
-**How to apply:** The proposed flow should cover producer project selection and guest intake, the current approved release, all required signatures, automatic naming and archiving, producer confirmation, authorized status/archive visibility in Wrike or another existing system, reminders, and filing-failure follow-up. Guests need a phone-friendly experience, clear show information, minimal repeated typing, and a signed copy. Provider selection and implementation have not yet been approved.
+**How to apply:** The proposed flow should cover producer project selection and guest intake, the current approved release, all required signatures, automatic naming and archiving, producer confirmation, authorized status/archive visibility, reminders, and filing-failure follow-up. Guests need a phone-friendly experience, clear show information, minimal repeated typing, and a signed copy. Signing-provider selection and implementation have not yet been approved.
+
+The user does not want OneDrive storage: they want all documents stored in this application and want to evaluate it as the whole project management tool and document holding place.
+
+**Why:** The user explicitly replaced the proposed OneDrive archive with this application.
+
+**How to apply:** Evaluate app-owned document storage and project tracking rather than assuming OneDrive or Wrike remain required. Keep backup infrastructure separate from the producer-facing archive; no implementation is authorized by the evaluation request alone.
