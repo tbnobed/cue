@@ -8,6 +8,25 @@ reminders and its own immutable signed-PDF archive.
 
 ## Server setup
 
+### Apply the confirmed deployment's port/configuration fix
+
+For the existing Cue server at `192.168.100.65`, with signing at `sign.obtv.io`
+and NPM on a different server, update the project files and run:
+
+```sh
+bash scripts/apply-docuseal.sh
+```
+
+This checks that it is running on the correct host, backs up configuration
+outside the checkout, preserves secrets and unrelated settings, persists the
+confirmed DocuSeal settings, recreates only DocuSeal, checks its actual port
+binding and HTTP readiness, and applies the environment to the existing Cue
+image. It does not build or migrate an older Cue installation, delete volumes,
+change NPM, or configure SMTP/API credentials. There is a brief signing-service
+interruption during recreation. Restrict port 3001 to NPM before running.
+
+### Initial installation
+
 1. Back up the Cue database, uploads volume and server configuration first.
 2. Use the approved signing hostname `sign.obtv.io`. Point its DNS at the
    public address serving Nginx Proxy Manager. NPM runs on a different server:
