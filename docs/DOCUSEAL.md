@@ -1,3 +1,24 @@
+# TBN signing-page header
+
+After syncing the checkout on the self-hosted server, run:
+
+```sh
+cd ~/cue
+bash scripts/apply-docuseal-branding.sh
+```
+
+This builds the `cue-docuseal` image and recreates only DocuSeal, preserving
+its existing volume, SMTP environment, ports and NPM configuration. The
+guest signing header uses the supplied TBN logo, retains visible DocuSeal
+attribution, and offers the modified AGPL source archive. No Pro features
+are enabled. Documents, signatures, template approvals and email branding
+are not modified. Refresh an existing guest signing page to see the header.
+
+The customization is deliberately pinned to DocuSeal 3.2.1. A different
+version or unexpected upstream header fails the build before the running
+container is replaced; review the header before upgrading. Building requires
+access to GitHub and the Docker image registries.
+
 # DocuSeal signing on the Cue server
 
 Cue uses a self-hosted DocuSeal instance for guest releases. There is no

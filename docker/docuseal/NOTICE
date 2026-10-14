@@ -1,0 +1,8 @@
+Cue customization of DocuSeal 3.2.1, October 14, 2026.
+Modified signing header: TBN logo, retained DocuSeal attribution, source link.
+No signing logic, document content, email configuration or Pro controls changed.
+DocuSeal is copyright DocuSeal LLC and licensed under AGPLv3 with Section 7(b)
+Additional Terms. Original LICENSE and LICENSE_ADDITIONAL_TERMS are included
+in the downloadable source archive alongside the modified source.
+The supplied TBN logo remains the property of its owner; its inclusion does
+not grant rights to use TBN trademarks.

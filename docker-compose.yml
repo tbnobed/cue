@@ -122,7 +122,12 @@ services:
   # ingress to NPM at the network firewall; never expose port 3001 publicly.
   docuseal:
     profiles: ["signing"]
-    image: docuseal/docuseal:${DOCUSEAL_VERSION:-3.2.1}
+    image: cue-docuseal:${DOCUSEAL_VERSION:-3.2.1}
+    build:
+      context: .
+      dockerfile: docker/docuseal/Dockerfile
+      args:
+        DOCUSEAL_VERSION: ${DOCUSEAL_VERSION:-3.2.1}
     restart: unless-stopped
     ports:
       - "${DOCUSEAL_BIND:-192.168.100.65}:${DOCUSEAL_PORT:-3001}:3000"

@@ -38,3 +38,12 @@ plain `docker compose exec ... bundle exec rails` runs outside the Rails app.
 
 **How to apply:** Use `exec -T -w /app docuseal ...`. Separate verification from
 recreation, so retrying a diagnostic does not repeatedly restart signing.
+
+Use TBN as the primary guest signing-page logo without enabling Pro features,
+while retaining visible DocuSeal attribution and access to modified source.
+
+**Why:** The user requested only their supplied logo, not Pro features;
+DocuSeal 3.2.1's additional license terms require UI attribution.
+
+**How to apply:** Preserve the attribution and source offer when revising
+branding; review upstream compatibility before any DocuSeal upgrade.
