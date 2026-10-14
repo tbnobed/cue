@@ -32,6 +32,101 @@ tags:
     description: Crew invite and public availability-reply operations
 
 paths:
+  /projects/{projectId}/releases:
+    parameters:
+      - { name: projectId, in: path, required: true, schema: { type: integer } }
+    get:
+      operationId: listProjectReleases
+      responses:
+        "200":
+          description: Project releases
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/ReleaseRecord" } }
+    post:
+      operationId: createProjectRelease
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReleaseInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReleaseRecord" }
+  /releases/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    patch:
+      operationId: updateRelease
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReleaseInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReleaseRecord" }
+  /releases/{id}/archive:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    post:
+      operationId: archiveRelease
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/ReleaseArchiveInput" }
+      responses:
+        "200":
+          description: Signed PDF verified and archived
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReleaseRecord" }
+  /releases/{id}/file:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    get:
+      operationId: downloadRelease
+      responses:
+        "200":
+          description: Protected signed PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+  /projects/{projectId}/wrike-link:
+    parameters:
+      - { name: projectId, in: path, required: true, schema: { type: integer } }
+    get:
+      operationId: getProjectWrikeLink
+      responses:
+        "200":
+          description: Link metadata; linking does not synchronize data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WrikeLink" }
+    put:
+      operationId: setProjectWrikeLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WrikeLinkInput" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WrikeLink" }
+    delete:
+      operationId: removeProjectWrikeLink
+      responses:
+        "204": { description: Unlinked locally; Wrike unchanged }
   /healthz:
     get:
       operationId: healthCheck
@@ -1284,6 +1379,57 @@ paths:
 
 components:
   schemas:
+    ReleaseInput:
+      type: object
+      required: [guestName, guestEmail, title, templateVersion, status]
+      properties:
+        guestName: { type: string, minLength: 1, maxLength: 200 }
+        guestEmail: { type: string, format: email, maxLength: 320 }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        templateVersion: { type: string, minLength: 1, maxLength: 100 }
+        productionDate: { type: ["string", "null"], format: date }
+        status: { type: string, enum: [draft, awaiting_signatures, signed] }
+        notes: { type: string, maxLength: 5000 }
+    ReleaseArchiveInput:
+      type: object
+      required: [file, confirmed]
+      properties:
+        file: { type: string, format: binary }
+        confirmed: { type: string, enum: ["true"], description: Producer confirms all required signatures are present }
+    ReleaseRecord:
+      type: object
+      required: [id, projectId, guestName, guestEmail, title, templateVersion, status, notes, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        projectId: { type: integer }
+        guestName: { type: string }
+        guestEmail: { type: string }
+        title: { type: string }
+        templateVersion: { type: string }
+        productionDate: { type: ["string", "null"] }
+        status: { type: string, enum: [draft, awaiting_signatures, signed, archived] }
+        notes: { type: string }
+        fileName: { type: ["string", "null"] }
+        sha256: { type: ["string", "null"] }
+        archivedAt: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    WrikeLinkInput:
+      type: object
+      required: [remoteId, url]
+      properties:
+        remoteId: { type: string, minLength: 1, maxLength: 200 }
+        url: { type: string, format: uri, maxLength: 2000 }
+    WrikeLink:
+      type: object
+      required: [projectId, linked, syncStatus]
+      properties:
+        projectId: { type: integer }
+        linked: { type: boolean }
+        remoteId: { type: ["string", "null"] }
+        url: { type: ["string", "null"] }
+        syncStatus: { type: string, enum: [not_configured] }
+        updatedAt: { type: ["string", "null"] }
     HealthStatus:
       type: object
       properties:

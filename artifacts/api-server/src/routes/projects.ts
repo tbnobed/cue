@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { projectsTable, tasksTable, milestonesTable, usersTable } from "@workspace/db";
+import { projectsTable, tasksTable, milestonesTable, usersTable, releasesTable } from "@workspace/db";
 import { eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import {
@@ -111,8 +111,22 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
 router.delete("/projects/:id", async (req, res): Promise<void> => {
   const { id } = DeleteProjectParams.parse(req.params);
   if (!(await requireProjectManage(req, res, id))) return;
+  const [release] = await db.select({ id: releasesTable.id }).from(releasesTable).where(eq(releasesTable.projectId, id)).limit(1);
+  if (release) {
+    res.status(409).json({ error: "This project contains release records and cannot be deleted. Mark it completed instead." });
+    return;
+  }
   const [before] = await db.select().from(projectsTable).where(eq(projectsTable.id, id));
-  await db.delete(projectsTable).where(eq(projectsTable.id, id));
+  try {
+    await db.delete(projectsTable).where(eq(projectsTable.id, id));
+  } catch (error) {
+    // A release may have been added between the check and deletion.
+    if ((error as { cause?: { code?: string } }).cause?.code === "23503") {
+      res.status(409).json({ error: "This project has protected records and cannot be deleted." });
+      return;
+    }
+    throw error;
+  }
   res.status(204).send();
   if (before) {
     void actorFromUserId(req.session?.userId).then((actor) =>

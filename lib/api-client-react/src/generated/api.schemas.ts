@@ -5,6 +5,116 @@
  * Project PM API specification
  * OpenAPI spec version: 0.1.0
  */
+export type ReleaseInputStatus = typeof ReleaseInputStatus[keyof typeof ReleaseInputStatus];
+
+
+export const ReleaseInputStatus = {
+  draft: 'draft',
+  awaiting_signatures: 'awaiting_signatures',
+  signed: 'signed',
+} as const;
+
+export interface ReleaseInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  guestName: string;
+  /** @maxLength 320 */
+  guestEmail: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  title: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  templateVersion: string;
+  /** @nullable */
+  productionDate?: string | null;
+  status: ReleaseInputStatus;
+  /** @maxLength 5000 */
+  notes?: string;
+}
+
+/**
+ * Producer confirms all required signatures are present
+ */
+export type ReleaseArchiveInputConfirmed = typeof ReleaseArchiveInputConfirmed[keyof typeof ReleaseArchiveInputConfirmed];
+
+
+export const ReleaseArchiveInputConfirmed = {
+  true: 'true',
+} as const;
+
+export interface ReleaseArchiveInput {
+  file: Blob;
+  /** Producer confirms all required signatures are present */
+  confirmed: ReleaseArchiveInputConfirmed;
+}
+
+export type ReleaseRecordStatus = typeof ReleaseRecordStatus[keyof typeof ReleaseRecordStatus];
+
+
+export const ReleaseRecordStatus = {
+  draft: 'draft',
+  awaiting_signatures: 'awaiting_signatures',
+  signed: 'signed',
+  archived: 'archived',
+} as const;
+
+export interface ReleaseRecord {
+  id: number;
+  projectId: number;
+  guestName: string;
+  guestEmail: string;
+  title: string;
+  templateVersion: string;
+  /** @nullable */
+  productionDate?: string | null;
+  status: ReleaseRecordStatus;
+  notes: string;
+  /** @nullable */
+  fileName?: string | null;
+  /** @nullable */
+  sha256?: string | null;
+  /** @nullable */
+  archivedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WrikeLinkInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  remoteId: string;
+  /** @maxLength 2000 */
+  url: string;
+}
+
+export type WrikeLinkSyncStatus = typeof WrikeLinkSyncStatus[keyof typeof WrikeLinkSyncStatus];
+
+
+export const WrikeLinkSyncStatus = {
+  not_configured: 'not_configured',
+} as const;
+
+export interface WrikeLink {
+  projectId: number;
+  linked: boolean;
+  /** @nullable */
+  remoteId?: string | null;
+  /** @nullable */
+  url?: string | null;
+  syncStatus: WrikeLinkSyncStatus;
+  /** @nullable */
+  updatedAt?: string | null;
+}
+
 export interface HealthStatus {
   status: string;
 }

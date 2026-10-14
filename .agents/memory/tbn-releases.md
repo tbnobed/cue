@@ -13,4 +13,4 @@ The user does not want OneDrive storage: they want all documents stored in this 
 
 **Why:** The user explicitly replaced the proposed OneDrive archive with this application.
 
-**How to apply:** Evaluate app-owned document storage and project tracking rather than assuming OneDrive or Wrike remain required. Keep backup infrastructure separate from the producer-facing archive; no implementation is authorized by the evaluation request alone.
+**How to apply:** Use app-owned document storage and project tracking. Wrike must remain in use through its API until TBN is ready to migrate away; the user has authorized building the foundations. Keep backup infrastructure separate from the producer-facing archive.

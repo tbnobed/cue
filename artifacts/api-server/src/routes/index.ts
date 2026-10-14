@@ -20,6 +20,8 @@ import callSheetsRouter from "./call-sheets";
 import publicCrewRouter from "./public-crew";
 import adminUsersRouter from "./admin-users";
 import uploadsRouter from "./uploads";
+import releasesRouter from "./releases";
+import wrikeLinksRouter from "./wrike-links";
 import { requireAuth } from "../middlewares/require-auth";
 
 const router: IRouter = Router();
@@ -39,6 +41,8 @@ router.use(publicCrewRouter);
 // --- Authenticated routes ---
 // All product data routes require a signed-in user.
 router.use(requireAuth, projectsRouter);
+router.use(requireAuth, releasesRouter);
+router.use(requireAuth, wrikeLinksRouter);
 router.use(requireAuth, milestonesRouter);
 router.use(requireAuth, tasksRouter);
 router.use(requireAuth, taskNotesRouter);

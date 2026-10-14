@@ -1,2 +1,3 @@
 - [Dev DB schema drift](dev-db-schema-drift.md) — drizzle push blocked by share_links drift; apply new columns/tables via raw psql, watch for "column does not exist" 500s.
 - [TBN release workflow](tbn-releases.md) — seasonal specials need a shared signature, filing, and backup process built around existing tools.
+- [Generated validation dates](generated-validation.md) — preserve calendar dates before coercion; generated Zod extensions must use the generator's Zod version.

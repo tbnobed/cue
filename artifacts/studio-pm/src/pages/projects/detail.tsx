@@ -41,6 +41,7 @@ import { CallSheetsTab } from "@/components/call-sheets-tab";
 import { TaskDetailDialog } from "@/components/task-detail-dialog";
 import { AddLinkDialog } from "@/components/add-link-dialog";
 import { NewDocumentButton } from "@/components/new-document-button";
+import { ReleasesWrikePanel } from "@/components/releases-wrike-panel";
 
 const STATUS_TONE: Record<string, string> = {
   planning:    "text-blue-400 bg-blue-500/10 ring-blue-500/20",
@@ -126,6 +127,7 @@ export default function ProjectDetail() {
           <TabsTrigger value="documents" data-testid="tab-documents">Documents</TabsTrigger>
           <TabsTrigger value="call-sheets" data-testid="tab-call-sheets">Call Sheets</TabsTrigger>
           <TabsTrigger value="team" data-testid="tab-team">Team</TabsTrigger>
+          <TabsTrigger value="releases" data-testid="tab-releases">Releases &amp; Wrike</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-5 outline-none">
@@ -146,6 +148,10 @@ export default function ProjectDetail() {
 
         <TabsContent value="team" className="outline-none">
           <TeamTab projectId={projectId} />
+        </TabsContent>
+
+        <TabsContent value="releases" className="outline-none">
+          <ReleasesWrikePanel project={project} />
         </TabsContent>
       </Tabs>
     </div>

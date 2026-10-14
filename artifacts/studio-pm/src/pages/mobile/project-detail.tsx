@@ -15,8 +15,9 @@ import { format } from "date-fns";
 import { useMobileTitle } from "@/components/layout/mobile-shell";
 import { useOpenDocument } from "@/lib/open-document";
 import { printCallSheet } from "@/lib/print-call-sheet";
+import { ReleasesWrikePanel } from "@/components/releases-wrike-panel";
 
-type Tab = "tasks" | "milestones" | "crew" | "sheets" | "docs";
+type Tab = "tasks" | "milestones" | "crew" | "sheets" | "docs" | "releases";
 
 const STATUS_LABEL: Record<string, string> = {
   in_progress: "In Progress",
@@ -89,7 +90,7 @@ export default function MobileProjectDetail() {
       </div>
 
       <div className="seg" role="tablist">
-        {(["tasks", "milestones", "crew", "sheets", "docs"] as Tab[]).map((t) => (
+        {(["tasks", "milestones", "crew", "sheets", "docs", "releases"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -99,7 +100,7 @@ export default function MobileProjectDetail() {
             aria-selected={tab === t}
             data-testid={`mobile-detail-tab-${t}`}
           >
-            {t === "tasks" ? "Tasks" : t === "milestones" ? "Milestones" : t === "crew" ? "Crew" : t === "sheets" ? "Call Sheets" : "Docs"}
+            {t === "tasks" ? "Tasks" : t === "milestones" ? "Milestones" : t === "crew" ? "Crew" : t === "sheets" ? "Call Sheets" : t === "docs" ? "Docs" : "Releases"}
           </button>
         ))}
       </div>
@@ -118,6 +119,9 @@ export default function MobileProjectDetail() {
       )}
       {tab === "docs" && (
         <DocsList items={docs ?? []} />
+      )}
+      {tab === "releases" && (
+        <div style={{ marginTop: 6 }}><ReleasesWrikePanel project={project} compact /></div>
       )}
     </>
   );

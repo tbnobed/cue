@@ -61,6 +61,9 @@ import type {
   ProjectUpdate,
   PublicCrewInvite,
   PublicShare,
+  ReleaseArchiveInput,
+  ReleaseInput,
+  ReleaseRecord,
   ShareLink,
   ShareLinkEmailInput,
   ShareLinkEmailResult,
@@ -69,7 +72,9 @@ import type {
   TaskInput,
   TaskNote,
   TaskNoteInput,
-  TaskUpdate
+  TaskUpdate,
+  WrikeLink,
+  WrikeLinkInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -83,6 +88,550 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
+
+export const getListProjectReleasesUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/releases`
+}
+
+export const listProjectReleases = async (projectId: number, options?: RequestInit): Promise<ReleaseRecord[]> => {
+
+  return customFetch<ReleaseRecord[]>(getListProjectReleasesUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListProjectReleasesQueryKey = (projectId: number,) => {
+    return [
+    `/api/projects/${projectId}/releases`
+    ] as const;
+    }
+
+
+export const getListProjectReleasesQueryOptions = <TData = Awaited<ReturnType<typeof listProjectReleases>>, TError = ErrorType<unknown>>(projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListProjectReleasesQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProjectReleases>>> = ({ signal }) => listProjectReleases(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(projectId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListProjectReleasesQueryResult = NonNullable<Awaited<ReturnType<typeof listProjectReleases>>>
+export type ListProjectReleasesQueryError = ErrorType<unknown>
+
+
+
+export function useListProjectReleases<TData = Awaited<ReturnType<typeof listProjectReleases>>, TError = ErrorType<unknown>>(
+ projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProjectReleases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListProjectReleasesQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateProjectReleaseUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/releases`
+}
+
+export const createProjectRelease = async (projectId: number,
+    releaseInput: ReleaseInput, options?: RequestInit): Promise<ReleaseRecord> => {
+
+  return customFetch<ReleaseRecord>(getCreateProjectReleaseUrl(projectId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      releaseInput,)
+  }
+);}
+
+
+
+
+export const getCreateProjectReleaseMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectRelease>>, TError,{projectId: number;data: BodyType<ReleaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProjectRelease>>, TError,{projectId: number;data: BodyType<ReleaseInput>}, TContext> => {
+
+const mutationKey = ['createProjectRelease'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProjectRelease>>, {projectId: number;data: BodyType<ReleaseInput>}> = (props) => {
+          const {projectId,data} = props ?? {};
+
+          return  createProjectRelease(projectId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateProjectReleaseMutationResult = NonNullable<Awaited<ReturnType<typeof createProjectRelease>>>
+    export type CreateProjectReleaseMutationBody = BodyType<ReleaseInput>
+    export type CreateProjectReleaseMutationError = ErrorType<unknown>
+
+    export const useCreateProjectRelease = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProjectRelease>>, TError,{projectId: number;data: BodyType<ReleaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createProjectRelease>>,
+        TError,
+        {projectId: number;data: BodyType<ReleaseInput>},
+        TContext
+      > => {
+      return useMutation(getCreateProjectReleaseMutationOptions(options));
+    }
+
+export const getUpdateReleaseUrl = (id: number,) => {
+
+
+
+
+  return `/api/releases/${id}`
+}
+
+export const updateRelease = async (id: number,
+    releaseInput: ReleaseInput, options?: RequestInit): Promise<ReleaseRecord> => {
+
+  return customFetch<ReleaseRecord>(getUpdateReleaseUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      releaseInput,)
+  }
+);}
+
+
+
+
+export const getUpdateReleaseMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRelease>>, TError,{id: number;data: BodyType<ReleaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateRelease>>, TError,{id: number;data: BodyType<ReleaseInput>}, TContext> => {
+
+const mutationKey = ['updateRelease'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateRelease>>, {id: number;data: BodyType<ReleaseInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateRelease(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateReleaseMutationResult = NonNullable<Awaited<ReturnType<typeof updateRelease>>>
+    export type UpdateReleaseMutationBody = BodyType<ReleaseInput>
+    export type UpdateReleaseMutationError = ErrorType<unknown>
+
+    export const useUpdateRelease = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRelease>>, TError,{id: number;data: BodyType<ReleaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateRelease>>,
+        TError,
+        {id: number;data: BodyType<ReleaseInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateReleaseMutationOptions(options));
+    }
+
+export const getArchiveReleaseUrl = (id: number,) => {
+
+
+
+
+  return `/api/releases/${id}/archive`
+}
+
+export const archiveRelease = async (id: number,
+    releaseArchiveInput: ReleaseArchiveInput, options?: RequestInit): Promise<ReleaseRecord> => {
+    const formData = new FormData();
+formData.append(`file`, releaseArchiveInput.file);
+formData.append(`confirmed`, releaseArchiveInput.confirmed);
+
+  return customFetch<ReleaseRecord>(getArchiveReleaseUrl(id),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body:
+      formData,
+  }
+);}
+
+
+
+
+export const getArchiveReleaseMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveRelease>>, TError,{id: number;data: BodyType<ReleaseArchiveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof archiveRelease>>, TError,{id: number;data: BodyType<ReleaseArchiveInput>}, TContext> => {
+
+const mutationKey = ['archiveRelease'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof archiveRelease>>, {id: number;data: BodyType<ReleaseArchiveInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  archiveRelease(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ArchiveReleaseMutationResult = NonNullable<Awaited<ReturnType<typeof archiveRelease>>>
+    export type ArchiveReleaseMutationBody = BodyType<ReleaseArchiveInput>
+    export type ArchiveReleaseMutationError = ErrorType<unknown>
+
+    export const useArchiveRelease = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveRelease>>, TError,{id: number;data: BodyType<ReleaseArchiveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof archiveRelease>>,
+        TError,
+        {id: number;data: BodyType<ReleaseArchiveInput>},
+        TContext
+      > => {
+      return useMutation(getArchiveReleaseMutationOptions(options));
+    }
+
+export const getDownloadReleaseUrl = (id: number,) => {
+
+
+
+
+  return `/api/releases/${id}/file`
+}
+
+export const downloadRelease = async (id: number, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadReleaseUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadReleaseQueryKey = (id: number,) => {
+    return [
+    `/api/releases/${id}/file`
+    ] as const;
+    }
+
+
+export const getDownloadReleaseQueryOptions = <TData = Awaited<ReturnType<typeof downloadRelease>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadRelease>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadReleaseQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadRelease>>> = ({ signal }) => downloadRelease(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadRelease>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadReleaseQueryResult = NonNullable<Awaited<ReturnType<typeof downloadRelease>>>
+export type DownloadReleaseQueryError = ErrorType<unknown>
+
+
+
+export function useDownloadRelease<TData = Awaited<ReturnType<typeof downloadRelease>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadRelease>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadReleaseQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetProjectWrikeLinkUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/wrike-link`
+}
+
+export const getProjectWrikeLink = async (projectId: number, options?: RequestInit): Promise<WrikeLink> => {
+
+  return customFetch<WrikeLink>(getGetProjectWrikeLinkUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectWrikeLinkQueryKey = (projectId: number,) => {
+    return [
+    `/api/projects/${projectId}/wrike-link`
+    ] as const;
+    }
+
+
+export const getGetProjectWrikeLinkQueryOptions = <TData = Awaited<ReturnType<typeof getProjectWrikeLink>>, TError = ErrorType<unknown>>(projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProjectWrikeLink>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectWrikeLinkQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectWrikeLink>>> = ({ signal }) => getProjectWrikeLink(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(projectId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectWrikeLink>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProjectWrikeLinkQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectWrikeLink>>>
+export type GetProjectWrikeLinkQueryError = ErrorType<unknown>
+
+
+
+export function useGetProjectWrikeLink<TData = Awaited<ReturnType<typeof getProjectWrikeLink>>, TError = ErrorType<unknown>>(
+ projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProjectWrikeLink>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProjectWrikeLinkQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSetProjectWrikeLinkUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/wrike-link`
+}
+
+export const setProjectWrikeLink = async (projectId: number,
+    wrikeLinkInput: WrikeLinkInput, options?: RequestInit): Promise<WrikeLink> => {
+
+  return customFetch<WrikeLink>(getSetProjectWrikeLinkUrl(projectId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      wrikeLinkInput,)
+  }
+);}
+
+
+
+
+export const getSetProjectWrikeLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setProjectWrikeLink>>, TError,{projectId: number;data: BodyType<WrikeLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setProjectWrikeLink>>, TError,{projectId: number;data: BodyType<WrikeLinkInput>}, TContext> => {
+
+const mutationKey = ['setProjectWrikeLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setProjectWrikeLink>>, {projectId: number;data: BodyType<WrikeLinkInput>}> = (props) => {
+          const {projectId,data} = props ?? {};
+
+          return  setProjectWrikeLink(projectId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetProjectWrikeLinkMutationResult = NonNullable<Awaited<ReturnType<typeof setProjectWrikeLink>>>
+    export type SetProjectWrikeLinkMutationBody = BodyType<WrikeLinkInput>
+    export type SetProjectWrikeLinkMutationError = ErrorType<unknown>
+
+    export const useSetProjectWrikeLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setProjectWrikeLink>>, TError,{projectId: number;data: BodyType<WrikeLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setProjectWrikeLink>>,
+        TError,
+        {projectId: number;data: BodyType<WrikeLinkInput>},
+        TContext
+      > => {
+      return useMutation(getSetProjectWrikeLinkMutationOptions(options));
+    }
+
+export const getRemoveProjectWrikeLinkUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/wrike-link`
+}
+
+export const removeProjectWrikeLink = async (projectId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getRemoveProjectWrikeLinkUrl(projectId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRemoveProjectWrikeLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeProjectWrikeLink>>, TError,{projectId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeProjectWrikeLink>>, TError,{projectId: number}, TContext> => {
+
+const mutationKey = ['removeProjectWrikeLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeProjectWrikeLink>>, {projectId: number}> = (props) => {
+          const {projectId} = props ?? {};
+
+          return  removeProjectWrikeLink(projectId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveProjectWrikeLinkMutationResult = NonNullable<Awaited<ReturnType<typeof removeProjectWrikeLink>>>
+
+    export type RemoveProjectWrikeLinkMutationError = ErrorType<unknown>
+
+    export const useRemoveProjectWrikeLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeProjectWrikeLink>>, TError,{projectId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeProjectWrikeLink>>,
+        TError,
+        {projectId: number},
+        TContext
+      > => {
+      return useMutation(getRemoveProjectWrikeLinkMutationOptions(options));
+    }
 
 export const getHealthCheckUrl = () => {
 

@@ -8,6 +8,176 @@
 import * as zod from 'zod';
 
 
+export const ListProjectReleasesParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const ListProjectReleasesResponseItem = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "guestName": zod.string(),
+  "guestEmail": zod.string(),
+  "title": zod.string(),
+  "templateVersion": zod.string(),
+  "productionDate": zod.string().nullish(),
+  "status": zod.enum(['draft', 'awaiting_signatures', 'signed', 'archived']),
+  "notes": zod.string(),
+  "fileName": zod.string().nullish(),
+  "sha256": zod.string().nullish(),
+  "archivedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListProjectReleasesResponse = zod.array(ListProjectReleasesResponseItem)
+
+
+export const CreateProjectReleaseParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const createProjectReleaseBodyGuestNameMax = 200;
+
+export const createProjectReleaseBodyGuestEmailMax = 320;
+
+export const createProjectReleaseBodyTitleMax = 200;
+
+export const createProjectReleaseBodyTemplateVersionMax = 100;
+
+export const createProjectReleaseBodyNotesMax = 5000;
+
+
+
+export const CreateProjectReleaseBody = zod.object({
+  "guestName": zod.string().min(1).max(createProjectReleaseBodyGuestNameMax),
+  "guestEmail": zod.string().email().max(createProjectReleaseBodyGuestEmailMax),
+  "title": zod.string().min(1).max(createProjectReleaseBodyTitleMax),
+  "templateVersion": zod.string().min(1).max(createProjectReleaseBodyTemplateVersionMax),
+  "productionDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['draft', 'awaiting_signatures', 'signed']),
+  "notes": zod.string().max(createProjectReleaseBodyNotesMax).optional()
+})
+
+
+export const UpdateReleaseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateReleaseBodyGuestNameMax = 200;
+
+export const updateReleaseBodyGuestEmailMax = 320;
+
+export const updateReleaseBodyTitleMax = 200;
+
+export const updateReleaseBodyTemplateVersionMax = 100;
+
+export const updateReleaseBodyNotesMax = 5000;
+
+
+
+export const UpdateReleaseBody = zod.object({
+  "guestName": zod.string().min(1).max(updateReleaseBodyGuestNameMax),
+  "guestEmail": zod.string().email().max(updateReleaseBodyGuestEmailMax),
+  "title": zod.string().min(1).max(updateReleaseBodyTitleMax),
+  "templateVersion": zod.string().min(1).max(updateReleaseBodyTemplateVersionMax),
+  "productionDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['draft', 'awaiting_signatures', 'signed']),
+  "notes": zod.string().max(updateReleaseBodyNotesMax).optional()
+})
+
+export const UpdateReleaseResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "guestName": zod.string(),
+  "guestEmail": zod.string(),
+  "title": zod.string(),
+  "templateVersion": zod.string(),
+  "productionDate": zod.string().nullish(),
+  "status": zod.enum(['draft', 'awaiting_signatures', 'signed', 'archived']),
+  "notes": zod.string(),
+  "fileName": zod.string().nullish(),
+  "sha256": zod.string().nullish(),
+  "archivedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+export const ArchiveReleaseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ArchiveReleaseBody = zod.object({
+  "file": zod.instanceof(File),
+  "confirmed": zod.enum(['true']).describe('Producer confirms all required signatures are present')
+})
+
+export const ArchiveReleaseResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "guestName": zod.string(),
+  "guestEmail": zod.string(),
+  "title": zod.string(),
+  "templateVersion": zod.string(),
+  "productionDate": zod.string().nullish(),
+  "status": zod.enum(['draft', 'awaiting_signatures', 'signed', 'archived']),
+  "notes": zod.string(),
+  "fileName": zod.string().nullish(),
+  "sha256": zod.string().nullish(),
+  "archivedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+export const DownloadReleaseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const GetProjectWrikeLinkParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const GetProjectWrikeLinkResponse = zod.object({
+  "projectId": zod.number(),
+  "linked": zod.boolean(),
+  "remoteId": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "syncStatus": zod.enum(['not_configured']),
+  "updatedAt": zod.string().nullish()
+})
+
+
+export const SetProjectWrikeLinkParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const setProjectWrikeLinkBodyRemoteIdMax = 200;
+
+export const setProjectWrikeLinkBodyUrlMax = 2000;
+
+
+
+export const SetProjectWrikeLinkBody = zod.object({
+  "remoteId": zod.string().min(1).max(setProjectWrikeLinkBodyRemoteIdMax),
+  "url": zod.string().url().max(setProjectWrikeLinkBodyUrlMax)
+})
+
+export const SetProjectWrikeLinkResponse = zod.object({
+  "projectId": zod.number(),
+  "linked": zod.boolean(),
+  "remoteId": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "syncStatus": zod.enum(['not_configured']),
+  "updatedAt": zod.string().nullish()
+})
+
+
+export const RemoveProjectWrikeLinkParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+
 /**
  * Returns server health status
  * @summary Health check

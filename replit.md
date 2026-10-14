@@ -129,7 +129,15 @@ Studio Command is a general-purpose project command center (originally built for
 ## User preferences
 
 - Self-hosted with Docker for production deployment
+- Wrike coexistence must use a direct server-side integration in the self-hosted app, not Replit-managed connectors. Documents remain in app-owned storage, not OneDrive.
 - Dark-mode-first design appropriate for broadcast/production environments
+
+## Release archive foundation
+
+See [docs/RELEASES.md](docs/RELEASES.md) for the self-hosted migration, release
+protection model, Wrike linking limitations, and backup/recovery requirements.
+Archived releases are separate from general editable documents. Live Wrike
+sync and electronic-signature automation are not implemented yet.
 
 ## Gotchas
 
