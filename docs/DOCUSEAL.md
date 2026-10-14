@@ -33,6 +33,10 @@ bounce, suppression, or blocked-sender errors if mail does not arrive.
 An SMTP authentication pass confirms connectivity/credentials, not sender
 verification or inbox placement.
 
+The script waits for HTTP readiness and runs Rails from `/app`, not the image's
+default data directory. To verify an already-running container without another
+restart, run `bash scripts/apply-docuseal-email.sh --check`.
+
 ### Production-wide share links and QR codes
 
 After syncing this version of Cue to the server, apply the additive tables and

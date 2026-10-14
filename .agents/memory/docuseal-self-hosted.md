@@ -30,3 +30,11 @@ when self-hosted SMTP is absent, so invitation jobs can finish without sending.
 **How to apply:** Verify SMTP configuration and transport separately from the
 API connection. Environment SMTP overrides saved settings; SMTP authentication
 alone does not verify the From address or inbox delivery.
+
+Run container-side Rails commands with the working directory explicitly set to `/app`.
+
+**Why:** The DocuSeal image ends its Dockerfile with `WORKDIR /data/docuseal`;
+plain `docker compose exec ... bundle exec rails` runs outside the Rails app.
+
+**How to apply:** Use `exec -T -w /app docuseal ...`. Separate verification from
+recreation, so retrying a diagnostic does not repeatedly restart signing.
