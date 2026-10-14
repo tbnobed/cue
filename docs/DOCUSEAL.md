@@ -9,19 +9,19 @@ reminders and its own immutable signed-PDF archive.
 ## Server setup
 
 1. Back up the Cue database, uploads volume and server configuration first.
-2. Choose a separate public HTTPS hostname for signing. Point its DNS at this
-   server and configure your existing reverse proxy to forward that hostname to
-   `http://127.0.0.1:3001`. Forward the original host and HTTPS protocol headers.
-   If your proxy runs in Docker on Cue's network, use `http://docuseal:3000`
-   instead. Do not use Cue's `/documents` path as the DocuSeal origin.
+2. Use the approved signing hostname `sign.obtv.io`. Point its DNS at the
+   public address serving Nginx Proxy Manager. NPM runs on a different server:
+   configure its proxy host to forward to the Cue server's private IP,
+   scheme `http`, port `3001`, with Websockets Support enabled. Terminate HTTPS
+   in NPM. Leave the `cue.obtv.io` proxy host unchanged.
 3. Set these values in the self-hosted server's `.env`, not in browser code:
 
    ```dotenv
-   DOCUSEAL_HOST=your-signing-hostname
-   DOCUSEAL_PUBLIC_URL=https://your-signing-hostname
+   DOCUSEAL_HOST=sign.obtv.io
+   DOCUSEAL_PUBLIC_URL=https://sign.obtv.io
    DOCUSEAL_API_URL=http://docuseal:3000
    DOCUSEAL_PORT=3001
-   DOCUSEAL_BIND=127.0.0.1
+   DOCUSEAL_BIND=<Cue-server-private-IP>
    DOCUSEAL_VERSION=3.2.1
    ```
 

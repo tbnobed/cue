@@ -37,8 +37,8 @@ self-hosted server alongside Cue.
 and do not substitute a cloud signing provider or Replit hosting/integrations.
 
 Nginx Proxy Manager (NPM) handles HTTPS for Cue from a different server.
-The user approved a separate signing hostname on the same server as Cue,
-but has not chosen the hostname yet.
+The user approved `sign.obtv.io` as the DocuSeal hostname, on the same server
+as Cue. Cue remains at `cue.obtv.io`.
 
 **Why:** The user explicitly identified their existing HTTPS proxy.
 
