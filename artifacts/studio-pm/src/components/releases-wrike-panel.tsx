@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { SigningChip, SigningDialog, useReleaseSigningState, isDocuSealManaged, ApprovedTemplatePicker } from "@/components/release-signing";
 import { useAuth } from "@/hooks/use-auth";
+import { ReleaseShareLinks } from "@/components/release-share-links";
 
 const MAX_PDF = 20 * 1024 * 1024;
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -180,9 +181,12 @@ function ReleasesSection({ projectId, canManage, compact }: { projectId: number;
           </p>
         </div>
         {canManage ? (
-          <Button size="sm" className="h-8 gap-1.5" onClick={openNew} data-testid="button-new-release">
-            <Plus className="w-3.5 h-3.5" /> New release
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <ReleaseShareLinks projectId={projectId} />
+            <Button size="sm" className="h-8 gap-1.5" onClick={openNew} data-testid="button-new-release">
+              <Plus className="w-3.5 h-3.5" /> New release
+            </Button>
+          </div>
         ) : (
           <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground inline-flex items-center gap-1.5" data-testid="text-release-readonly">
             <Lock className="w-3 h-3" /> Read-only · owner or admin edits

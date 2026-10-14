@@ -18,3 +18,4 @@ export * from "./email_verifications";
 export * from "./releases";
 export * from "./wrike";
 export * from "./docuseal";
+export * from "./release-links";

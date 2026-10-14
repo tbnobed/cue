@@ -55,6 +55,8 @@ import type {
   Milestone,
   MilestoneInput,
   MilestoneUpdate,
+  ProductionReleaseLink,
+  ProductionReleaseLinkInput,
   Project,
   ProjectInput,
   ProjectMember,
@@ -62,8 +64,11 @@ import type {
   ProjectTransferInput,
   ProjectUpdate,
   PublicCrewInvite,
+  PublicReleaseLink,
   PublicShare,
+  RegisterPublicReleaseGuest202,
   ReleaseArchiveInput,
+  ReleaseGuestRegistration,
   ReleaseInput,
   ReleaseRecord,
   ReleaseSigning,
@@ -103,6 +108,344 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
+
+export const getListProductionReleaseLinksUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/release-links`
+}
+
+export const listProductionReleaseLinks = async (projectId: number, options?: RequestInit): Promise<ProductionReleaseLink[]> => {
+
+  return customFetch<ProductionReleaseLink[]>(getListProductionReleaseLinksUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListProductionReleaseLinksQueryKey = (projectId: number,) => {
+    return [
+    `/api/projects/${projectId}/release-links`
+    ] as const;
+    }
+
+
+export const getListProductionReleaseLinksQueryOptions = <TData = Awaited<ReturnType<typeof listProductionReleaseLinks>>, TError = ErrorType<unknown>>(projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProductionReleaseLinks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListProductionReleaseLinksQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProductionReleaseLinks>>> = ({ signal }) => listProductionReleaseLinks(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(projectId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProductionReleaseLinks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListProductionReleaseLinksQueryResult = NonNullable<Awaited<ReturnType<typeof listProductionReleaseLinks>>>
+export type ListProductionReleaseLinksQueryError = ErrorType<unknown>
+
+
+
+export function useListProductionReleaseLinks<TData = Awaited<ReturnType<typeof listProductionReleaseLinks>>, TError = ErrorType<unknown>>(
+ projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProductionReleaseLinks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListProductionReleaseLinksQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateProductionReleaseLinkUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/release-links`
+}
+
+export const createProductionReleaseLink = async (projectId: number,
+    productionReleaseLinkInput: ProductionReleaseLinkInput, options?: RequestInit): Promise<ProductionReleaseLink> => {
+
+  return customFetch<ProductionReleaseLink>(getCreateProductionReleaseLinkUrl(projectId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      productionReleaseLinkInput,)
+  }
+);}
+
+
+
+
+export const getCreateProductionReleaseLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProductionReleaseLink>>, TError,{projectId: number;data: BodyType<ProductionReleaseLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createProductionReleaseLink>>, TError,{projectId: number;data: BodyType<ProductionReleaseLinkInput>}, TContext> => {
+
+const mutationKey = ['createProductionReleaseLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createProductionReleaseLink>>, {projectId: number;data: BodyType<ProductionReleaseLinkInput>}> = (props) => {
+          const {projectId,data} = props ?? {};
+
+          return  createProductionReleaseLink(projectId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateProductionReleaseLinkMutationResult = NonNullable<Awaited<ReturnType<typeof createProductionReleaseLink>>>
+    export type CreateProductionReleaseLinkMutationBody = BodyType<ProductionReleaseLinkInput>
+    export type CreateProductionReleaseLinkMutationError = ErrorType<unknown>
+
+    export const useCreateProductionReleaseLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createProductionReleaseLink>>, TError,{projectId: number;data: BodyType<ProductionReleaseLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createProductionReleaseLink>>,
+        TError,
+        {projectId: number;data: BodyType<ProductionReleaseLinkInput>},
+        TContext
+      > => {
+      return useMutation(getCreateProductionReleaseLinkMutationOptions(options));
+    }
+
+export const getRevokeProductionReleaseLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/release-links/${id}`
+}
+
+export const revokeProductionReleaseLink = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getRevokeProductionReleaseLinkUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRevokeProductionReleaseLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeProductionReleaseLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeProductionReleaseLink>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['revokeProductionReleaseLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeProductionReleaseLink>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  revokeProductionReleaseLink(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeProductionReleaseLinkMutationResult = NonNullable<Awaited<ReturnType<typeof revokeProductionReleaseLink>>>
+
+    export type RevokeProductionReleaseLinkMutationError = ErrorType<unknown>
+
+    export const useRevokeProductionReleaseLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeProductionReleaseLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeProductionReleaseLink>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRevokeProductionReleaseLinkMutationOptions(options));
+    }
+
+export const getGetPublicReleaseLinkUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/release-links/${token}`
+}
+
+export const getPublicReleaseLink = async (token: string, options?: RequestInit): Promise<PublicReleaseLink> => {
+
+  return customFetch<PublicReleaseLink>(getGetPublicReleaseLinkUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicReleaseLinkQueryKey = (token: string,) => {
+    return [
+    `/api/public/release-links/${token}`
+    ] as const;
+    }
+
+
+export const getGetPublicReleaseLinkQueryOptions = <TData = Awaited<ReturnType<typeof getPublicReleaseLink>>, TError = ErrorType<void>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicReleaseLink>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicReleaseLinkQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicReleaseLink>>> = ({ signal }) => getPublicReleaseLink(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(token), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicReleaseLink>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicReleaseLinkQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicReleaseLink>>>
+export type GetPublicReleaseLinkQueryError = ErrorType<void>
+
+
+
+export function useGetPublicReleaseLink<TData = Awaited<ReturnType<typeof getPublicReleaseLink>>, TError = ErrorType<void>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicReleaseLink>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicReleaseLinkQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRegisterPublicReleaseGuestUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/release-links/${token}/register`
+}
+
+export const registerPublicReleaseGuest = async (token: string,
+    releaseGuestRegistration: ReleaseGuestRegistration, options?: RequestInit): Promise<RegisterPublicReleaseGuest202> => {
+
+  return customFetch<RegisterPublicReleaseGuest202>(getRegisterPublicReleaseGuestUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      releaseGuestRegistration,)
+  }
+);}
+
+
+
+
+export const getRegisterPublicReleaseGuestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerPublicReleaseGuest>>, TError,{token: string;data: BodyType<ReleaseGuestRegistration>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof registerPublicReleaseGuest>>, TError,{token: string;data: BodyType<ReleaseGuestRegistration>}, TContext> => {
+
+const mutationKey = ['registerPublicReleaseGuest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerPublicReleaseGuest>>, {token: string;data: BodyType<ReleaseGuestRegistration>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  registerPublicReleaseGuest(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegisterPublicReleaseGuestMutationResult = NonNullable<Awaited<ReturnType<typeof registerPublicReleaseGuest>>>
+    export type RegisterPublicReleaseGuestMutationBody = BodyType<ReleaseGuestRegistration>
+    export type RegisterPublicReleaseGuestMutationError = ErrorType<void>
+
+    export const useRegisterPublicReleaseGuest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerPublicReleaseGuest>>, TError,{token: string;data: BodyType<ReleaseGuestRegistration>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof registerPublicReleaseGuest>>,
+        TError,
+        {token: string;data: BodyType<ReleaseGuestRegistration>},
+        TContext
+      > => {
+      return useMutation(getRegisterPublicReleaseGuestMutationOptions(options));
+    }
 
 export const getGetSigningConfigUrl = () => {
 

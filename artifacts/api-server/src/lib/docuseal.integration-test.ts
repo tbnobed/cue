@@ -8,9 +8,11 @@ import { eq, inArray } from "drizzle-orm";
 import {
   db, pool, releasesTable, releaseTemplatesTable, releaseSigningTable,
   releaseEventsTable, projectsTable, usersTable, activityTable,
+  releaseLinksTable, releaseEnrollmentsTable,
 } from "@workspace/db";
 import signingRouter from "../routes/docuseal";
 import releasesRouter from "../routes/releases";
+import { releaseLinksRouter, publicReleaseLinksRouter } from "../routes/release-links";
 import { logger } from "./logger";
 import { getSubmission, downloadSignedPdf } from "./docuseal-client";
 import { refreshSigning, readSigning, verifySubmission } from "./docuseal-signing";
@@ -22,6 +24,7 @@ async function main() {
   process.env.DOCUSEAL_API_URL = "http://docuseal-fixture:3000";
   process.env.DOCUSEAL_PUBLIC_URL = "https://sign.fixture.invalid";
   process.env.DOCUSEAL_API_KEY = "test-only-not-a-real-credential";
+  process.env.PUBLIC_URL = "https://cue.fixture.invalid";
   const prefix = randomUUID();
   const [owner, stranger] = await db.insert(usersTable).values([
     { name: `Signing owner ${prefix}`, email: `owner-${prefix}@example.invalid`, isActive: true },
@@ -87,6 +90,8 @@ async function main() {
   });
   app.use(signingRouter);
   app.use(releasesRouter);
+  app.use(releaseLinksRouter);
+  app.use(publicReleaseLinksRouter);
   const server = createServer(app);
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
@@ -166,13 +171,69 @@ async function main() {
     bad.submitters[0].external_id = "wrong-correlation";
     assert.throws(() => verifySubmission(bad, local));
     await assert.rejects(() => downloadSignedPdf("http://169.254.169.254/credentials"));
+    const linkPath = `/projects/${project.id}/release-links`;
+    const linkBody = { ...body, title: "Production-wide test", productionDate: "2026-10-17" };
+    assert.equal((await api(linkPath, "POST", linkBody, stranger.id)).status, 404);
+    assert.equal((await api(linkPath, "GET", undefined, stranger.id)).status, 404);
+    assert.equal((await api(linkPath, "POST", { ...linkBody, signers: [] })).status, 400);
+    assert.equal((await api(linkPath, "POST", { ...linkBody, productionDate: "2026-02-30" })).status, 400);
+    const newLink = await api(linkPath, "POST", linkBody);
+    assert.equal(newLink.status, 201);
+    const shared = await newLink.json() as { id: number; url: string };
+    assert.ok(shared.url.startsWith("https://cue.fixture.invalid/release-sign/"));
+    const publicPath = `/public/release-links/${shared.url.split("/").pop()}`;
+    const metadata = await api(publicPath);
+    assert.equal(metadata.status, 200);
+    assert.equal(metadata.headers.get("cache-control"), "no-store");
+    assert.deepEqual(Object.keys(await metadata.json() as object).sort(), ["expiresAt", "productionDate", "projectName", "templateName", "templateVersion", "title"]);
+    const person = { name: "Self Registered", email: `self-${prefix}@example.invalid`, consent: true };
+    assert.equal((await api(publicPath + "/register", "POST", { ...person, consent: false })).status, 400);
+    const before = sends;
+    const results = await Promise.all([
+      api(publicPath + "/register", "POST", person),
+      api(publicPath + "/register", "POST", { ...person, email: person.email.toUpperCase() }),
+    ]);
+    assert.deepEqual(results.map(r => r.status), [202, 202]);
+    assert.equal(sends, before + 1, "Concurrent public registrations send exactly one request");
+    assert.equal(lastPayload.submitters[0].name, person.name);
+    assert.equal(lastPayload.submitters[0].email, person.email);
+    assert.equal(lastPayload.send_email, true);
+    const [selfEnrollment] = await db.select().from(releaseEnrollmentsTable).where(eq(releaseEnrollmentsTable.linkId, shared.id));
+    const selfSigning = (await readSigning(selfEnrollment.releaseId))!;
+    const selfRemote = records.get(selfSigning.submissionId!);
+    selfRemote.status = "completed"; selfRemote.completed_at = new Date().toISOString();
+    selfRemote.combined_document_url = "https://sign.fixture.invalid/files/signed.pdf";
+    selfRemote.submitters.forEach((s: any) => { s.status = "completed"; s.completed_at = selfRemote.completed_at; });
+    assert.equal((await refreshSigning(selfEnrollment.releaseId)).state, "archived");
+    assert.equal((await api(`/releases/${selfEnrollment.releaseId}/file`, "GET", undefined, stranger.id)).status, 404);
+    assert.equal((await api(`/releases/${selfEnrollment.releaseId}/file`)).status, 200);
+    timeoutSend = true;
+    assert.equal((await api(publicPath + "/register", "POST", { ...person, email: `failure-${prefix}@example.invalid` })).status, 503);
+    timeoutSend = false;
+    const failedSendCount = sends;
+    assert.equal((await api(publicPath + "/register", "POST", { ...person, email: `failure-${prefix}@example.invalid` })).status, 202);
+    assert.equal(sends, failedSendCount, "Uncertain public registration must not resend");
+    remoteTemplate.updated_at = "2026-10-15T00:00:00Z";
+    assert.equal((await api(publicPath + "/register", "POST", { ...person, email: `changed-${prefix}@example.invalid` })).status, 409);
+    remoteTemplate.updated_at = "2026-10-14T00:00:00Z";
+    assert.equal((await api(`/release-links/${shared.id}`, "DELETE", undefined, stranger.id)).status, 404);
+    assert.equal((await api(`/release-links/${shared.id}`, "DELETE")).status, 204);
+    assert.equal((await api(publicPath)).status, 404);
+    assert.equal((await api(publicPath + "/register", "POST", person)).status, 404);
+    const expired = await (await api(linkPath, "POST", linkBody)).json() as { id: number; url: string };
+    await db.update(releaseLinksTable).set({ expiresAt: new Date(0) }).where(eq(releaseLinksTable.id, expired.id));
+    assert.equal((await api(`/public/release-links/${expired.url.split("/").pop()}`)).status, 404);
+    console.log("PASS: production links, manager permissions, guest consent, private metadata, date validation, concurrent deduplication, prefill, public-signing archive, provider failures, changed templates, revoke and expiry");
     await api(`/admin/release-templates/${approvedId}`, "DELETE", undefined, owner.id, true);
     assert.equal((await api(`/releases/${ids[2]}/send`, "POST", body)).status, 400);
     console.log("PASS: permissions, approvals, required signers, immutable prefill, duplicate-send lock, reminders, all-signers gate, filing retry, checksum, protected downloads, template drift, uncertain-send reconciliation and URL restrictions");
   } finally {
     globalThis.fetch = originalFetch;
     await new Promise<void>(resolve => server.close(() => resolve()));
-    const files = await db.select().from(releasesTable).where(inArray(releasesTable.id, ids));
+    const files = await db.select().from(releasesTable).where(eq(releasesTable.projectId, project.id));
+    ids.splice(0, ids.length, ...files.map(r => r.id));
+    await db.delete(releaseEnrollmentsTable).where(inArray(releaseEnrollmentsTable.releaseId, ids));
+    await db.delete(releaseLinksTable).where(eq(releaseLinksTable.projectId, project.id));
     for (const row of files) if (row.storageKey) await removeUncommittedRelease(row.storageKey);
     await db.delete(releaseSigningTable).where(inArray(releaseSigningTable.releaseId, ids));
     await db.delete(releaseEventsTable).where(inArray(releaseEventsTable.releaseId, ids));

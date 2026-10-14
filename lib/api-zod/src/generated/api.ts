@@ -8,6 +8,91 @@
 import * as zod from 'zod';
 
 
+export const ListProductionReleaseLinksParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const ListProductionReleaseLinksResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "templateId": zod.number(),
+  "productionDate": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date(),
+  "revokedAt": zod.coerce.date().nullable(),
+  "url": zod.string()
+})
+export const ListProductionReleaseLinksResponse = zod.array(ListProductionReleaseLinksResponseItem)
+
+
+export const CreateProductionReleaseLinkParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const createProductionReleaseLinkBodyTitleMax = 200;
+
+
+export const createProductionReleaseLinkBodyProductionDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const createProductionReleaseLinkBodySignersItemRoleMax = 100;
+
+export const createProductionReleaseLinkBodySignersItemNameMax = 200;
+
+export const createProductionReleaseLinkBodySignersItemEmailMax = 254;
+
+export const createProductionReleaseLinkBodySignersMax = 19;
+
+
+
+export const CreateProductionReleaseLinkBody = zod.object({
+  "title": zod.string().min(1).max(createProductionReleaseLinkBodyTitleMax),
+  "templateId": zod.number().min(1),
+  "productionDate": zod.string().regex(createProductionReleaseLinkBodyProductionDateRegExp).nullish(),
+  "expiresAt": zod.coerce.date().optional(),
+  "signers": zod.array(zod.object({
+  "role": zod.string().min(1).max(createProductionReleaseLinkBodySignersItemRoleMax),
+  "name": zod.string().min(1).max(createProductionReleaseLinkBodySignersItemNameMax),
+  "email": zod.string().email().max(createProductionReleaseLinkBodySignersItemEmailMax),
+  "status": zod.string().optional()
+})).max(createProductionReleaseLinkBodySignersMax)
+})
+
+
+export const RevokeProductionReleaseLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const GetPublicReleaseLinkParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetPublicReleaseLinkResponse = zod.object({
+  "title": zod.string(),
+  "projectName": zod.string(),
+  "productionDate": zod.string().nullable(),
+  "templateName": zod.string(),
+  "templateVersion": zod.string(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+export const RegisterPublicReleaseGuestParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const registerPublicReleaseGuestBodyNameMax = 200;
+
+export const registerPublicReleaseGuestBodyEmailMax = 254;
+
+
+
+export const RegisterPublicReleaseGuestBody = zod.object({
+  "name": zod.string().min(1).max(registerPublicReleaseGuestBodyNameMax),
+  "email": zod.string().email().max(registerPublicReleaseGuestBodyEmailMax),
+  "consent": zod.literal(true)
+})
+
+
 export const GetSigningConfigResponse = zod.object({
   "configured": zod.boolean(),
   "publicUrl": zod.string().nullish()

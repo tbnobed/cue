@@ -21,6 +21,7 @@ import Login from "@/pages/login";
 import Privacy from "@/pages/privacy";
 import PublicShare from "@/pages/public-share";
 import CrewRespond from "@/pages/crew-respond";
+import ReleaseSign from "@/pages/release-sign";
 import NotFound from "@/pages/not-found";
 
 // Mobile-only page variants. Below 768px we swap the AppShell for the
@@ -128,6 +129,8 @@ function Routes() {
       <Route path="/s/:token" component={PublicShare} />
       {/* Public, no-login crew availability reply — outside AuthedShell. */}
       <Route path="/crew/:token" component={CrewRespond} />
+      {/* Public, no-login guest release self-registration — outside AuthedShell. */}
+      <Route path="/release-sign/:token" component={ReleaseSign} />
       <Route>
         <ResponsiveAuthed />
       </Route>

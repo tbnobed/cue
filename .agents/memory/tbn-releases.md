@@ -53,3 +53,12 @@ user to manually edit the Docker files.
 **How to apply:** Make deployment configuration fixes directly; give only the
 necessary server update/apply commands afterward. NPM's existing signing
 forwarding configuration is already set and should not be reconfigured.
+
+Producers need one shareable production release link and QR code, rather than
+manually entering every participant's name.
+
+**Why:** The user explicitly needs to email the same link to everyone on a production.
+
+**How to apply:** Let each guest provide their own identity. Keep private signing
+sessions and completed documents separate per guest; the shared link is intake,
+not permission to view other participants or their signed documents.

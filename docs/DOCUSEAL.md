@@ -8,6 +8,44 @@ reminders and its own immutable signed-PDF archive.
 
 ## Server setup
 
+### Production-wide share links and QR codes
+
+After syncing this version of Cue to the server, apply the additive tables and
+updated app without editing configuration:
+
+```sh
+cd ~/cue
+bash scripts/apply-release-links.sh
+```
+
+The command builds Cue, creates the new tables if missing, then restarts only
+Cue. Existing releases, DocuSeal, and NPM are not changed. Cue's existing
+`PUBLIC_URL` supplies the public origin for production links.
+
+In a project's **Releases → Share links → New link**, choose an approved
+template, title, production date, and expiration (default 30 days). For a
+multi-role template, enter the countersigners once. Copy the link, use Email
+to compose a message in your mail app, or download the QR code for printing.
+The Email button does not send automatically or require entering a guest roster.
+
+Each guest enters their name/email and consents to receive a private DocuSeal
+signing email. No Cue account is required. This intentionally uses email rather
+than exposing a signing session to anyone who types another person's email.
+Signing and completed-copy delivery require DocuSeal SMTP configuration.
+Guest identity and production fields use the existing template field mapping.
+Every registration creates its own release record; the existing all-signers
+completion, reminders, and immutable Cue archive apply.
+
+Only managers can create/list/revoke links. Expired or revoked links stop new
+registrations, not already-issued signing requests. Retired or modified templates
+require a new approved link. Guests cannot view the roster, countersigner details,
+or anybody else's documents. Repeated registrations for the same email/link
+do not send again. If delivery is uncertain, the guest sees a follow-up warning
+and the producer retains the draft or Needs review record. Limits are persisted:
+five requests per email per hour across links, 1,000 registrations per link per
+hour. Disabling the creating account or removing its project-management access
+also disables intake through its links.
+
 ### Connect the self-hosted API key without editing files
 
 Create/copy an API key in the DocuSeal instance at `https://sign.obtv.io`, then

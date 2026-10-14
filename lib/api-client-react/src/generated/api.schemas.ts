@@ -5,6 +5,74 @@
  * Project PM API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface SigningPerson {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  role: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  /** @maxLength 254 */
+  email: string;
+  status?: string;
+}
+
+export interface ProductionReleaseLinkInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  title: string;
+  /** @minimum 1 */
+  templateId: number;
+  /**
+     * @nullable
+     * @pattern ^\d{4}-\d{2}-\d{2}$
+     */
+  productionDate?: string | null;
+  expiresAt?: string;
+  /** @maxItems 19 */
+  signers: SigningPerson[];
+}
+
+export interface ProductionReleaseLink {
+  id: number;
+  title: string;
+  templateId: number;
+  /** @nullable */
+  productionDate: string | null;
+  createdAt: string;
+  expiresAt: string;
+  /** @nullable */
+  revokedAt: string | null;
+  url: string;
+}
+
+export interface PublicReleaseLink {
+  title: string;
+  projectName: string;
+  /** @nullable */
+  productionDate: string | null;
+  templateName: string;
+  templateVersion: string;
+  expiresAt: string;
+}
+
+export interface ReleaseGuestRegistration {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  /** @maxLength 254 */
+  email: string;
+  consent: true;
+}
+
 export interface SigningConfig {
   configured: boolean;
   /** @nullable */
@@ -33,22 +101,6 @@ export interface ReleaseTemplate {
   version: string;
   guestRole: string;
   roles: string[];
-}
-
-export interface SigningPerson {
-  /**
-     * @minLength 1
-     * @maxLength 100
-     */
-  role: string;
-  /**
-     * @minLength 1
-     * @maxLength 200
-     */
-  name: string;
-  /** @maxLength 254 */
-  email: string;
-  status?: string;
 }
 
 export interface ReleaseSigningInput {
@@ -1479,6 +1531,10 @@ export interface ActivityEntry {
   actorName?: string | null;
   createdAt: string;
 }
+
+export type RegisterPublicReleaseGuest202 = {
+  message: string;
+};
 
 export type AuthorizeWrike200 = {
   url: string;

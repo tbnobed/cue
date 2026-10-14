@@ -32,6 +32,73 @@ tags:
     description: Crew invite and public availability-reply operations
 
 paths:
+  /projects/{projectId}/release-links:
+    parameters:
+      - { name: projectId, in: path, required: true, schema: { type: integer } }
+    get:
+      operationId: listProductionReleaseLinks
+      responses:
+        "200":
+          description: Production links, available to project managers only
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/ProductionReleaseLink" } }
+    post:
+      operationId: createProductionReleaseLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProductionReleaseLinkInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProductionReleaseLink" }
+  /release-links/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    delete:
+      operationId: revokeProductionReleaseLink
+      responses:
+        "204": { description: Revoked for new registrations; existing signature requests remain valid }
+  /public/release-links/{token}:
+    parameters:
+      - { name: token, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getPublicReleaseLink
+      responses:
+        "200":
+          description: Public production metadata, no guest or countersigner details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicReleaseLink" }
+        "404": { description: Unavailable or expired }
+  /public/release-links/{token}/register:
+    parameters:
+      - { name: token, in: path, required: true, schema: { type: string } }
+    post:
+      operationId: registerPublicReleaseGuest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReleaseGuestRegistration" }
+      responses:
+        "202":
+          description: Registration received, personal signing link delivered by DocuSeal email
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message]
+                properties:
+                  message: { type: string }
+        "400": { description: Invalid guest details or missing consent }
+        "404": { description: Unavailable or expired }
+        "429": { description: Too many requests }
+        "503": { description: Signing delivery unavailable; contact producer }
   /signing/config:
     get:
       operationId: getSigningConfig
@@ -1597,6 +1664,44 @@ paths:
 
 components:
   schemas:
+    ProductionReleaseLinkInput:
+      type: object
+      required: [title, templateId, signers]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        templateId: { type: integer, minimum: 1 }
+        productionDate: { type: ["string", "null"], pattern: '^\d{4}-\d{2}-\d{2}$' }
+        expiresAt: { type: string, format: date-time }
+        signers: { type: array, maxItems: 19, items: { $ref: "#/components/schemas/SigningPerson" } }
+    ProductionReleaseLink:
+      type: object
+      required: [id, title, templateId, productionDate, createdAt, expiresAt, revokedAt, url]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        templateId: { type: integer }
+        productionDate: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        revokedAt: { type: ["string", "null"], format: date-time }
+        url: { type: string }
+    PublicReleaseLink:
+      type: object
+      required: [title, projectName, productionDate, templateName, templateVersion, expiresAt]
+      properties:
+        title: { type: string }
+        projectName: { type: string }
+        productionDate: { type: ["string", "null"] }
+        templateName: { type: string }
+        templateVersion: { type: string }
+        expiresAt: { type: string, format: date-time }
+    ReleaseGuestRegistration:
+      type: object
+      required: [name, email, consent]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, format: email, maxLength: 254 }
+        consent: { type: boolean, enum: [true] }
     SigningConfig:
       type: object
       required: [configured]

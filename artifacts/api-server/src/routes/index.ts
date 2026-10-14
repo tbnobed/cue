@@ -22,6 +22,7 @@ import adminUsersRouter from "./admin-users";
 import uploadsRouter from "./uploads";
 import releasesRouter from "./releases";
 import docusealRouter from "./docuseal";
+import { releaseLinksRouter, publicReleaseLinksRouter } from "./release-links";
 import wrikeLinksRouter from "./wrike-links";
 import wrikeIntegrationRouter from "./wrike-integration";
 import { requireAuth } from "../middlewares/require-auth";
@@ -39,12 +40,14 @@ router.use(wopiRouter);
 router.use(publicSharesRouter);
 // public crew availability reply — anonymous, gated by opaque random token.
 router.use(publicCrewRouter);
+router.use(publicReleaseLinksRouter);
 
 // --- Authenticated routes ---
 // All product data routes require a signed-in user.
 router.use(requireAuth, projectsRouter);
 router.use(requireAuth, releasesRouter);
 router.use(requireAuth, docusealRouter);
+router.use(requireAuth, releaseLinksRouter);
 router.use(requireAuth, wrikeLinksRouter);
 router.use(requireAuth, wrikeIntegrationRouter);
 router.use(requireAuth, milestonesRouter);
