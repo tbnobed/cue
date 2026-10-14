@@ -101,6 +101,10 @@ export type WrikeLinkSyncStatus = typeof WrikeLinkSyncStatus[keyof typeof WrikeL
 
 export const WrikeLinkSyncStatus = {
   not_configured: 'not_configured',
+  idle: 'idle',
+  running: 'running',
+  success: 'success',
+  error: 'error',
 } as const;
 
 export interface WrikeLink {
@@ -112,7 +116,67 @@ export interface WrikeLink {
   url?: string | null;
   syncStatus: WrikeLinkSyncStatus;
   /** @nullable */
+  remoteTitle?: string | null;
+  autoSync?: boolean;
+  /** @nullable */
+  lastSyncedAt?: string | null;
+  /** @nullable */
+  lastError?: string | null;
+  /** @nullable */
   updatedAt?: string | null;
+}
+
+export interface WrikeConnection {
+  configured: boolean;
+  connected: boolean;
+  missingSettings: string[];
+  /** @nullable */
+  redirectUri: string | null;
+  /** @nullable */
+  host?: string | null;
+  /** @nullable */
+  connectedAt?: string | null;
+  /** @nullable */
+  lastError?: string | null;
+}
+
+export interface WrikeRemoteProject {
+  id: string;
+  title: string;
+  permalink: string;
+}
+
+export interface WrikeProjectPage {
+  projects: WrikeRemoteProject[];
+  /** @nullable */
+  nextPageToken?: string | null;
+}
+
+export interface WrikeSettingsInput {
+  autoSync: boolean;
+}
+
+export type WrikeSyncRunStatus = typeof WrikeSyncRunStatus[keyof typeof WrikeSyncRunStatus];
+
+
+export const WrikeSyncRunStatus = {
+  running: 'running',
+  success: 'success',
+  error: 'error',
+} as const;
+
+export interface WrikeSyncRun {
+  id: number;
+  projectId: number;
+  status: WrikeSyncRunStatus;
+  created: number;
+  updated: number;
+  skipped: number;
+  startedAt: string;
+  /** @nullable */
+  finishedAt?: string | null;
+  /** @nullable */
+  error?: string | null;
 }
 
 export interface HealthStatus {
@@ -1275,6 +1339,21 @@ export interface ActivityEntry {
   actorName?: string | null;
   createdAt: string;
 }
+
+export type AuthorizeWrike200 = {
+  url: string;
+};
+
+export type ListWrikeProjectsParams = {
+/**
+ * @maxLength 200
+ */
+search?: string;
+/**
+ * @maxLength 4000
+ */
+nextPageToken?: string;
+};
 
 export type ListTasksParams = {
 projectId?: number;

@@ -8,6 +8,100 @@
 import * as zod from 'zod';
 
 
+export const GetWrikeConnectionResponse = zod.object({
+  "configured": zod.boolean(),
+  "connected": zod.boolean(),
+  "missingSettings": zod.array(zod.string()),
+  "redirectUri": zod.string().nullable(),
+  "host": zod.string().nullish(),
+  "connectedAt": zod.string().nullish(),
+  "lastError": zod.string().nullish()
+})
+
+
+export const AuthorizeWrikeResponse = zod.object({
+  "url": zod.string()
+})
+
+
+export const listWrikeProjectsQuerySearchMax = 200;
+
+export const listWrikeProjectsQueryNextPageTokenMax = 4000;
+
+
+
+export const ListWrikeProjectsQueryParams = zod.object({
+  "search": zod.coerce.string().max(listWrikeProjectsQuerySearchMax).optional(),
+  "nextPageToken": zod.coerce.string().max(listWrikeProjectsQueryNextPageTokenMax).optional()
+})
+
+export const ListWrikeProjectsResponse = zod.object({
+  "projects": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "permalink": zod.string()
+})),
+  "nextPageToken": zod.string().nullish()
+})
+
+
+export const SyncWrikeProjectParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const SyncWrikeProjectResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "status": zod.enum(['running', 'success', 'error']),
+  "created": zod.number(),
+  "updated": zod.number(),
+  "skipped": zod.number(),
+  "startedAt": zod.string(),
+  "finishedAt": zod.string().nullish(),
+  "error": zod.string().nullish()
+})
+
+
+export const ListWrikeSyncRunsParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const ListWrikeSyncRunsResponseItem = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "status": zod.enum(['running', 'success', 'error']),
+  "created": zod.number(),
+  "updated": zod.number(),
+  "skipped": zod.number(),
+  "startedAt": zod.string(),
+  "finishedAt": zod.string().nullish(),
+  "error": zod.string().nullish()
+})
+export const ListWrikeSyncRunsResponse = zod.array(ListWrikeSyncRunsResponseItem)
+
+
+export const UpdateWrikeSettingsParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const UpdateWrikeSettingsBody = zod.object({
+  "autoSync": zod.boolean()
+})
+
+export const UpdateWrikeSettingsResponse = zod.object({
+  "projectId": zod.number(),
+  "linked": zod.boolean(),
+  "remoteId": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "syncStatus": zod.enum(['not_configured', 'idle', 'running', 'success', 'error']),
+  "remoteTitle": zod.string().nullish(),
+  "autoSync": zod.boolean().optional(),
+  "lastSyncedAt": zod.string().nullish(),
+  "lastError": zod.string().nullish(),
+  "updatedAt": zod.string().nullish()
+})
+
+
 export const ListProjectReleasesParams = zod.object({
   "projectId": zod.coerce.number()
 })
@@ -143,7 +237,11 @@ export const GetProjectWrikeLinkResponse = zod.object({
   "linked": zod.boolean(),
   "remoteId": zod.string().nullish(),
   "url": zod.string().nullish(),
-  "syncStatus": zod.enum(['not_configured']),
+  "syncStatus": zod.enum(['not_configured', 'idle', 'running', 'success', 'error']),
+  "remoteTitle": zod.string().nullish(),
+  "autoSync": zod.boolean().optional(),
+  "lastSyncedAt": zod.string().nullish(),
+  "lastError": zod.string().nullish(),
   "updatedAt": zod.string().nullish()
 })
 
@@ -168,7 +266,11 @@ export const SetProjectWrikeLinkResponse = zod.object({
   "linked": zod.boolean(),
   "remoteId": zod.string().nullish(),
   "url": zod.string().nullish(),
-  "syncStatus": zod.enum(['not_configured']),
+  "syncStatus": zod.enum(['not_configured', 'idle', 'running', 'success', 'error']),
+  "remoteTitle": zod.string().nullish(),
+  "autoSync": zod.boolean().optional(),
+  "lastSyncedAt": zod.string().nullish(),
+  "lastError": zod.string().nullish(),
   "updatedAt": zod.string().nullish()
 })
 

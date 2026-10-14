@@ -5,8 +5,9 @@ import {
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Video, CheckSquare, Users, FolderOpen,
-  Bell, ChevronLeft,
+  Bell, ChevronLeft, Plug,
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import cueMark from "@/assets/cue-icon_1779576125630.svg";
 
 type TitleState = {
@@ -49,6 +50,8 @@ const TABS: Array<{ href: string; label: string; icon: typeof LayoutDashboard; m
 
 export function MobileShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const auth = useAuth();
+  const isAdmin = auth.status === "authenticated" && auth.user.isAdmin;
   const [override, setOverride] = useState<TitleState | null>(null);
   const ctxValue = useMemo(() => ({ set: setOverride }), []);
 
@@ -81,6 +84,11 @@ export function MobileShell({ children }: { children: ReactNode }) {
             <b>{title.title}</b>
             {title.subtitle && <span>{title.subtitle}</span>}
           </div>
+          {isAdmin && (
+            <Link href="/admin/integrations" className="ab-btn" aria-label="Admin integrations" data-testid="mobile-link-integrations">
+              <Plug />
+            </Link>
+          )}
           <button type="button" className="ab-btn" aria-label="Notifications">
             <Bell />
           </button>

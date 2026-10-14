@@ -11,4 +11,8 @@ export type WrikeLinkSyncStatus = typeof WrikeLinkSyncStatus[keyof typeof WrikeL
 
 export const WrikeLinkSyncStatus = {
   not_configured: 'not_configured',
+  idle: 'idle',
+  running: 'running',
+  success: 'success',
+  error: 'error',
 } as const;

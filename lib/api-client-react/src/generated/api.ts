@@ -24,6 +24,7 @@ import type {
   AddProjectMemberInput,
   AdminUser,
   AdminUserUpdate,
+  AuthorizeWrike200,
   CallSheet,
   CallSheetInput,
   CallSheetUpdate,
@@ -47,6 +48,7 @@ import type {
   ListFoldersParams,
   ListShareLinksParams,
   ListTasksParams,
+  ListWrikeProjectsParams,
   Member,
   MemberInput,
   MemberUpdate,
@@ -73,8 +75,12 @@ import type {
   TaskNote,
   TaskNoteInput,
   TaskUpdate,
+  WrikeConnection,
   WrikeLink,
-  WrikeLinkInput
+  WrikeLinkInput,
+  WrikeProjectPage,
+  WrikeSettingsInput,
+  WrikeSyncRun
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -88,6 +94,484 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
+
+export const getGetWrikeConnectionUrl = () => {
+
+
+
+
+  return `/api/integrations/wrike`
+}
+
+export const getWrikeConnection = async ( options?: RequestInit): Promise<WrikeConnection> => {
+
+  return customFetch<WrikeConnection>(getGetWrikeConnectionUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWrikeConnectionQueryKey = () => {
+    return [
+    `/api/integrations/wrike`
+    ] as const;
+    }
+
+
+export const getGetWrikeConnectionQueryOptions = <TData = Awaited<ReturnType<typeof getWrikeConnection>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWrikeConnection>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWrikeConnectionQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWrikeConnection>>> = ({ signal }) => getWrikeConnection({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWrikeConnection>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWrikeConnectionQueryResult = NonNullable<Awaited<ReturnType<typeof getWrikeConnection>>>
+export type GetWrikeConnectionQueryError = ErrorType<unknown>
+
+
+
+export function useGetWrikeConnection<TData = Awaited<ReturnType<typeof getWrikeConnection>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWrikeConnection>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWrikeConnectionQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getDisconnectWrikeUrl = () => {
+
+
+
+
+  return `/api/integrations/wrike`
+}
+
+export const disconnectWrike = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDisconnectWrikeUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDisconnectWrikeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectWrike>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disconnectWrike>>, TError,void, TContext> => {
+
+const mutationKey = ['disconnectWrike'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disconnectWrike>>, void> = () => {
+
+
+          return  disconnectWrike(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisconnectWrikeMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectWrike>>>
+
+    export type DisconnectWrikeMutationError = ErrorType<unknown>
+
+    export const useDisconnectWrike = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectWrike>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disconnectWrike>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDisconnectWrikeMutationOptions(options));
+    }
+
+export const getAuthorizeWrikeUrl = () => {
+
+
+
+
+  return `/api/integrations/wrike/authorize`
+}
+
+export const authorizeWrike = async ( options?: RequestInit): Promise<AuthorizeWrike200> => {
+
+  return customFetch<AuthorizeWrike200>(getAuthorizeWrikeUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getAuthorizeWrikeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authorizeWrike>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof authorizeWrike>>, TError,void, TContext> => {
+
+const mutationKey = ['authorizeWrike'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authorizeWrike>>, void> = () => {
+
+
+          return  authorizeWrike(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthorizeWrikeMutationResult = NonNullable<Awaited<ReturnType<typeof authorizeWrike>>>
+
+    export type AuthorizeWrikeMutationError = ErrorType<unknown>
+
+    export const useAuthorizeWrike = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authorizeWrike>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof authorizeWrike>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAuthorizeWrikeMutationOptions(options));
+    }
+
+export const getListWrikeProjectsUrl = (params?: ListWrikeProjectsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/integrations/wrike/projects?${stringifiedParams}` : `/api/integrations/wrike/projects`
+}
+
+export const listWrikeProjects = async (params?: ListWrikeProjectsParams, options?: RequestInit): Promise<WrikeProjectPage> => {
+
+  return customFetch<WrikeProjectPage>(getListWrikeProjectsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListWrikeProjectsQueryKey = (params?: ListWrikeProjectsParams,) => {
+    return [
+    `/api/integrations/wrike/projects`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListWrikeProjectsQueryOptions = <TData = Awaited<ReturnType<typeof listWrikeProjects>>, TError = ErrorType<unknown>>(params?: ListWrikeProjectsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWrikeProjects>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListWrikeProjectsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listWrikeProjects>>> = ({ signal }) => listWrikeProjects(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listWrikeProjects>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListWrikeProjectsQueryResult = NonNullable<Awaited<ReturnType<typeof listWrikeProjects>>>
+export type ListWrikeProjectsQueryError = ErrorType<unknown>
+
+
+
+export function useListWrikeProjects<TData = Awaited<ReturnType<typeof listWrikeProjects>>, TError = ErrorType<unknown>>(
+ params?: ListWrikeProjectsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWrikeProjects>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListWrikeProjectsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSyncWrikeProjectUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/wrike-sync`
+}
+
+export const syncWrikeProject = async (projectId: number, options?: RequestInit): Promise<WrikeSyncRun> => {
+
+  return customFetch<WrikeSyncRun>(getSyncWrikeProjectUrl(projectId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSyncWrikeProjectMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncWrikeProject>>, TError,{projectId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncWrikeProject>>, TError,{projectId: number}, TContext> => {
+
+const mutationKey = ['syncWrikeProject'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncWrikeProject>>, {projectId: number}> = (props) => {
+          const {projectId} = props ?? {};
+
+          return  syncWrikeProject(projectId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncWrikeProjectMutationResult = NonNullable<Awaited<ReturnType<typeof syncWrikeProject>>>
+
+    export type SyncWrikeProjectMutationError = ErrorType<unknown>
+
+    export const useSyncWrikeProject = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncWrikeProject>>, TError,{projectId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof syncWrikeProject>>,
+        TError,
+        {projectId: number},
+        TContext
+      > => {
+      return useMutation(getSyncWrikeProjectMutationOptions(options));
+    }
+
+export const getListWrikeSyncRunsUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/wrike-sync-runs`
+}
+
+export const listWrikeSyncRuns = async (projectId: number, options?: RequestInit): Promise<WrikeSyncRun[]> => {
+
+  return customFetch<WrikeSyncRun[]>(getListWrikeSyncRunsUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListWrikeSyncRunsQueryKey = (projectId: number,) => {
+    return [
+    `/api/projects/${projectId}/wrike-sync-runs`
+    ] as const;
+    }
+
+
+export const getListWrikeSyncRunsQueryOptions = <TData = Awaited<ReturnType<typeof listWrikeSyncRuns>>, TError = ErrorType<unknown>>(projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWrikeSyncRuns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListWrikeSyncRunsQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listWrikeSyncRuns>>> = ({ signal }) => listWrikeSyncRuns(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(projectId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listWrikeSyncRuns>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListWrikeSyncRunsQueryResult = NonNullable<Awaited<ReturnType<typeof listWrikeSyncRuns>>>
+export type ListWrikeSyncRunsQueryError = ErrorType<unknown>
+
+
+
+export function useListWrikeSyncRuns<TData = Awaited<ReturnType<typeof listWrikeSyncRuns>>, TError = ErrorType<unknown>>(
+ projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWrikeSyncRuns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListWrikeSyncRunsQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateWrikeSettingsUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/wrike-settings`
+}
+
+export const updateWrikeSettings = async (projectId: number,
+    wrikeSettingsInput: WrikeSettingsInput, options?: RequestInit): Promise<WrikeLink> => {
+
+  return customFetch<WrikeLink>(getUpdateWrikeSettingsUrl(projectId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      wrikeSettingsInput,)
+  }
+);}
+
+
+
+
+export const getUpdateWrikeSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWrikeSettings>>, TError,{projectId: number;data: BodyType<WrikeSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateWrikeSettings>>, TError,{projectId: number;data: BodyType<WrikeSettingsInput>}, TContext> => {
+
+const mutationKey = ['updateWrikeSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWrikeSettings>>, {projectId: number;data: BodyType<WrikeSettingsInput>}> = (props) => {
+          const {projectId,data} = props ?? {};
+
+          return  updateWrikeSettings(projectId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateWrikeSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateWrikeSettings>>>
+    export type UpdateWrikeSettingsMutationBody = BodyType<WrikeSettingsInput>
+    export type UpdateWrikeSettingsMutationError = ErrorType<unknown>
+
+    export const useUpdateWrikeSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWrikeSettings>>, TError,{projectId: number;data: BodyType<WrikeSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateWrikeSettings>>,
+        TError,
+        {projectId: number;data: BodyType<WrikeSettingsInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateWrikeSettingsMutationOptions(options));
+    }
 
 export const getListProjectReleasesUrl = (projectId: number,) => {
 

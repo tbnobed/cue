@@ -65,6 +65,10 @@ services:
       # match what the user's browser sees (e.g. https://studio.your-domain.tld
       # behind a TLS proxy, or http://localhost:5000 for local testing).
       PUBLIC_URL: ${PUBLIC_URL:?set PUBLIC_URL in your .env (e.g. https://studio.your-domain.tld)}
+      # Direct self-hosted Wrike OAuth (optional).
+      WRIKE_CLIENT_ID: ${WRIKE_CLIENT_ID:-}
+      WRIKE_CLIENT_SECRET: ${WRIKE_CLIENT_SECRET:-}
+      WRIKE_TOKEN_KEY: ${WRIKE_TOKEN_KEY:-}
       # --- Authentik (OIDC) — OPTIONAL ---
       # Leave all three blank to run with local accounts only. When all three
       # are set, the login page also shows "Continue with Authentik".

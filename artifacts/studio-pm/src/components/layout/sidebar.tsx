@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Video, CheckSquare, Users, FolderOpen, LogOut, Shield, KeyRound, Loader2 } from "lucide-react";
+import { LayoutDashboard, Video, CheckSquare, Users, FolderOpen, LogOut, Shield, KeyRound, Loader2, Plug } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,10 @@ export function AppSidebar() {
     { name: "Team", href: "/team", icon: Users },
     { name: "Documents", href: "/documents", icon: FolderOpen },
     // Admin-only entries appended below — gated on `user.isAdmin`.
-    ...(user?.isAdmin ? [{ name: "Users", href: "/admin/users", icon: Shield }] : []),
+    ...(user?.isAdmin ? [
+      { name: "Users", href: "/admin/users", icon: Shield },
+      { name: "Integrations", href: "/admin/integrations", icon: Plug },
+    ] : []),
   ];
 
   return (

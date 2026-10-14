@@ -3,14 +3,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useListProjectReleases, getListProjectReleasesQueryKey,
   useCreateProjectRelease, useUpdateRelease, useArchiveRelease,
-  useGetProjectWrikeLink, getGetProjectWrikeLinkQueryKey,
-  useSetProjectWrikeLink, useRemoveProjectWrikeLink,
   type ReleaseRecord, type ReleaseInput, type ReleaseInputStatus, type Project,
 } from "@workspace/api-client-react";
 import { format } from "date-fns";
 import {
   Plus, Search, Pencil, Archive, Download, Lock, ShieldCheck, AlertTriangle,
-  Loader2, Link2, Unlink, ExternalLink, RefreshCw, FileCheck2, Info,
+  Loader2, RefreshCw, FileCheck2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,10 +17,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -48,7 +42,7 @@ export function useCanManageProject(project: Pick<Project, "ownerUserId"> | unde
   return auth.user.isAdmin || (project.ownerUserId != null && project.ownerUserId === auth.user.id);
 }
 
-function fmtDate(d?: string | null, pattern = "MMM d, yyyy") {
+export function fmtDate(d?: string | null, pattern = "MMM d, yyyy") {
   if (!d) return "—";
   const dt = /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(d + "T00:00:00") : new Date(d);
   return isNaN(dt.getTime()) ? d : format(dt, pattern);
@@ -64,7 +58,7 @@ function StatusChip({ status }: { status: string }) {
   );
 }
 
-function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="rounded-xl border border-red-500/30 bg-red-500/[0.06] p-4 flex items-start gap-3 text-sm" role="alert">
       <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
@@ -83,10 +77,7 @@ export function ReleasesPanel({ project, compact = false }: { project: Project; 
   return <ReleasesSection projectId={project.id} canManage={canManage} compact={compact} />;
 }
 
-export function ProjectWrikeIntegration({ project }: { project: Project }) {
-  const canManage = useCanManageProject(project);
-  return <WrikeSection projectId={project.id} canManage={canManage} />;
-}
+export { ProjectWrikeIntegration } from "@/components/project-wrike-integration";
 
 // ─── RELEASES ───────────────────────────────────────────────────────────────
 
@@ -436,130 +427,5 @@ function ArchiveDialog({ release, onClose, onDone }: { release: ReleaseRecord | 
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-// ─── WRIKE ──────────────────────────────────────────────────────────────────
-
-function validWrikeUrl(u: string): boolean {
-  try {
-    const url = new URL(u);
-    const h = url.hostname.toLowerCase();
-    return url.protocol === "https:" && (h === "wrike.com" || h.endsWith(".wrike.com"));
-  } catch { return false; }
-}
-
-function WrikeSection({ projectId, canManage }: { projectId: number; canManage: boolean }) {
-  const qc = useQueryClient();
-  const { toast } = useToast();
-  const key = getGetProjectWrikeLinkQueryKey(projectId);
-  const q = useGetProjectWrikeLink(projectId, { query: { enabled: !!projectId, queryKey: key, refetchOnMount: "always" } });
-  const invalidate = () => qc.invalidateQueries({ queryKey: key });
-  const setLink = useSetProjectWrikeLink({ mutation: { onSettled: invalidate } });
-  const remove = useRemoveProjectWrikeLink({ mutation: { onSettled: invalidate } });
-
-  const [editing, setEditing] = useState(false);
-  const [remoteId, setRemoteId] = useState("");
-  const [url, setUrl] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [confirmUnlink, setConfirmUnlink] = useState(false);
-
-  const link = q.data;
-  function startEdit() {
-    setRemoteId(link?.remoteId ?? ""); setUrl(link?.url ?? ""); setError(null); setEditing(true);
-  }
-  async function save(e: React.FormEvent) {
-    e.preventDefault(); setError(null);
-    const rid = remoteId.trim(), u = url.trim();
-    if (!rid) { setError("Wrike project/folder ID is required."); return; }
-    if (!validWrikeUrl(u)) { setError("URL must be https on wrike.com or a *.wrike.com subdomain."); return; }
-    try {
-      await setLink.mutateAsync({ projectId, data: { remoteId: rid, url: u } });
-      toast({ title: "Wrike link saved" }); setEditing(false);
-    } catch (err) { setError(errMsg(err)); }
-  }
-  async function unlink() {
-    setError(null);
-    try {
-      await remove.mutateAsync({ projectId });
-      toast({ title: "Wrike link removed" });
-    } catch (err) { setError(errMsg(err)); }
-    finally { setConfirmUnlink(false); }
-  }
-
-  return (
-    <section className="surface-card ring-hairline border border-border/70 rounded-2xl overflow-hidden" data-testid="section-wrike">
-      <div className="px-5 pt-4 pb-3 border-b border-border/50 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2"><Link2 className="w-4 h-4 text-primary" /><h2 className="text-[13px] font-semibold tracking-tight">Wrike</h2></div>
-        {link?.linked && canManage && !editing && (
-          <div className="flex gap-1">
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={startEdit} data-testid="button-edit-wrike"><Pencil className="w-3 h-3" /> Edit</Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 hover:text-red-400" onClick={() => setConfirmUnlink(true)} data-testid="button-unlink-wrike"><Unlink className="w-3 h-3" /> Unlink</Button>
-          </div>
-        )}
-      </div>
-      <div className="p-5 space-y-4">
-        <div className="flex items-center gap-2 rounded-lg bg-muted/40 ring-1 ring-inset ring-border/60 px-3 py-2 text-[11px] font-mono text-muted-foreground" data-testid="text-wrike-sync-status">
-          <Info className="w-3.5 h-3.5 shrink-0" /> Linked only — API sync not configured
-        </div>
-
-        {q.isLoading ? (
-          <div className="space-y-2"><Skeleton className="h-4 w-2/3" /><Skeleton className="h-4 w-full" /></div>
-        ) : q.isError ? (
-          <ErrorBox message={`Couldn't load Wrike link: ${errMsg(q.error)}`} onRetry={() => q.refetch()} />
-        ) : editing ? (
-          <form onSubmit={save} className="grid gap-3">
-            <Field id="wr-id" label="Wrike project / folder ID *">
-              <Input id="wr-id" maxLength={200} value={remoteId} onChange={e => setRemoteId(e.target.value)} placeholder="IEAAB7XYI4KZQ3RT" className="font-mono text-xs" data-testid="input-wrike-id" />
-            </Field>
-            <Field id="wr-url" label="Wrike URL *">
-              <Input id="wr-url" maxLength={2000} value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.wrike.com/open.htm?id=…" className="text-xs" data-testid="input-wrike-url" />
-            </Field>
-            {error && <ErrorBox message={error} />}
-            <div className="flex justify-end gap-2">
-              <Button type="button" size="sm" variant="ghost" onClick={() => { setEditing(false); setError(null); }} disabled={setLink.isPending}>Cancel</Button>
-              <Button type="submit" size="sm" disabled={setLink.isPending} data-testid="button-save-wrike">
-                {setLink.isPending && <Loader2 className="w-3 h-3 animate-spin mr-1.5" />}Save link
-              </Button>
-            </div>
-          </form>
-        ) : link?.linked ? (
-          <div className="space-y-2 text-xs">
-            <div className="flex gap-2"><span className="w-14 shrink-0 font-mono uppercase tracking-[0.1em] text-[10px] text-muted-foreground pt-0.5">ID</span><span className="font-mono break-all" data-testid="text-wrike-id">{link.remoteId}</span></div>
-            <div className="flex gap-2"><span className="w-14 shrink-0 font-mono uppercase tracking-[0.1em] text-[10px] text-muted-foreground pt-0.5">URL</span>
-              {link.url ? (
-                <a href={link.url} target="_blank" rel="noreferrer noopener" className="text-primary hover:underline break-all inline-flex items-start gap-1" data-testid="link-wrike-url">
-                  {link.url}<ExternalLink className="w-3 h-3 shrink-0 mt-0.5" />
-                </a>
-              ) : <span>—</span>}
-            </div>
-            {link.updatedAt && <div className="text-[10.5px] font-mono text-muted-foreground pt-1">Updated {fmtDate(link.updatedAt, "MMM d, yyyy · h:mm a")}</div>}
-            {error && <ErrorBox message={error} />}
-          </div>
-        ) : (
-          <div className="text-center py-4 space-y-3" data-testid="empty-wrike">
-            <div className="text-sm text-muted-foreground">No Wrike project linked.</div>
-            {canManage ? (
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={startEdit} data-testid="button-link-wrike"><Link2 className="w-3.5 h-3.5" /> Link Wrike project</Button>
-            ) : <div className="text-[11px] font-mono text-muted-foreground">Owner or admin can link.</div>}
-          </div>
-        )}
-      </div>
-
-      <AlertDialog open={confirmUnlink} onOpenChange={setConfirmUnlink}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Unlink Wrike project?</AlertDialogTitle>
-            <AlertDialogDescription>This removes the stored ID and URL from Cue. Nothing changes in Wrike.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={remove.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={e => { e.preventDefault(); void unlink(); }} disabled={remove.isPending} data-testid="button-confirm-unlink">
-              {remove.isPending && <Loader2 className="w-3 h-3 animate-spin mr-1.5" />}Unlink
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </section>
   );
 }

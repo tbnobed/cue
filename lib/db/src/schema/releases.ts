@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, date, bigint } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, timestamp, date, bigint, boolean } from "drizzle-orm/pg-core";
 import { projectsTable } from "./projects";
 
 // Restrict project deletion: completed records must remain discoverable.
@@ -27,6 +27,14 @@ export const projectWrikeLinksTable = pgTable("project_wrike_links", {
   projectId: integer("project_id").primaryKey().references(() => projectsTable.id, { onDelete: "cascade" }),
   remoteId: text("remote_id").notNull().unique(),
   url: text("url").notNull(),
+  remoteTitle: text("remote_title"),
+  autoSync: boolean("auto_sync").notNull().default(false),
+  syncStatus: text("sync_status").notNull().default("idle"),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+  lastError: text("last_error"),
+  lockToken: text("lock_token"),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }),
   updatedBy: integer("updated_by").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

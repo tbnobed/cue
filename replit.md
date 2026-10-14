@@ -136,8 +136,9 @@ Studio Command is a general-purpose project command center (originally built for
 
 See [docs/RELEASES.md](docs/RELEASES.md) for the self-hosted migration, release
 protection model, Wrike linking limitations, and backup/recovery requirements.
-Archived releases are separate from general editable documents. Live Wrike
-sync and electronic-signature automation are not implemented yet.
+Archived releases are separate from general editable documents.
+See [docs/WRIKE.md](docs/WRIKE.md) for direct self-hosted OAuth, one-way imports,
+field ownership, setup and migration. Electronic-signature automation is not implemented.
 
 ## Gotchas
 

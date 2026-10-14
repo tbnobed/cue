@@ -16,5 +16,12 @@ export interface WrikeLink {
   url?: string | null;
   syncStatus: WrikeLinkSyncStatus;
   /** @nullable */
+  remoteTitle?: string | null;
+  autoSync?: boolean;
+  /** @nullable */
+  lastSyncedAt?: string | null;
+  /** @nullable */
+  lastError?: string | null;
+  /** @nullable */
   updatedAt?: string | null;
 }

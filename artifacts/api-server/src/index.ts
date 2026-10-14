@@ -3,6 +3,7 @@ import app from "./app";
 import { createCollabUpgradeRouter } from "./lib/collab";
 import { createCollaboraUpgradeRouter } from "./lib/collabora-proxy";
 import { logger } from "./lib/logger";
+import { startWrikeScheduler } from "./lib/wrike-sync";
 
 const rawPort = process.env["PORT"];
 
@@ -41,4 +42,5 @@ httpServer.listen(port, (err?: Error) => {
     process.exit(1);
   }
   logger.info({ port }, "Server listening");
+  startWrikeScheduler();
 });

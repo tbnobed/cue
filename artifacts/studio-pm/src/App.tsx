@@ -13,6 +13,7 @@ import ProjectDetail from "@/pages/projects/detail";
 import Tasks from "@/pages/tasks";
 import Team from "@/pages/team";
 import UsersAdmin from "@/pages/admin/users";
+import IntegrationsAdmin from "@/pages/admin/integrations";
 import Documents from "@/pages/documents";
 import DocumentEditor from "@/pages/documents/editor";
 import Login from "@/pages/login";
@@ -42,6 +43,7 @@ function DesktopRoutes() {
       <Route path="/tasks" component={Tasks} />
       <Route path="/team" component={Team} />
       <Route path="/admin/users" component={UsersAdmin} />
+      <Route path="/admin/integrations" component={IntegrationsAdmin} />
       <Route path="/documents" component={Documents} />
       <Route path="/documents/:id/edit" component={DocumentEditor} />
       <Route component={NotFound} />
@@ -59,6 +61,7 @@ function MobileRoutes() {
       <Route path="/tasks" component={MobileTasks} />
       <Route path="/team" component={MobileTeam} />
       <Route path="/admin/users" component={UsersAdmin} />
+      <Route path="/admin/integrations" component={IntegrationsAdmin} />
       <Route path="/documents" component={MobileDocuments} />
       {/* The document editor is desktop-only (Collabora / TipTap) — fall back to
           the desktop component so deep links still work on a phone in landscape. */}

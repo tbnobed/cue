@@ -4,6 +4,7 @@ import type { ProviderId } from "../lib/oidc";
 declare module "express-session" {
   interface SessionData {
     userId?: number;
+    wrikeOAuth?: { state: string; createdAt: number; userId: number };
     oidc?: {
       // Which IdP this in-flight handshake is talking to. Pinned at /login
       // so the callback can pick the right client + reject cross-provider

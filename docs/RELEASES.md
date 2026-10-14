@@ -50,12 +50,10 @@ Each local project can be linked to one Wrike project/folder using its API ID
 and HTTPS Wrike URL. A remote ID cannot be assigned to multiple local projects.
 Unlinking changes only the local mapping; it does not delete anything in Wrike.
 
-The interface deliberately says API sync is not configured. This foundation
-does not send requests to Wrike, import tasks, or write back to Wrike. The next
-integration stage must run server-side in this self-hosted app, authenticate
-against TBN's Wrike account, and define field ownership, conflict handling,
-pagination, retry behavior, and sync audit history. Never put credentials in
-browser forms or repository files.
+The direct self-hosted OAuth connection and one-way task import are documented
+in [WRIKE.md](WRIKE.md). Administrators configure the connection and choose
+projects; project owners can run imports. This does not write back to Wrike.
+Never put credentials in browser forms or repository files.
 
 ## Backup and recovery requirement
 
@@ -80,5 +78,5 @@ automated backup job or retention purge in this release.
 
 Approved template administration, DocuSign sending/webhooks and completion
 certificates, automated reminders, durable filing-retry jobs, cross-project
-archive search, and live Wrike synchronization remain separate implementation
+archive search, and two-way Wrike synchronization remain separate implementation
 stages. No UI status should imply these automations have run.

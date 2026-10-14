@@ -32,6 +32,82 @@ tags:
     description: Crew invite and public availability-reply operations
 
 paths:
+  /integrations/wrike:
+    get:
+      operationId: getWrikeConnection
+      responses:
+        "200":
+          description: Connection state, never credentials
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WrikeConnection" }
+    delete:
+      operationId: disconnectWrike
+      responses:
+        "204": { description: Local credentials removed and automatic sync disabled }
+  /integrations/wrike/authorize:
+    post:
+      operationId: authorizeWrike
+      responses:
+        "200":
+          description: OAuth authorization URL for administrator
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url]
+                properties:
+                  url: { type: string }
+  /integrations/wrike/projects:
+    get:
+      operationId: listWrikeProjects
+      parameters:
+        - { name: search, in: query, schema: { type: string, maxLength: 200 } }
+        - { name: nextPageToken, in: query, schema: { type: string, maxLength: 4000 } }
+      responses:
+        "200":
+          description: Accessible Wrike projects, paginated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WrikeProjectPage" }
+  /projects/{projectId}/wrike-sync:
+    parameters:
+      - { name: projectId, in: path, required: true, schema: { type: integer } }
+    post:
+      operationId: syncWrikeProject
+      responses:
+        "200":
+          description: Completed one-way import
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WrikeSyncRun" }
+  /projects/{projectId}/wrike-sync-runs:
+    parameters:
+      - { name: projectId, in: path, required: true, schema: { type: integer } }
+    get:
+      operationId: listWrikeSyncRuns
+      responses:
+        "200":
+          description: Most recent 20 attempts
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/WrikeSyncRun" } }
+  /projects/{projectId}/wrike-settings:
+    parameters:
+      - { name: projectId, in: path, required: true, schema: { type: integer } }
+    patch:
+      operationId: updateWrikeSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WrikeSettingsInput" }
+      responses:
+        "200":
+          description: Updated automatic import setting
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WrikeLink" }
   /projects/{projectId}/releases:
     parameters:
       - { name: projectId, in: path, required: true, schema: { type: integer } }
@@ -1428,8 +1504,54 @@ components:
         linked: { type: boolean }
         remoteId: { type: ["string", "null"] }
         url: { type: ["string", "null"] }
-        syncStatus: { type: string, enum: [not_configured] }
+        syncStatus: { type: string, enum: [not_configured, idle, running, success, error] }
+        remoteTitle: { type: ["string", "null"] }
+        autoSync: { type: boolean }
+        lastSyncedAt: { type: ["string", "null"] }
+        lastError: { type: ["string", "null"] }
         updatedAt: { type: ["string", "null"] }
+    WrikeConnection:
+      type: object
+      required: [configured, connected, missingSettings, redirectUri]
+      properties:
+        configured: { type: boolean }
+        connected: { type: boolean }
+        missingSettings: { type: array, items: { type: string } }
+        redirectUri: { type: ["string", "null"] }
+        host: { type: ["string", "null"] }
+        connectedAt: { type: ["string", "null"] }
+        lastError: { type: ["string", "null"] }
+    WrikeProjectPage:
+      type: object
+      required: [projects]
+      properties:
+        projects: { type: array, items: { $ref: "#/components/schemas/WrikeRemoteProject" } }
+        nextPageToken: { type: ["string", "null"] }
+    WrikeRemoteProject:
+      type: object
+      required: [id, title, permalink]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        permalink: { type: string }
+    WrikeSettingsInput:
+      type: object
+      required: [autoSync]
+      properties:
+        autoSync: { type: boolean }
+    WrikeSyncRun:
+      type: object
+      required: [id, projectId, status, created, updated, skipped, startedAt]
+      properties:
+        id: { type: integer }
+        projectId: { type: integer }
+        status: { type: string, enum: [running, success, error] }
+        created: { type: integer }
+        updated: { type: integer }
+        skipped: { type: integer }
+        startedAt: { type: string }
+        finishedAt: { type: ["string", "null"] }
+        error: { type: ["string", "null"] }
     HealthStatus:
       type: object
       properties:

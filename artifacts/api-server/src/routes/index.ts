@@ -22,6 +22,7 @@ import adminUsersRouter from "./admin-users";
 import uploadsRouter from "./uploads";
 import releasesRouter from "./releases";
 import wrikeLinksRouter from "./wrike-links";
+import wrikeIntegrationRouter from "./wrike-integration";
 import { requireAuth } from "../middlewares/require-auth";
 
 const router: IRouter = Router();
@@ -43,6 +44,7 @@ router.use(publicCrewRouter);
 router.use(requireAuth, projectsRouter);
 router.use(requireAuth, releasesRouter);
 router.use(requireAuth, wrikeLinksRouter);
+router.use(requireAuth, wrikeIntegrationRouter);
 router.use(requireAuth, milestonesRouter);
 router.use(requireAuth, tasksRouter);
 router.use(requireAuth, taskNotesRouter);
