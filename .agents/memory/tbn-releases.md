@@ -36,7 +36,9 @@ self-hosted server alongside Cue.
 **How to apply:** Use the self-hosted DocuSeal API, keep completed documents in Cue,
 and do not substitute a cloud signing provider or Replit hosting/integrations.
 
-Nginx Proxy Manager (NPM) handles HTTPS for Cue.
+Nginx Proxy Manager (NPM) handles HTTPS for Cue from a different server.
+The user approved a separate signing hostname on the same server as Cue,
+but has not chosen the hostname yet.
 
 **Why:** The user explicitly identified their existing HTTPS proxy.
 

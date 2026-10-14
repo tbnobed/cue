@@ -118,13 +118,14 @@ services:
 
   # Enable with: docker compose --profile signing up -d docuseal
   # SQLite and document files both persist in docuseal_data. Expose only to
-  # the local reverse proxy; do not publish the signing service unencrypted.
+  # reverse proxy. For remote NPM, bind to this host's private IP and restrict
+  # ingress to NPM at the network firewall; never expose port 3001 publicly.
   docuseal:
     profiles: ["signing"]
     image: docuseal/docuseal:${DOCUSEAL_VERSION:-3.2.1}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${DOCUSEAL_PORT:-3001}:3000"
+      - "${DOCUSEAL_BIND:-127.0.0.1}:${DOCUSEAL_PORT:-3001}:3000"
     volumes:
       - docuseal_data:/data/docuseal
     environment:

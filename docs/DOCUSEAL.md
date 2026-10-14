@@ -21,8 +21,16 @@ reminders and its own immutable signed-PDF archive.
    DOCUSEAL_PUBLIC_URL=https://your-signing-hostname
    DOCUSEAL_API_URL=http://docuseal:3000
    DOCUSEAL_PORT=3001
+   DOCUSEAL_BIND=127.0.0.1
    DOCUSEAL_VERSION=3.2.1
    ```
+
+   **Remote Nginx Proxy Manager:** Set `DOCUSEAL_BIND` to the Cue server's
+   private interface IP rather than loopback. In NPM use that IP, scheme
+   `http`, and port `3001`; terminate HTTPS in NPM. Point the signing hostname's
+   DNS at NPM, not directly at Cue. Permit port 3001 only from the NPM server
+   using your network firewall or Docker-aware firewall rules. Do not publish
+   port 3001 to the internet or assume UFW alone filters Docker-published ports.
 
 4. Start DocuSeal:
 
