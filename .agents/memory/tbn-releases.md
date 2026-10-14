@@ -20,3 +20,10 @@ Keep Releases navigation separate from Wrike integration controls.
 **Why:** The user explicitly objected to combining unrelated production and integration functionality under a "Releases and Wrike" tab.
 
 **How to apply:** Label production navigation by its purpose (Releases); keep provider-specific setup in project integrations, not inside the release workflow.
+
+The user expects approximately 500 users to sync their own Wrike projects,
+not depend on a single administrator's Wrike account.
+
+**Why:** The user explicitly rejected the shared-account assumption and approved personal connections and queued synchronization.
+
+**How to apply:** Preserve personal authorization boundaries and designated project sync ownership in future integrations; do not revert to organization-wide credential sharing.

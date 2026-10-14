@@ -5,7 +5,7 @@ import {
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Video, CheckSquare, Users, FolderOpen,
-  Bell, ChevronLeft, Plug,
+  Bell, ChevronLeft, Plug, Activity,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import cueMark from "@/assets/cue-icon_1779576125630.svg";
@@ -61,6 +61,7 @@ export function MobileShell({ children }: { children: ReactNode }) {
     if (location.startsWith("/tasks"))     return { title: "Tasks",     subtitle: "Cross-project ops" };
     if (location.startsWith("/team"))      return { title: "Team",      subtitle: "Personnel roster" };
     if (location.startsWith("/documents")) return { title: "Documents", subtitle: "All files" };
+    if (location.startsWith("/integrations")) return { title: "Integrations", subtitle: "Your connections" };
     if (location.startsWith("/admin"))     return { title: "Admin",     subtitle: "Operators" };
     return { title: "Cue", subtitle: "Production Suite" };
   }, [location]);
@@ -84,9 +85,12 @@ export function MobileShell({ children }: { children: ReactNode }) {
             <b>{title.title}</b>
             {title.subtitle && <span>{title.subtitle}</span>}
           </div>
+          <Link href="/integrations" className="ab-btn" aria-label="My integrations" data-testid="mobile-link-integrations">
+            <Plug />
+          </Link>
           {isAdmin && (
-            <Link href="/admin/integrations" className="ab-btn" aria-label="Admin integrations" data-testid="mobile-link-integrations">
-              <Plug />
+            <Link href="/admin/integrations" className="ab-btn" aria-label="Integration health" data-testid="mobile-link-integration-health">
+              <Activity />
             </Link>
           )}
           <button type="button" className="ab-btn" aria-label="Notifications">

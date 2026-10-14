@@ -15,7 +15,9 @@ export const GetWrikeConnectionResponse = zod.object({
   "redirectUri": zod.string().nullable(),
   "host": zod.string().nullish(),
   "connectedAt": zod.string().nullish(),
-  "lastError": zod.string().nullish()
+  "lastError": zod.string().nullish(),
+  "userId": zod.number().optional(),
+  "linkedProjectCount": zod.number().optional()
 })
 
 
@@ -49,18 +51,6 @@ export const SyncWrikeProjectParams = zod.object({
   "projectId": zod.coerce.number()
 })
 
-export const SyncWrikeProjectResponse = zod.object({
-  "id": zod.number(),
-  "projectId": zod.number(),
-  "status": zod.enum(['running', 'success', 'error']),
-  "created": zod.number(),
-  "updated": zod.number(),
-  "skipped": zod.number(),
-  "startedAt": zod.string(),
-  "finishedAt": zod.string().nullish(),
-  "error": zod.string().nullish()
-})
-
 
 export const ListWrikeSyncRunsParams = zod.object({
   "projectId": zod.coerce.number()
@@ -69,7 +59,9 @@ export const ListWrikeSyncRunsParams = zod.object({
 export const ListWrikeSyncRunsResponseItem = zod.object({
   "id": zod.number(),
   "projectId": zod.number(),
-  "status": zod.enum(['running', 'success', 'error']),
+  "status": zod.enum(['queued', 'retry_wait', 'running', 'success', 'error', 'cancelled']),
+  "attempts": zod.number().optional(),
+  "availableAt": zod.string().nullish(),
   "created": zod.number(),
   "updated": zod.number(),
   "skipped": zod.number(),
@@ -93,12 +85,84 @@ export const UpdateWrikeSettingsResponse = zod.object({
   "linked": zod.boolean(),
   "remoteId": zod.string().nullish(),
   "url": zod.string().nullish(),
-  "syncStatus": zod.enum(['not_configured', 'idle', 'running', 'success', 'error']),
+  "syncStatus": zod.enum(['not_configured', 'idle', 'queued', 'retry_wait', 'running', 'success', 'error', 'paused']),
+  "syncOwnerUserId": zod.number().nullish(),
+  "syncOwnerName": zod.string().nullish(),
+  "connectionReady": zod.boolean().optional(),
+  "nextSyncAt": zod.string().nullish(),
   "remoteTitle": zod.string().nullish(),
   "autoSync": zod.boolean().optional(),
   "lastSyncedAt": zod.string().nullish(),
   "lastError": zod.string().nullish(),
   "updatedAt": zod.string().nullish()
+})
+
+
+export const GetWrikeAudienceParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const GetWrikeAudienceResponse = zod.object({
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string()
+})),
+  "note": zod.string()
+})
+
+
+export const TakeOverWrikeSyncParams = zod.object({
+  "projectId": zod.coerce.number()
+})
+
+export const TakeOverWrikeSyncBody = zod.object({
+  "confirmVisibility": zod.boolean()
+})
+
+export const TakeOverWrikeSyncResponse = zod.object({
+  "projectId": zod.number(),
+  "linked": zod.boolean(),
+  "remoteId": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "syncStatus": zod.enum(['not_configured', 'idle', 'queued', 'retry_wait', 'running', 'success', 'error', 'paused']),
+  "syncOwnerUserId": zod.number().nullish(),
+  "syncOwnerName": zod.string().nullish(),
+  "connectionReady": zod.boolean().optional(),
+  "nextSyncAt": zod.string().nullish(),
+  "remoteTitle": zod.string().nullish(),
+  "autoSync": zod.boolean().optional(),
+  "lastSyncedAt": zod.string().nullish(),
+  "lastError": zod.string().nullish(),
+  "updatedAt": zod.string().nullish()
+})
+
+
+export const GetWrikeHealthResponse = zod.object({
+  "connections": zod.array(zod.object({
+  "userId": zod.number(),
+  "userName": zod.string(),
+  "active": zod.boolean(),
+  "connectedAt": zod.string(),
+  "linkedProjects": zod.number(),
+  "lastError": zod.string().nullish()
+})),
+  "failures": zod.array(zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "status": zod.enum(['queued', 'retry_wait', 'running', 'success', 'error', 'cancelled']),
+  "attempts": zod.number().optional(),
+  "availableAt": zod.string().nullish(),
+  "created": zod.number(),
+  "updated": zod.number(),
+  "skipped": zod.number(),
+  "startedAt": zod.string(),
+  "finishedAt": zod.string().nullish(),
+  "error": zod.string().nullish()
+}).and(zod.object({
+  "projectName": zod.string()
+}))),
+  "queued": zod.number(),
+  "running": zod.number()
 })
 
 
@@ -237,7 +301,11 @@ export const GetProjectWrikeLinkResponse = zod.object({
   "linked": zod.boolean(),
   "remoteId": zod.string().nullish(),
   "url": zod.string().nullish(),
-  "syncStatus": zod.enum(['not_configured', 'idle', 'running', 'success', 'error']),
+  "syncStatus": zod.enum(['not_configured', 'idle', 'queued', 'retry_wait', 'running', 'success', 'error', 'paused']),
+  "syncOwnerUserId": zod.number().nullish(),
+  "syncOwnerName": zod.string().nullish(),
+  "connectionReady": zod.boolean().optional(),
+  "nextSyncAt": zod.string().nullish(),
   "remoteTitle": zod.string().nullish(),
   "autoSync": zod.boolean().optional(),
   "lastSyncedAt": zod.string().nullish(),
@@ -257,6 +325,7 @@ export const setProjectWrikeLinkBodyUrlMax = 2000;
 
 
 export const SetProjectWrikeLinkBody = zod.object({
+  "confirmVisibility": zod.boolean(),
   "remoteId": zod.string().min(1).max(setProjectWrikeLinkBodyRemoteIdMax),
   "url": zod.string().url().max(setProjectWrikeLinkBodyUrlMax)
 })
@@ -266,7 +335,11 @@ export const SetProjectWrikeLinkResponse = zod.object({
   "linked": zod.boolean(),
   "remoteId": zod.string().nullish(),
   "url": zod.string().nullish(),
-  "syncStatus": zod.enum(['not_configured', 'idle', 'running', 'success', 'error']),
+  "syncStatus": zod.enum(['not_configured', 'idle', 'queued', 'retry_wait', 'running', 'success', 'error', 'paused']),
+  "syncOwnerUserId": zod.number().nullish(),
+  "syncOwnerName": zod.string().nullish(),
+  "connectionReady": zod.boolean().optional(),
+  "nextSyncAt": zod.string().nullish(),
   "remoteTitle": zod.string().nullish(),
   "autoSync": zod.boolean().optional(),
   "lastSyncedAt": zod.string().nullish(),

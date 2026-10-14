@@ -87,6 +87,7 @@ export interface ReleaseRecord {
 }
 
 export interface WrikeLinkInput {
+  confirmVisibility: boolean;
   /**
      * @minLength 1
      * @maxLength 200
@@ -102,9 +103,12 @@ export type WrikeLinkSyncStatus = typeof WrikeLinkSyncStatus[keyof typeof WrikeL
 export const WrikeLinkSyncStatus = {
   not_configured: 'not_configured',
   idle: 'idle',
+  queued: 'queued',
+  retry_wait: 'retry_wait',
   running: 'running',
   success: 'success',
   error: 'error',
+  paused: 'paused',
 } as const;
 
 export interface WrikeLink {
@@ -115,6 +119,13 @@ export interface WrikeLink {
   /** @nullable */
   url?: string | null;
   syncStatus: WrikeLinkSyncStatus;
+  /** @nullable */
+  syncOwnerUserId?: number | null;
+  /** @nullable */
+  syncOwnerName?: string | null;
+  connectionReady?: boolean;
+  /** @nullable */
+  nextSyncAt?: string | null;
   /** @nullable */
   remoteTitle?: string | null;
   autoSync?: boolean;
@@ -138,6 +149,8 @@ export interface WrikeConnection {
   connectedAt?: string | null;
   /** @nullable */
   lastError?: string | null;
+  userId?: number;
+  linkedProjectCount?: number;
 }
 
 export interface WrikeRemoteProject {
@@ -160,15 +173,21 @@ export type WrikeSyncRunStatus = typeof WrikeSyncRunStatus[keyof typeof WrikeSyn
 
 
 export const WrikeSyncRunStatus = {
+  queued: 'queued',
+  retry_wait: 'retry_wait',
   running: 'running',
   success: 'success',
   error: 'error',
+  cancelled: 'cancelled',
 } as const;
 
 export interface WrikeSyncRun {
   id: number;
   projectId: number;
   status: WrikeSyncRunStatus;
+  attempts?: number;
+  /** @nullable */
+  availableAt?: string | null;
   created: number;
   updated: number;
   skipped: number;
@@ -177,6 +196,41 @@ export interface WrikeSyncRun {
   finishedAt?: string | null;
   /** @nullable */
   error?: string | null;
+}
+
+export interface WrikeVisibilityInput {
+  confirmVisibility: boolean;
+}
+
+export interface WrikeAudienceMember {
+  id: number;
+  name: string;
+}
+
+export interface WrikeAudience {
+  members: WrikeAudienceMember[];
+  note: string;
+}
+
+export interface WrikeConnectionHealth {
+  userId: number;
+  userName: string;
+  active: boolean;
+  connectedAt: string;
+  linkedProjects: number;
+  /** @nullable */
+  lastError?: string | null;
+}
+
+export type WrikeFailedJob = WrikeSyncRun & {
+  projectName: string;
+};
+
+export interface WrikeHealth {
+  connections: WrikeConnectionHealth[];
+  failures: WrikeFailedJob[];
+  queued: number;
+  running: number;
 }
 
 export interface HealthStatus {

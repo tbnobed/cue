@@ -7,6 +7,7 @@
  */
 
 export interface WrikeLinkInput {
+  confirmVisibility: boolean;
   /**
      * @minLength 1
      * @maxLength 200

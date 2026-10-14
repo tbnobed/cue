@@ -51,8 +51,8 @@ and HTTPS Wrike URL. A remote ID cannot be assigned to multiple local projects.
 Unlinking changes only the local mapping; it does not delete anything in Wrike.
 
 The direct self-hosted OAuth connection and one-way task import are documented
-in [WRIKE.md](WRIKE.md). Administrators configure the connection and choose
-projects; project owners can run imports. This does not write back to Wrike.
+in [WRIKE.md](WRIKE.md). Each user connects their own Wrike account; project
+owners/admins link locations after audience review and queue imports. This does not write back to Wrike.
 Never put credentials in browser forms or repository files.
 
 ## Backup and recovery requirement

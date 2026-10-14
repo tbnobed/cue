@@ -75,12 +75,15 @@ import type {
   TaskNote,
   TaskNoteInput,
   TaskUpdate,
+  WrikeAudience,
   WrikeConnection,
+  WrikeHealth,
   WrikeLink,
   WrikeLinkInput,
   WrikeProjectPage,
   WrikeSettingsInput,
-  WrikeSyncRun
+  WrikeSyncRun,
+  WrikeVisibilityInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -572,6 +575,214 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getUpdateWrikeSettingsMutationOptions(options));
     }
+
+export const getGetWrikeAudienceUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/wrike-audience`
+}
+
+export const getWrikeAudience = async (projectId: number, options?: RequestInit): Promise<WrikeAudience> => {
+
+  return customFetch<WrikeAudience>(getGetWrikeAudienceUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWrikeAudienceQueryKey = (projectId: number,) => {
+    return [
+    `/api/projects/${projectId}/wrike-audience`
+    ] as const;
+    }
+
+
+export const getGetWrikeAudienceQueryOptions = <TData = Awaited<ReturnType<typeof getWrikeAudience>>, TError = ErrorType<unknown>>(projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWrikeAudience>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWrikeAudienceQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWrikeAudience>>> = ({ signal }) => getWrikeAudience(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(projectId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWrikeAudience>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWrikeAudienceQueryResult = NonNullable<Awaited<ReturnType<typeof getWrikeAudience>>>
+export type GetWrikeAudienceQueryError = ErrorType<unknown>
+
+
+
+export function useGetWrikeAudience<TData = Awaited<ReturnType<typeof getWrikeAudience>>, TError = ErrorType<unknown>>(
+ projectId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWrikeAudience>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWrikeAudienceQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getTakeOverWrikeSyncUrl = (projectId: number,) => {
+
+
+
+
+  return `/api/projects/${projectId}/wrike-takeover`
+}
+
+export const takeOverWrikeSync = async (projectId: number,
+    wrikeVisibilityInput: WrikeVisibilityInput, options?: RequestInit): Promise<WrikeLink> => {
+
+  return customFetch<WrikeLink>(getTakeOverWrikeSyncUrl(projectId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      wrikeVisibilityInput,)
+  }
+);}
+
+
+
+
+export const getTakeOverWrikeSyncMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof takeOverWrikeSync>>, TError,{projectId: number;data: BodyType<WrikeVisibilityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof takeOverWrikeSync>>, TError,{projectId: number;data: BodyType<WrikeVisibilityInput>}, TContext> => {
+
+const mutationKey = ['takeOverWrikeSync'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof takeOverWrikeSync>>, {projectId: number;data: BodyType<WrikeVisibilityInput>}> = (props) => {
+          const {projectId,data} = props ?? {};
+
+          return  takeOverWrikeSync(projectId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TakeOverWrikeSyncMutationResult = NonNullable<Awaited<ReturnType<typeof takeOverWrikeSync>>>
+    export type TakeOverWrikeSyncMutationBody = BodyType<WrikeVisibilityInput>
+    export type TakeOverWrikeSyncMutationError = ErrorType<unknown>
+
+    export const useTakeOverWrikeSync = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof takeOverWrikeSync>>, TError,{projectId: number;data: BodyType<WrikeVisibilityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof takeOverWrikeSync>>,
+        TError,
+        {projectId: number;data: BodyType<WrikeVisibilityInput>},
+        TContext
+      > => {
+      return useMutation(getTakeOverWrikeSyncMutationOptions(options));
+    }
+
+export const getGetWrikeHealthUrl = () => {
+
+
+
+
+  return `/api/admin/integrations/wrike/health`
+}
+
+export const getWrikeHealth = async ( options?: RequestInit): Promise<WrikeHealth> => {
+
+  return customFetch<WrikeHealth>(getGetWrikeHealthUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWrikeHealthQueryKey = () => {
+    return [
+    `/api/admin/integrations/wrike/health`
+    ] as const;
+    }
+
+
+export const getGetWrikeHealthQueryOptions = <TData = Awaited<ReturnType<typeof getWrikeHealth>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWrikeHealth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWrikeHealthQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWrikeHealth>>> = ({ signal }) => getWrikeHealth({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWrikeHealth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWrikeHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getWrikeHealth>>>
+export type GetWrikeHealthQueryError = ErrorType<unknown>
+
+
+
+export function useGetWrikeHealth<TData = Awaited<ReturnType<typeof getWrikeHealth>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWrikeHealth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWrikeHealthQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getListProjectReleasesUrl = (projectId: number,) => {
 

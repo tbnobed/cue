@@ -18,4 +18,6 @@ export interface WrikeConnection {
   connectedAt?: string | null;
   /** @nullable */
   lastError?: string | null;
+  userId?: number;
+  linkedProjectCount?: number;
 }

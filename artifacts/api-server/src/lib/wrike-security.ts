@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
 export class WrikeError extends Error {
-  constructor(message: string, public status = 502) { super(message); }
+  constructor(message: string, public status = 502, public retryAfterMs = 0) { super(message); }
 }
 const hosts = new Set(["www.wrike.com", "app-eu.wrike.com", "app-us2.wrike.com"]);
 export function validWrikeHost(host: string) {

@@ -10,7 +10,10 @@ export type WrikeSyncRunStatus = typeof WrikeSyncRunStatus[keyof typeof WrikeSyn
 
 
 export const WrikeSyncRunStatus = {
+  queued: 'queued',
+  retry_wait: 'retry_wait',
   running: 'running',
   success: 'success',
   error: 'error',
+  cancelled: 'cancelled',
 } as const;

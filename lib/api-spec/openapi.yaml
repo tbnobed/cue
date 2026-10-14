@@ -50,7 +50,7 @@ paths:
       operationId: authorizeWrike
       responses:
         "200":
-          description: OAuth authorization URL for administrator
+          description: OAuth authorization URL for the signed-in user
           content:
             application/json:
               schema:
@@ -76,8 +76,8 @@ paths:
     post:
       operationId: syncWrikeProject
       responses:
-        "200":
-          description: Completed one-way import
+        "202":
+          description: Persistent import job queued (or existing active job)
           content:
             application/json:
               schema: { $ref: "#/components/schemas/WrikeSyncRun" }
@@ -108,6 +108,42 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/WrikeLink" }
+  /projects/{projectId}/wrike-audience:
+    parameters:
+      - { name: projectId, in: path, required: true, schema: { type: integer } }
+    get:
+      operationId: getWrikeAudience
+      responses:
+        "200":
+          description: Cue audience to review before importing
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WrikeAudience" }
+  /projects/{projectId}/wrike-takeover:
+    parameters:
+      - { name: projectId, in: path, required: true, schema: { type: integer } }
+    post:
+      operationId: takeOverWrikeSync
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WrikeVisibilityInput" }
+      responses:
+        "200":
+          description: Sync transferred to caller after checking their Wrike access
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WrikeLink" }
+  /admin/integrations/wrike/health:
+    get:
+      operationId: getWrikeHealth
+      responses:
+        "200":
+          description: Admin-only connection health and recent failed jobs, no tokens
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WrikeHealth" }
   /projects/{projectId}/releases:
     parameters:
       - { name: projectId, in: path, required: true, schema: { type: integer } }
@@ -1492,8 +1528,9 @@ components:
         updatedAt: { type: string }
     WrikeLinkInput:
       type: object
-      required: [remoteId, url]
+      required: [remoteId, url, confirmVisibility]
       properties:
+        confirmVisibility: { type: boolean }
         remoteId: { type: string, minLength: 1, maxLength: 200 }
         url: { type: string, format: uri, maxLength: 2000 }
     WrikeLink:
@@ -1504,7 +1541,11 @@ components:
         linked: { type: boolean }
         remoteId: { type: ["string", "null"] }
         url: { type: ["string", "null"] }
-        syncStatus: { type: string, enum: [not_configured, idle, running, success, error] }
+        syncStatus: { type: string, enum: [not_configured, idle, queued, retry_wait, running, success, error, paused] }
+        syncOwnerUserId: { type: ["integer", "null"] }
+        syncOwnerName: { type: ["string", "null"] }
+        connectionReady: { type: boolean }
+        nextSyncAt: { type: ["string", "null"] }
         remoteTitle: { type: ["string", "null"] }
         autoSync: { type: boolean }
         lastSyncedAt: { type: ["string", "null"] }
@@ -1521,6 +1562,8 @@ components:
         host: { type: ["string", "null"] }
         connectedAt: { type: ["string", "null"] }
         lastError: { type: ["string", "null"] }
+        userId: { type: integer }
+        linkedProjectCount: { type: integer }
     WrikeProjectPage:
       type: object
       required: [projects]
@@ -1545,13 +1588,57 @@ components:
       properties:
         id: { type: integer }
         projectId: { type: integer }
-        status: { type: string, enum: [running, success, error] }
+        status: { type: string, enum: [queued, retry_wait, running, success, error, cancelled] }
+        attempts: { type: integer }
+        availableAt: { type: ["string", "null"] }
         created: { type: integer }
         updated: { type: integer }
         skipped: { type: integer }
         startedAt: { type: string }
         finishedAt: { type: ["string", "null"] }
         error: { type: ["string", "null"] }
+    WrikeVisibilityInput:
+      type: object
+      required: [confirmVisibility]
+      properties:
+        confirmVisibility: { type: boolean }
+    WrikeAudienceMember:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+    WrikeAudience:
+      type: object
+      required: [members, note]
+      properties:
+        members: { type: array, items: { $ref: "#/components/schemas/WrikeAudienceMember" } }
+        note: { type: string }
+    WrikeConnectionHealth:
+      type: object
+      required: [userId, userName, active, connectedAt, linkedProjects]
+      properties:
+        userId: { type: integer }
+        userName: { type: string }
+        active: { type: boolean }
+        connectedAt: { type: string }
+        linkedProjects: { type: integer }
+        lastError: { type: ["string", "null"] }
+    WrikeFailedJob:
+      allOf:
+        - { $ref: "#/components/schemas/WrikeSyncRun" }
+        - type: object
+          required: [projectName]
+          properties:
+            projectName: { type: string }
+    WrikeHealth:
+      type: object
+      required: [connections, failures, queued, running]
+      properties:
+        connections: { type: array, items: { $ref: "#/components/schemas/WrikeConnectionHealth" } }
+        failures: { type: array, items: { $ref: "#/components/schemas/WrikeFailedJob" } }
+        queued: { type: integer }
+        running: { type: integer }
     HealthStatus:
       type: object
       properties:

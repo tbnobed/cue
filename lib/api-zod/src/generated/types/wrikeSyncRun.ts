@@ -11,6 +11,9 @@ export interface WrikeSyncRun {
   id: number;
   projectId: number;
   status: WrikeSyncRunStatus;
+  attempts?: number;
+  /** @nullable */
+  availableAt?: string | null;
   created: number;
   updated: number;
   skipped: number;

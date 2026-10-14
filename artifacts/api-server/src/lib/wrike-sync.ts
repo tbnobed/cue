@@ -1,13 +1,12 @@
-import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   db, projectWrikeLinksTable, wrikeConnectionsTable, wrikeSyncRunsTable,
-  wrikeTaskLinksTable, tasksTable, membersTable, projectMembersTable,
+  wrikeTaskLinksTable, tasksTable, membersTable, projectMembersTable, usersTable, projectsTable,
 } from "@workspace/db";
-import { getWrikeFolder, safeWrikeError, wrikeGet } from "./wrike-client";
-import { WrikeError, validWrikeUrl, wrikeConfig } from "./wrike-security";
-import { logger } from "./logger";
+import { getWrikeFolder, wrikeGet } from "./wrike-client";
+import { WrikeError, validWrikeUrl } from "./wrike-security";
+import { checkWrikeSyncOwner } from "./wrike-policy";
 
 const taskSchema = z.object({
   id: z.string().min(1), title: z.string(), description: z.string().optional(),
@@ -37,26 +36,14 @@ export function taskFields(task: z.infer<typeof taskSchema>, assigneeId: number 
   };
 }
 
-export async function syncWrikeProject(projectId: number, actorId: number | null, automatic = false) {
-  const lockToken = randomUUID();
-  const [link] = await db.update(projectWrikeLinksTable).set({
-    lockToken, lockedUntil: new Date(Date.now() + 5 * 60_000), lastAttemptAt: new Date(), syncStatus: "running", lastError: null,
-  }).where(and(
-    eq(projectWrikeLinksTable.projectId, projectId),
-    sql`(${projectWrikeLinksTable.lockedUntil} IS NULL OR ${projectWrikeLinksTable.lockedUntil} < now())`,
-    automatic ? sql`${projectWrikeLinksTable.autoSync} = true AND (${projectWrikeLinksTable.lastAttemptAt} IS NULL OR ${projectWrikeLinksTable.lastAttemptAt} < now() - interval '4 minutes')` : sql`true`,
-  )).returning();
-  if (!link) throw new WrikeError("No linked project is ready, or another sync is already running. Try again shortly.", 409);
-  let runId: number | undefined;
-  try {
-    // Mark abandoned attempts explicitly instead of leaving a permanent spinner.
-    await db.update(wrikeSyncRunsTable).set({ status: "error", error: "Previous sync was interrupted. Retried without deleting local data.", finishedAt: new Date() })
-      .where(and(eq(wrikeSyncRunsTable.projectId, projectId), eq(wrikeSyncRunsTable.status, "running")));
-    const [run] = await db.insert(wrikeSyncRunsTable).values({ projectId, actorId }).returning();
-    runId = run.id;
-    const [connection] = await db.select({ generation: wrikeConnectionsTable.generation }).from(wrikeConnectionsTable).where(eq(wrikeConnectionsTable.id, 1));
-    if (!connection) throw new WrikeError("Wrike is disconnected. Ask an administrator to reconnect.", 409);
-    const folder = await getWrikeFolder(link.remoteId);
+export async function executeWrikeImport(run: typeof wrikeSyncRunsTable.$inferSelect) {
+    const projectId = run.projectId;
+    const [link] = await db.select().from(projectWrikeLinksTable).where(eq(projectWrikeLinksTable.projectId, projectId));
+    if (!link || !run.connectionId || link.connectionId !== run.connectionId || link.revision !== run.linkRevision) {
+      throw new WrikeError("Project sync ownership changed. Queue a new import.", 409);
+    }
+    const connection = await checkWrikeSyncOwner(run.connectionId, projectId);
+    const folder = await getWrikeFolder(connection.id, link.remoteId);
     const deadline = Date.now() + 120_000;
     const tasks = new Map<string, z.infer<typeof taskSchema>>();
     const seenTokens = new Set<string>();
@@ -66,7 +53,7 @@ export async function syncWrikeProject(projectId: number, actorId: number | null
       if (++pages > 100 || Date.now() > deadline) throw new WrikeError("Wrike import exceeded its safe limit. Use a smaller project and retry.");
       const query = new URLSearchParams({ descendants: "true", subTasks: "true", pageSize: "1000", fields: '["description","responsibleIds"]' });
       if (token) query.set("nextPageToken", token);
-      const page = await wrikeGet(`/folders/${encodeURIComponent(link.remoteId)}/tasks?${query}`, taskPage);
+      const page = await wrikeGet(connection.id, `/folders/${encodeURIComponent(link.remoteId)}/tasks?${query}`, taskPage);
       for (const task of page.data) tasks.set(task.id, task);
       token = page.nextPageToken || undefined;
       if (token && seenTokens.has(token)) throw new WrikeError("Wrike pagination repeated. Import stopped without changing tasks.");
@@ -77,19 +64,29 @@ export async function syncWrikeProject(projectId: number, actorId: number | null
     const emails = new Map<string, Set<string>>();
     for (let start = 0; start < ids.length; start += 100) {
       if (Date.now() > deadline) throw new WrikeError("Wrike import timed out before completion. Retry or use a smaller project.");
-      const contacts = await wrikeGet(`/contacts/${ids.slice(start, start + 100).map(encodeURIComponent).join(",")}`, contactPage);
+      const contacts = await wrikeGet(connection.id, `/contacts/${ids.slice(start, start + 100).map(encodeURIComponent).join(",")}`, contactPage);
       for (const c of contacts.data) emails.set(c.id, new Set((c.profiles ?? []).flatMap(p => p.email ? [p.email.toLowerCase()] : [])));
     }
     const members = await db.select({ id: membersTable.id, email: membersTable.email })
       .from(membersTable).innerJoin(projectMembersTable, eq(projectMembersTable.memberId, membersTable.id))
       .where(eq(projectMembersTable.projectId, projectId));
     const result = await db.transaction(async tx => {
+      // Recheck authorization at commit, not just when the job was queued.
+      const [owner] = await tx.select().from(usersTable).where(eq(usersTable.id, connection.ownerUserId)).for("share");
+      const [project] = await tx.select().from(projectsTable).where(eq(projectsTable.id, projectId)).for("share");
+      if (!owner?.isActive || !project || (!owner.isAdmin && project.ownerUserId !== owner.id)) {
+        throw new WrikeError("The sync owner no longer manages this project. Nothing was imported.", 409);
+      }
       // Prevent disconnect/reconnect from racing the final import commit.
-      const [currentConnection] = await tx.select().from(wrikeConnectionsTable).where(eq(wrikeConnectionsTable.id, 1)).for("share");
+      const [currentConnection] = await tx.select().from(wrikeConnectionsTable).where(eq(wrikeConnectionsTable.id, connection.id)).for("share");
       if (currentConnection?.generation !== connection.generation) throw new WrikeError("Wrike connection changed during import. Retry with the current connection.", 409);
       const [currentLink] = await tx.select().from(projectWrikeLinksTable).where(eq(projectWrikeLinksTable.projectId, projectId)).for("update");
-      if (!currentLink || currentLink.lockToken !== lockToken || !currentLink.lockedUntil || currentLink.lockedUntil.getTime() < Date.now()) {
+      if (!currentLink || currentLink.connectionId !== connection.id || currentLink.revision !== run.linkRevision) {
         throw new WrikeError("Wrike sync lease expired or the link changed. Retry.", 409);
+      }
+      const [currentJob] = await tx.select().from(wrikeSyncRunsTable).where(eq(wrikeSyncRunsTable.id, run.id)).for("update");
+      if (currentJob?.status !== "running" || currentJob.leaseToken !== run.leaseToken || !currentJob.leaseUntil || currentJob.leaseUntil.getTime() < Date.now()) {
+        throw new WrikeError("Wrike job was cancelled or its lease expired. Nothing was imported.", 409);
       }
       const mappings = await tx.select().from(wrikeTaskLinksTable).where(eq(wrikeTaskLinksTable.projectId, projectId));
       const byId = new Map(mappings.map(m => [m.remoteId, m]));
@@ -119,38 +116,12 @@ export async function syncWrikeProject(projectId: number, actorId: number | null
       await tx.update(projectWrikeLinksTable).set({
         remoteTitle: folder.title, url: validWrikeUrl(folder.permalink) ? folder.permalink : link.url,
         syncStatus: "success", lastSyncedAt: new Date(), lastError: null, lockToken: null, lockedUntil: null,
+        nextSyncAt: new Date(Date.now() + 5 * 60_000),
       }).where(eq(projectWrikeLinksTable.projectId, projectId));
       const [finished] = await tx.update(wrikeSyncRunsTable).set({
-        status: "success", created, updated, skipped, finishedAt: new Date(),
+        status: "success", created, updated, skipped, finishedAt: new Date(), leaseToken: null, leaseUntil: null, error: null,
       }).where(eq(wrikeSyncRunsTable.id, run.id)).returning();
       return finished;
     });
     return result;
-  } catch (error) {
-    const message = safeWrikeError(error);
-    await db.update(projectWrikeLinksTable).set({ syncStatus: "error", lastError: message, lockToken: null, lockedUntil: null })
-      .where(and(eq(projectWrikeLinksTable.projectId, projectId), eq(projectWrikeLinksTable.lockToken, lockToken)));
-    if (runId) await db.update(wrikeSyncRunsTable).set({ status: "error", error: message, finishedAt: new Date() }).where(eq(wrikeSyncRunsTable.id, runId));
-    throw error instanceof WrikeError ? error : new WrikeError(message);
-  }
-}
-
-export function startWrikeScheduler() {
-  let running = false;
-  const timer = setInterval(async () => {
-    if (running || !wrikeConfig().configured) return;
-    running = true;
-    try {
-      const [connection] = await db.select({ id: wrikeConnectionsTable.id }).from(wrikeConnectionsTable).where(eq(wrikeConnectionsTable.id, 1));
-      if (!connection) return;
-      const links = await db.select({ projectId: projectWrikeLinksTable.projectId }).from(projectWrikeLinksTable).where(eq(projectWrikeLinksTable.autoSync, true));
-      for (const link of links) {
-        try { await syncWrikeProject(link.projectId, null, true); }
-        catch (error) { logger.warn({ projectId: link.projectId, message: safeWrikeError(error) }, "Wrike scheduled import did not complete"); }
-      }
-    } catch { logger.error("Wrike scheduler failed; check database and migrations"); }
-    finally { running = false; }
-  }, 5 * 60_000);
-  timer.unref();
-  return () => clearInterval(timer);
 }

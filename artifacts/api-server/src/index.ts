@@ -3,7 +3,7 @@ import app from "./app";
 import { createCollabUpgradeRouter } from "./lib/collab";
 import { createCollaboraUpgradeRouter } from "./lib/collabora-proxy";
 import { logger } from "./lib/logger";
-import { startWrikeScheduler } from "./lib/wrike-sync";
+import { startWrikeScheduler } from "./lib/wrike-queue";
 
 const rawPort = process.env["PORT"];
 
