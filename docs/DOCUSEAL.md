@@ -8,6 +8,22 @@ reminders and its own immutable signed-PDF archive.
 
 ## Server setup
 
+### Connect the self-hosted API key without editing files
+
+Create/copy an API key in the DocuSeal instance at `https://sign.obtv.io`, then
+run this in an SSH terminal on the Cue server after syncing the project files:
+
+```sh
+cd ~/cue
+python3 scripts/connect-docuseal.py
+```
+
+The prompt hides the key. The script verifies it against the internal DocuSeal
+API before saving anything, privately backs up the existing configuration,
+updates only the key, and recreates Cue to load it. Cue has a brief interruption;
+DocuSeal, NPM, database and document volumes are unchanged. No image rebuild
+or database migration is required.
+
 ### Apply the confirmed deployment's port/configuration fix
 
 For the existing Cue server at `192.168.100.65`, with signing at `sign.obtv.io`
