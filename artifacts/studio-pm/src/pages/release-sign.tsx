@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AlertTriangle, CalendarDays, FileSignature, Loader2, MailCheck, Clock } from "lucide-react";
@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch, HttpError } from "@/components/release-share-links";
 
 type PublicLink = {
+  signingMode: "email" | "immediate";
   title: string; projectName: string; productionDate: string | null;
   templateName: string; templateVersion: string; expiresAt: string;
 };
@@ -34,17 +35,28 @@ export default function ReleaseSign() {
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
   const [formErr, setFormErr] = useState<string | null>(null);
+  const receiptKeys = useRef<Record<string, string>>({});
+  const immediate = q.data?.signingMode === "immediate";
   const reg = useMutation({
-    mutationFn: (body: { name: string; email: string; consent: true }) =>
-      apiFetch<{ message: string }>(`/api/public/release-links/${enc}/register`, { method: "POST", body: JSON.stringify(body) }),
+    mutationFn: (body: { name: string; email: string; consent: true; registrationKey?: string }) =>
+      apiFetch<{ message: string; signingUrl?: string }>(`/api/public/release-links/${enc}/register`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: result => { if (result.signingUrl) window.location.assign(result.signingUrl); },
   });
 
   function submit(e: React.FormEvent) {
     e.preventDefault(); setFormErr(null);
     if (!name.trim()) { setFormErr("Enter your full name."); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setFormErr("Enter a valid email address."); return; }
-    if (!consent) { setFormErr("Tick the box so we can email your signing link."); return; }
-    reg.mutate({ name: name.trim(), email: email.trim(), consent: true });
+    if (!consent) { setFormErr("Tick the box to continue."); return; }
+    let registrationKey: string | undefined;
+    if (immediate) {
+      const storageKey = `release-registration:${token}:${email.trim().toLowerCase()}`;
+      try { registrationKey = sessionStorage.getItem(storageKey) || undefined; } catch { /* private memory fallback */ }
+      registrationKey ||= receiptKeys.current[storageKey] || crypto.randomUUID();
+      receiptKeys.current[storageKey] = registrationKey;
+      try { sessionStorage.setItem(storageKey, registrationKey); } catch { /* retry is safe within this page */ }
+    }
+    reg.mutate({ name: name.trim(), email: email.trim(), consent: true, ...(registrationKey ? { registrationKey } : {}) });
   }
 
   const status = q.error instanceof HttpError ? q.error.status : 0;
@@ -78,9 +90,10 @@ export default function ReleaseSign() {
         ) : q.data && reg.isSuccess ? (
           <div className="surface-card border border-primary/30 rounded-2xl p-6 text-center space-y-3" data-testid="release-sign-success" role="status">
             <MailCheck className="w-8 h-8 mx-auto text-primary" />
-            <h1 className="text-lg font-semibold">Check your inbox</h1>
+            <h1 className="text-lg font-semibold">{reg.data?.signingUrl ? "Opening your signing form" : immediate ? "Registration received" : "Check your inbox"}</h1>
             <p className="text-sm text-foreground/85">{reg.data?.message || "If everything checks out, you'll receive an email with your personal link to review and sign."}</p>
-            <p className="text-xs text-muted-foreground">Nothing has been signed yet. Open the email to review the release before signing.</p>
+            {reg.data?.signingUrl && <Button asChild><a href={reg.data.signingUrl} rel="noreferrer">Continue to signing form</a></Button>}
+            {!immediate && <p className="text-xs text-muted-foreground">Nothing has been signed yet. Open the email to review the release before signing.</p>}
           </div>
         ) : q.data ? (
           <div className="space-y-6">
@@ -94,7 +107,9 @@ export default function ReleaseSign() {
               </div>
             </div>
             <form onSubmit={submit} className="surface-card border border-border/70 rounded-2xl p-5 space-y-4" data-testid="form-release-register">
-              <p className="text-[13px] text-foreground/85 leading-relaxed">Enter your details. We'll email you a personal link to review and sign the release on your phone. No account needed.</p>
+              <p className="text-[13px] text-foreground/85 leading-relaxed">{immediate
+                ? "Enter your details to review and sign immediately. We'll also email a backup signing link and your completed copy. No account needed."
+                : "Enter your details. We'll email you a personal link to review and sign the release on your phone. No account needed."}</p>
               <div className="grid gap-1.5">
                 <Label htmlFor="rs-name" className="text-xs">Full name</Label>
                 <Input id="rs-name" autoComplete="name" maxLength={200} value={name} onChange={e => setName(e.target.value)} data-testid="input-register-name" />
@@ -106,7 +121,7 @@ export default function ReleaseSign() {
               <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-white/[0.02] p-3 cursor-pointer">
                 <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}
                   className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]" data-testid="checkbox-register-consent" />
-                <span className="text-xs leading-relaxed">Email me my personal signing link</span>
+                <span className="text-xs leading-relaxed">{immediate ? "Continue to my signing form and email me release updates and my completed copy" : "Email me my personal signing link"}</span>
               </label>
               {(formErr || regErr) && (
                 <div className="rounded-xl border border-red-500/30 bg-red-500/[0.06] p-3 text-xs text-red-200 flex gap-2" role="alert">
@@ -114,7 +129,7 @@ export default function ReleaseSign() {
                 </div>
               )}
               <Button type="submit" className="w-full h-10" disabled={reg.isPending || !consent} data-testid="button-register-submit">
-                {reg.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Email my signing link
+                {reg.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}{immediate ? "Continue to signing" : "Email my signing link"}
               </Button>
             </form>
           </div>

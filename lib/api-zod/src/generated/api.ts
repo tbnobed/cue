@@ -13,6 +13,7 @@ export const ListProductionReleaseLinksParams = zod.object({
 })
 
 export const ListProductionReleaseLinksResponseItem = zod.object({
+  "signingMode": zod.enum(['email', 'immediate']).optional(),
   "id": zod.number(),
   "title": zod.string(),
   "templateId": zod.number(),
@@ -29,6 +30,7 @@ export const CreateProductionReleaseLinkParams = zod.object({
   "projectId": zod.coerce.number()
 })
 
+export const createProductionReleaseLinkBodySigningModeDefault = `email`;
 export const createProductionReleaseLinkBodyTitleMax = 200;
 
 
@@ -44,6 +46,7 @@ export const createProductionReleaseLinkBodySignersMax = 19;
 
 
 export const CreateProductionReleaseLinkBody = zod.object({
+  "signingMode": zod.enum(['email', 'immediate']).default(createProductionReleaseLinkBodySigningModeDefault),
   "title": zod.string().min(1).max(createProductionReleaseLinkBodyTitleMax),
   "templateId": zod.number().min(1),
   "productionDate": zod.string().regex(createProductionReleaseLinkBodyProductionDateRegExp).nullish(),
@@ -67,6 +70,7 @@ export const GetPublicReleaseLinkParams = zod.object({
 })
 
 export const GetPublicReleaseLinkResponse = zod.object({
+  "signingMode": zod.enum(['email', 'immediate']).optional(),
   "title": zod.string(),
   "projectName": zod.string(),
   "productionDate": zod.string().nullable(),
@@ -87,6 +91,7 @@ export const registerPublicReleaseGuestBodyEmailMax = 254;
 
 
 export const RegisterPublicReleaseGuestBody = zod.object({
+  "registrationKey": zod.string().uuid().optional().describe('Required for immediate signing; browser-generated private receipt used for safe retry'),
   "name": zod.string().min(1).max(registerPublicReleaseGuestBodyNameMax),
   "email": zod.string().email().max(registerPublicReleaseGuestBodyEmailMax),
   "consent": zod.literal(true)

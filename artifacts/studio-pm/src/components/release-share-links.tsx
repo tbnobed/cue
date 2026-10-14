@@ -19,11 +19,13 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const DT = "MMM d, yyyy · h:mm a";
 
 export type ReleaseLink = {
+  signingMode: "email" | "immediate";
   id: number; title: string; templateId: number; productionDate: string | null;
   expiresAt: string; revokedAt: string | null; url: string; createdAt: string;
 };
 export type ReleaseLinkSigner = { role: string; name: string; email: string };
 export type ReleaseLinkInput = {
+  signingMode: "email" | "immediate";
   title: string; templateId: number; productionDate?: string | null; expiresAt?: string; signers: ReleaseLinkSigner[];
 };
 
@@ -104,7 +106,7 @@ export function ReleaseShareLinks({ projectId }: { projectId: number }) {
   function mail(l: ReleaseLink) {
     const subject = encodeURIComponent(`Appearance release: ${l.title}`);
     const body = encodeURIComponent(
-      `Hi,\n\nPlease register for your appearance release using the link below. You'll receive a personal signing link by email.\n\n${l.url}\n\nThis link expires ${fmtDate(l.expiresAt, DT)}.\n`);
+      `Hi,\n\nPlease register for your appearance release using the link below. ${l.signingMode === "immediate" ? "Enter your details, then review and sign immediately." : "You'll receive a personal signing link by email."}\n\n${l.url}\n\nThis link expires ${fmtDate(l.expiresAt, DT)}.\n`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   }
 
@@ -119,7 +121,7 @@ export function ReleaseShareLinks({ projectId }: { projectId: number }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Link2 className="w-4 h-4 text-primary" /> Production release links</DialogTitle>
             <DialogDescription>
-              One link for the whole production. Guests enter their name and email, then DocuSeal emails each of them a personal signing link. Completed releases are filed here automatically.
+              One link for the whole production. Choose immediate signing or an emailed signing link. Completed releases are filed here automatically.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-2">
@@ -156,6 +158,7 @@ export function ReleaseShareLinks({ projectId }: { projectId: number }) {
                       </div>
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10.5px] font-mono text-muted-foreground tabular-nums">
                         <span>shoot {fmtDate(l.productionDate)}</span>
+                        <span>{l.signingMode === "immediate" ? "Sign immediately" : "Email signing link"}</span>
                         <span className={`inline-flex items-center gap-1 ${soon ? "text-amber-300" : ""}`}><Clock className="w-3 h-3" />
                           {st === "revoked" ? `revoked ${fmtDate(l.revokedAt, DT)}` : `${st === "expired" ? "expired" : "expires"} ${fmtDate(l.expiresAt, DT)}`}
                         </span>
@@ -214,6 +217,7 @@ function CreateLinkDialog({ projectId, open, onClose }: { projectId: number; ope
   const tq = useListReleaseTemplates({ query: { queryKey: getListReleaseTemplatesQueryKey(), enabled: open } });
   const [title, setTitle] = useState("");
   const [templateId, setTemplateId] = useState("");
+  const [signingMode, setSigningMode] = useState<"email" | "immediate">("email");
   const [productionDate, setProductionDate] = useState("");
   const [expires, setExpires] = useState("");
   const [signers, setSigners] = useState<Record<string, { name: string; email: string }>>({});
@@ -225,7 +229,7 @@ function CreateLinkDialog({ projectId, open, onClose }: { projectId: number; ope
   });
 
   useEffect(() => {
-    if (open) { setTitle(""); setTemplateId(""); setProductionDate(""); setExpires(""); setSigners({}); setError(null); create.reset(); }
+    if (open) { setTitle(""); setTemplateId(""); setSigningMode("email"); setProductionDate(""); setExpires(""); setSigners({}); setError(null); create.reset(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -249,7 +253,7 @@ function CreateLinkDialog({ projectId, open, onClose }: { projectId: number; ope
       expiresAt = d.toISOString();
     }
     try {
-      await create.mutateAsync({ title: title.trim(), templateId: tpl.id, productionDate: productionDate || null, ...(expiresAt ? { expiresAt } : {}), signers: list });
+      await create.mutateAsync({ title: title.trim(), templateId: tpl.id, signingMode, productionDate: productionDate || null, ...(expiresAt ? { expiresAt } : {}), signers: list });
       toast({ title: "Share link created" });
       onClose();
     } catch (err) { setError((err as Error).message); }
@@ -287,6 +291,20 @@ function CreateLinkDialog({ projectId, open, onClose }: { projectId: number; ope
                 )}
               {tpl && <p className="text-[11px] text-muted-foreground">The {tpl.guestRole} role is filled by each guest who registers.{otherRoles.length === 0 ? " No other signers needed." : ""}</p>}
             </div>
+            <fieldset className="grid gap-2 rounded-lg border border-border p-3">
+              <legend className="text-xs px-1">How should guests sign?</legend>
+              <label className="flex gap-2 items-start text-sm">
+                <input type="radio" name="signing-mode" value="email" checked={signingMode === "email"}
+                  onChange={() => setSigningMode("email")} data-testid="mode-email" className="mt-1" />
+                <span>Email signing link<span className="block text-xs text-muted-foreground">Guests must open their inbox to access the signing form.</span></span>
+              </label>
+              <label className="flex gap-2 items-start text-sm">
+                <input type="radio" name="signing-mode" value="immediate" checked={signingMode === "immediate"}
+                  onChange={() => setSigningMode("immediate")} data-testid="mode-immediate" className="mt-1" />
+                <span>Sign immediately<span className="block text-xs text-muted-foreground">Open the form after name and email. Email ownership is not verified; an invitation is also emailed as a backup.</span></span>
+              </label>
+              <p className="text-xs text-muted-foreground">Both track signatures and archive completed releases. DocuSeal emails completed copies.</p>
+            </fieldset>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="grid gap-1.5">
                 <Label htmlFor="rl-date" className="text-xs">Production date</Label>

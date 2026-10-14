@@ -62,6 +62,7 @@ export const remoteSubmissionSchema = z.object({
   submitters: z.array(z.object({
     id: z.number().int().positive(), role: z.string(), name: z.string().nullable().optional(),
     email: z.string(), external_id: z.string().nullable().optional(),
+    slug: z.string().nullable().optional(),
     status: z.string(), completed_at: z.string().nullable().optional(),
   })).min(1),
 });

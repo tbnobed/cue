@@ -5,8 +5,10 @@
  * Project PM API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ProductionReleaseLinkSigningMode } from './productionReleaseLinkSigningMode';
 
 export interface ProductionReleaseLink {
+  signingMode?: ProductionReleaseLinkSigningMode;
   id: number;
   title: string;
   templateId: number;

@@ -7,6 +7,8 @@
  */
 
 export interface ReleaseGuestRegistration {
+  /** Required for immediate signing; browser-generated private receipt used for safe retry */
+  registrationKey?: string;
   /**
      * @minLength 1
      * @maxLength 200

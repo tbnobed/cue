@@ -71,3 +71,13 @@ printed form field.
 
 **How to apply:** Keep this meaning consistent for individually created releases
 and production share links; preserve separately named ProjectName fields.
+
+Both immediate signing and email-first signing must be available when creating
+a shared release link or QR code.
+
+**Why:** The user explicitly requested the producer choose per link, rather
+than replacing email-first signing globally.
+
+**How to apply:** Preserve the selected flow for each link. Immediate entry
+does not verify email ownership; never reveal an existing guest's signing
+session merely because someone enters their email again.

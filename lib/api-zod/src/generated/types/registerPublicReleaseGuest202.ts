@@ -8,4 +8,6 @@
 
 export type RegisterPublicReleaseGuest202 = {
   message: string;
+  /** Private signing URL, only returned for immediate mode to the originating registration browser */
+  signingUrl?: string;
 };

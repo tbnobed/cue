@@ -21,4 +21,6 @@ CREATE TABLE IF NOT EXISTS release_enrollments (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS release_enrollments_link_email ON release_enrollments(link_id,email);
+ALTER TABLE release_links ADD COLUMN IF NOT EXISTS signing_mode text NOT NULL DEFAULT 'email';
+ALTER TABLE release_enrollments ADD COLUMN IF NOT EXISTS receipt_hash text;
 COMMIT;

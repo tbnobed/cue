@@ -5,6 +5,14 @@
  * Project PM API specification
  * OpenAPI spec version: 0.1.0
  */
+export type ProductionReleaseLinkInputSigningMode = typeof ProductionReleaseLinkInputSigningMode[keyof typeof ProductionReleaseLinkInputSigningMode];
+
+
+export const ProductionReleaseLinkInputSigningMode = {
+  email: 'email',
+  immediate: 'immediate',
+} as const;
+
 export interface SigningPerson {
   /**
      * @minLength 1
@@ -22,6 +30,7 @@ export interface SigningPerson {
 }
 
 export interface ProductionReleaseLinkInput {
+  signingMode?: ProductionReleaseLinkInputSigningMode;
   /**
      * @minLength 1
      * @maxLength 200
@@ -39,7 +48,16 @@ export interface ProductionReleaseLinkInput {
   signers: SigningPerson[];
 }
 
+export type ProductionReleaseLinkSigningMode = typeof ProductionReleaseLinkSigningMode[keyof typeof ProductionReleaseLinkSigningMode];
+
+
+export const ProductionReleaseLinkSigningMode = {
+  email: 'email',
+  immediate: 'immediate',
+} as const;
+
 export interface ProductionReleaseLink {
+  signingMode?: ProductionReleaseLinkSigningMode;
   id: number;
   title: string;
   templateId: number;
@@ -52,7 +70,16 @@ export interface ProductionReleaseLink {
   url: string;
 }
 
+export type PublicReleaseLinkSigningMode = typeof PublicReleaseLinkSigningMode[keyof typeof PublicReleaseLinkSigningMode];
+
+
+export const PublicReleaseLinkSigningMode = {
+  email: 'email',
+  immediate: 'immediate',
+} as const;
+
 export interface PublicReleaseLink {
+  signingMode?: PublicReleaseLinkSigningMode;
   title: string;
   projectName: string;
   /** @nullable */
@@ -63,6 +90,8 @@ export interface PublicReleaseLink {
 }
 
 export interface ReleaseGuestRegistration {
+  /** Required for immediate signing; browser-generated private receipt used for safe retry */
+  registrationKey?: string;
   /**
      * @minLength 1
      * @maxLength 200
@@ -1534,6 +1563,8 @@ export interface ActivityEntry {
 
 export type RegisterPublicReleaseGuest202 = {
   message: string;
+  /** Private signing URL, only returned for immediate mode to the originating registration browser */
+  signingUrl?: string;
 };
 
 export type AuthorizeWrike200 = {

@@ -5,8 +5,10 @@
  * Project PM API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { PublicReleaseLinkSigningMode } from './publicReleaseLinkSigningMode';
 
 export interface PublicReleaseLink {
+  signingMode?: PublicReleaseLinkSigningMode;
   title: string;
   projectName: string;
   /** @nullable */

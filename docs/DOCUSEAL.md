@@ -72,10 +72,23 @@ multi-role template, enter the countersigners once. Copy the link, use Email
 to compose a message in your mail app, or download the QR code for printing.
 The Email button does not send automatically or require entering a guest roster.
 
-Each guest enters their name/email and consents to receive a private DocuSeal
-signing email. No Cue account is required. This intentionally uses email rather
-than exposing a signing session to anyone who types another person's email.
-Signing and completed-copy delivery require DocuSeal SMTP configuration.
+Choose the signing mode when creating each link:
+
+- **Email signing link** (default): guests enter name/email, then open the
+  private link from their inbox. Existing links retain this mode.
+- **Sign immediately**: guests enter name/email, then open their private
+  DocuSeal form immediately. Email ownership is not verified. A backup invitation
+  is still emailed; reminders and completed copies use the same email setup.
+
+No Cue account is required. Immediate signing does not wait for email delivery.
+Its private URL is returned only to the originating registration browser,
+using a random browser receipt stored as a hash server-side. Retrying with the
+same receipt recovers the existing form without creating another submission.
+Entering the same email from a different browser does not reveal the private
+signing URL; use the emailed invitation or contact the producer instead.
+The mode is fixed for each link: create a new link to choose a different mode.
+The QR code always points to that link's selected flow.
+Email invitations and completed-copy delivery require DocuSeal SMTP configuration.
 Guest identity and production fields use the existing template field mapping.
 Every registration creates its own release record; the existing all-signers
 completion, reminders, and immutable Cue archive apply.
@@ -89,6 +102,10 @@ and the producer retains the draft or Needs review record. Limits are persisted:
 five requests per email per hour across links, 1,000 registrations per link per
 hour. Disabling the creating account or removing its project-management access
 also disables intake through its links.
+
+The apply command above also adds the mode and private-receipt columns
+additively on existing installations. Do not deploy only the new app image
+without applying this migration first.
 
 ### Connect the self-hosted API key without editing files
 

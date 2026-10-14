@@ -1,5 +1,5 @@
 import { Router, type Response } from "express";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import { and, eq, desc, gte, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -8,8 +8,8 @@ import {
   releaseEventsTable as events, projectsTable, usersTable,
 } from "@workspace/db";
 import { requireProjectManage } from "../lib/access";
-import { sendForSigning } from "../lib/docuseal-signing";
-import { signingConfig, SigningError, signingError, docuseal, remoteTemplateSchema, templateFingerprint } from "../lib/docuseal-client";
+import { sendForSigning, readSigning, verifySubmission } from "../lib/docuseal-signing";
+import { signingConfig, SigningError, signingError, docuseal, getSubmission, remoteTemplateSchema, templateFingerprint } from "../lib/docuseal-client";
 import { logger } from "../lib/logger";
 
 export const releaseLinksRouter = Router();
@@ -19,6 +19,7 @@ const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(s =>
   !isNaN(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s);
 const input = z.object({
   title: z.string().trim().min(1).max(200), templateId: z.number().int().positive(),
+  signingMode: z.enum(["email", "immediate"]).default("email"),
   productionDate: date.nullable().optional(),
   expiresAt: z.string().datetime().optional(),
   signers: z.array(z.object({
@@ -32,7 +33,7 @@ function url(token: string) {
   return `${origin || ""}/release-sign/${token}`;
 }
 function view(row: typeof links.$inferSelect) {
-  return { id: row.id, title: row.title, templateId: row.templateId,
+  return { id: row.id, title: row.title, templateId: row.templateId, signingMode: row.signingMode,
     productionDate: row.productionDate, createdAt: row.createdAt, expiresAt: row.expiresAt,
     revokedAt: row.revokedAt, url: url(row.token) };
 }
@@ -115,7 +116,7 @@ publicReleaseLinksRouter.use("/public/release-links", (_req, res, next) => {
 publicReleaseLinksRouter.get("/public/release-links/:token", async (req, res) => {
   try {
     const { link, template, project } = await available(String(req.params.token));
-    res.json({ title: link.title, projectName: project.name, productionDate: link.productionDate,
+    res.json({ title: link.title, projectName: project.name, productionDate: link.productionDate, signingMode: link.signingMode,
       templateName: template.name, templateVersion: template.version, expiresAt: link.expiresAt });
   } catch (e) { fail(res, e); }
 });
@@ -123,16 +124,44 @@ const registration = z.object({
   name: z.string().trim().min(1).max(200),
   email: z.string().trim().email().max(254).transform(s => s.toLowerCase()),
   consent: z.literal(true),
+  registrationKey: z.string().uuid().optional(),
 });
 const receipt = { message: "Check your email for your personal signing link. If you already registered, use the email previously sent. If it does not arrive, contact the producer." };
+const hashReceipt = (key: string) => createHash("sha256").update(key).digest("hex");
+
+async function registrationResponse(link: typeof links.$inferSelect, email: string, key?: string) {
+  if (link.signingMode !== "immediate" || !key) return receipt;
+  const [entry] = await db.select().from(enrollments).where(and(eq(enrollments.linkId, link.id), eq(enrollments.email, email)));
+  // An email address is not proof of ownership. Only the browser that created
+  // this registration may recover its private signing session.
+  if (!entry?.receiptHash || entry.receiptHash !== hashReceipt(key)) return receipt;
+  const local = await readSigning(entry.releaseId);
+  if (!local?.submissionId) throw new SigningError("Your registration is saved, but the signing form is not ready. Retry from this browser, or contact the producer if the problem continues.", 503);
+  const remote = await getSubmission(local.submissionId);
+  verifySubmission(remote, local);
+  const [template] = await db.select().from(templates).where(eq(templates.id, link.templateId));
+  const guest = remote.submitters.find(s => s.role === template.guestRole && s.email.toLowerCase() === email);
+  if (guest?.status === "completed") return { message: "You have already signed this release. A completed copy will be emailed after all required signatures are finished." };
+  if (["completed", "declined", "expired", "archived"].includes(remote.status) || guest?.status === "declined") {
+    throw new SigningError("This signing request is no longer open. Contact the producer.", 409);
+  }
+  if (!guest?.slug || !/^[a-zA-Z0-9_-]+$/.test(guest.slug)) {
+    throw new SigningError("Your registration is saved, but DocuSeal did not return a signing link. Retry or contact the producer.", 503);
+  }
+  // Use our configured public origin, never a provider-supplied redirect URL.
+  return { message: "Your release is ready to review and sign.", signingUrl: `${signingConfig().publicUrl}/s/${guest.slug}` };
+}
 publicReleaseLinksRouter.post("/public/release-links/:token/register", async (req, res) => {
   const parsed = registration.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Enter your name and email, and agree to receive your signing link." }); return; }
   try {
     const { link, template } = await available(String(req.params.token));
+    if (link.signingMode === "immediate" && !parsed.data.registrationKey) {
+      throw new SigningError("Reload this page before continuing to sign.", 400);
+    }
     // Fast duplicate path does not re-send or reveal another person's signing URL.
     const [existing] = await db.select({ id: enrollments.id }).from(enrollments).where(and(eq(enrollments.linkId, link.id), eq(enrollments.email, parsed.data.email)));
-    if (existing) { res.status(202).json(receipt); return; }
+    if (existing) { res.status(202).json(await registrationResponse(link, parsed.data.email, parsed.data.registrationKey)); return; }
     await validateTemplate(template);
     const releaseId = await db.transaction(async tx => {
       // Serialize same-link registrations with revoke; advisory email lock caps
@@ -152,8 +181,12 @@ publicReleaseLinksRouter.post("/public/release-links/:token/register", async (re
         createdBy: link.createdBy, status: "draft",
         notes: "Self-registered through a production release link.",
       }).returning();
-      await tx.insert(enrollments).values({ linkId: link.id, email: parsed.data.email, releaseId: release.id });
-      await tx.insert(events).values({ releaseId: release.id, actorId: link.createdBy, action: "release-link:self-registered-with-email-consent" });
+      await tx.insert(enrollments).values({
+        linkId: link.id, email: parsed.data.email, releaseId: release.id,
+        receiptHash: link.signingMode === "immediate" ? hashReceipt(parsed.data.registrationKey!) : null,
+      });
+      await tx.insert(events).values({ releaseId: release.id, actorId: link.createdBy,
+        action: link.signingMode === "immediate" ? "release-link:self-registered-for-immediate-signing" : "release-link:self-registered-with-email-consent" });
       return release.id;
     });
     if (releaseId) {
@@ -169,6 +202,6 @@ publicReleaseLinksRouter.post("/public/release-links/:token/register", async (re
         throw new SigningError("Your registration was saved, but signing email delivery could not be confirmed. Contact the producer; please do not submit again.", 503);
       }
     }
-    res.status(202).json(receipt);
+    res.status(202).json(await registrationResponse(link, parsed.data.email, parsed.data.registrationKey));
   } catch (e) { fail(res, e); }
 });

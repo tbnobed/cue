@@ -69,6 +69,7 @@ async function main() {
         submitters: lastPayload.submitters.map((s: any, i: number) => ({
           id: id * 10 + i, role: s.role, name: s.name, email: s.email,
           external_id: s.external_id, status: "sent", completed_at: null,
+          slug: `fixture-${id}-${i}`,
         })),
       });
       if (timeoutSend) throw new Error("Simulated lost provider response");
@@ -203,7 +204,9 @@ async function main() {
     const metadata = await api(publicPath);
     assert.equal(metadata.status, 200);
     assert.equal(metadata.headers.get("cache-control"), "no-store");
-    assert.deepEqual(Object.keys(await metadata.json() as object).sort(), ["expiresAt", "productionDate", "projectName", "templateName", "templateVersion", "title"]);
+    const publicMetadata = await metadata.json() as { signingMode: string };
+    assert.equal(publicMetadata.signingMode, "email", "Existing creation requests default to email");
+    assert.deepEqual(Object.keys(publicMetadata).sort(), ["expiresAt", "productionDate", "projectName", "signingMode", "templateName", "templateVersion", "title"]);
     const person = { name: "Self Registered", email: `self-${prefix}@example.invalid`, consent: true };
     assert.equal((await api(publicPath + "/register", "POST", { ...person, consent: false })).status, 400);
     const before = sends;
@@ -242,6 +245,42 @@ async function main() {
     const expired = await (await api(linkPath, "POST", linkBody)).json() as { id: number; url: string };
     await db.update(releaseLinksTable).set({ expiresAt: new Date(0) }).where(eq(releaseLinksTable.id, expired.id));
     assert.equal((await api(`/public/release-links/${expired.url.split("/").pop()}`)).status, 404);
+    const immediateResponse = await api(linkPath, "POST", { ...linkBody, signingMode: "immediate" });
+    assert.equal(immediateResponse.status, 201);
+    const directLink = await immediateResponse.json() as { id: number; url: string; signingMode: string };
+    assert.equal(directLink.signingMode, "immediate");
+    const directPath = `/public/release-links/${directLink.url.split("/").pop()}/register`;
+    const directPerson = { ...person, email: `immediate-${prefix}@example.invalid`, registrationKey: randomUUID() };
+    assert.equal((await api(directPath, "POST", { ...directPerson, registrationKey: undefined })).status, 400);
+    const beforeDirect = sends;
+    const direct = await api(directPath, "POST", directPerson);
+    assert.equal(direct.status, 202);
+    const directBody = await direct.json() as { signingUrl: string };
+    assert.match(directBody.signingUrl, /^https:\/\/sign\.fixture\.invalid\/s\/fixture-\d+-0$/);
+    assert.equal(sends, beforeDirect + 1);
+    const repeated = await (await api(directPath, "POST", directPerson)).json() as { signingUrl: string };
+    assert.equal(repeated.signingUrl, directBody.signingUrl, "Same browser can retry a lost response");
+    assert.equal(sends, beforeDirect + 1, "Safe retry does not create another submission");
+    const otherBrowser = await (await api(directPath, "POST", { ...directPerson, registrationKey: randomUUID() })).json() as object;
+    assert.ok(!("signingUrl" in otherBrowser), "Email alone never recovers private signing capability");
+    const [directEntry] = await db.select().from(releaseEnrollmentsTable).where(eq(releaseEnrollmentsTable.linkId, directLink.id));
+    assert.notEqual(directEntry.receiptHash, directPerson.registrationKey, "Only hash persisted");
+    const directSigning = (await readSigning(directEntry.releaseId))!;
+    const directRemote = records.get(directSigning.submissionId!);
+    const guestSlug = directRemote.submitters[0].slug;
+    directRemote.submitters[0].slug = "https://untrusted.invalid";
+    assert.equal((await api(directPath, "POST", directPerson)).status, 503, "Unsafe provider slug rejected");
+    directRemote.submitters[0].slug = guestSlug;
+    directRemote.submitters[0].status = "completed";
+    const alreadySigned = await (await api(directPath, "POST", directPerson)).json() as { signingUrl?: string; message: string };
+    assert.equal(alreadySigned.signingUrl, undefined);
+    assert.match(alreadySigned.message, /already signed/);
+    // Completing the countersigner still goes through the normal archive.
+    directRemote.status = "completed"; directRemote.completed_at = new Date().toISOString();
+    directRemote.combined_document_url = "https://sign.fixture.invalid/files/signed.pdf";
+    directRemote.submitters.forEach((s: any) => { s.status = "completed"; s.completed_at = directRemote.completed_at; });
+    assert.equal((await refreshSigning(directEntry.releaseId)).state, "archived");
+    console.log("PASS: both link modes, immediate guest-only redirect, receipt-bound retries, no email-based session theft, safe URL construction, completed signer protection and normal archive");
     console.log("PASS: production links, manager permissions, guest consent, private metadata, date validation, concurrent deduplication, prefill, public-signing archive, provider failures, changed templates, revoke and expiry");
     await api(`/admin/release-templates/${approvedId}`, "DELETE", undefined, owner.id, true);
     assert.equal((await api(`/releases/${ids[2]}/send`, "POST", body)).status, 400);
