@@ -3,7 +3,7 @@ import multer from "multer";
 import fs from "node:fs/promises";
 import { z } from "zod";
 import { eq, desc } from "drizzle-orm";
-import { db, releasesTable, releaseEventsTable } from "@workspace/db";
+import { db, releasesTable, releaseEventsTable, releaseSigningTable } from "@workspace/db";
 import { CreateProjectReleaseBody, UpdateReleaseBody } from "@workspace/api-zod";
 import { requireProjectAccess, requireProjectManage } from "../lib/access";
 import { hashRelease, releasePath, storeRelease, removeUncommittedRelease } from "../lib/release-storage";
@@ -58,11 +58,13 @@ router.patch("/releases/:id", async (req, res) => {
   const row = await db.transaction(async tx => {
     const [locked] = await tx.select().from(releasesTable).where(eq(releasesTable.id, id)).for("update");
     if (locked.status === "archived") return null;
+    const [signing] = await tx.select().from(releaseSigningTable).where(eq(releaseSigningTable.releaseId, id));
+    if (signing) return null;
     const [updated] = await tx.update(releasesTable).set({ ...parsed.data, updatedAt: new Date() }).where(eq(releasesTable.id, id)).returning();
     await tx.insert(releaseEventsTable).values({ releaseId: id, actorId: req.authUser!.id, action: `updated:${locked.status}->${updated.status}` });
     return updated;
   });
-  if (!row) { res.status(409).json({ error: "Archived releases are locked and cannot be changed." }); return; }
+  if (!row) { res.status(409).json({ error: "Archived and DocuSeal-managed releases are locked and cannot be changed manually." }); return; }
   res.json(format(row));
 });
 
@@ -73,6 +75,8 @@ async function authorizeArchive(req: Request, res: Response, next: NextFunction)
   const [row] = await db.select().from(releasesTable).where(eq(releasesTable.id, id));
   if (!row) { res.status(404).json({ error: "Release not found" }); return; }
   if (!(await requireProjectManage(req, res, row.projectId))) return;
+  const [signing] = await db.select().from(releaseSigningTable).where(eq(releaseSigningTable.releaseId, id));
+  if (signing) { res.status(409).json({ error: "DocuSeal-managed releases are filed automatically. Use Retry filing instead." }); return; }
   if (row.status !== "signed") { res.status(409).json({ error: "Only signed releases can be archived; existing archives cannot be replaced." }); return; }
   next();
 }
@@ -95,6 +99,8 @@ router.post("/releases/:id/archive", authorizeArchive, (req, res, next) => {
     const row = await db.transaction(async tx => {
       const [locked] = await tx.select().from(releasesTable).where(eq(releasesTable.id, id)).for("update");
       if (locked.status !== "signed") return null;
+      const [signing] = await tx.select().from(releaseSigningTable).where(eq(releaseSigningTable.releaseId, id));
+      if (signing) return null;
       const clean = (s: string) => s.normalize("NFKD").replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 70);
       const fileName = `${locked.productionDate ?? new Date().toISOString().slice(0, 10)}_project-${locked.projectId}_${clean(locked.guestName)}_Release-${id}.pdf`;
       const [updated] = await tx.update(releasesTable).set({

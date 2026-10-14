@@ -4,6 +4,7 @@ import { createCollabUpgradeRouter } from "./lib/collab";
 import { createCollaboraUpgradeRouter } from "./lib/collabora-proxy";
 import { logger } from "./lib/logger";
 import { startWrikeScheduler } from "./lib/wrike-queue";
+import { startSigningScheduler } from "./lib/docuseal-signing";
 
 const rawPort = process.env["PORT"];
 
@@ -43,4 +44,5 @@ httpServer.listen(port, (err?: Error) => {
   }
   logger.info({ port }, "Server listening");
   startWrikeScheduler();
+  startSigningScheduler();
 });

@@ -66,10 +66,16 @@ import type {
   ReleaseArchiveInput,
   ReleaseInput,
   ReleaseRecord,
+  ReleaseSigning,
+  ReleaseSigningInput,
+  ReleaseTemplate,
+  ReleaseTemplateInput,
   ShareLink,
   ShareLinkEmailInput,
   ShareLinkEmailResult,
   ShareLinkInput,
+  SigningConfig,
+  SigningReconciliation,
   Task,
   TaskInput,
   TaskNote,
@@ -97,6 +103,608 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
+
+export const getGetSigningConfigUrl = () => {
+
+
+
+
+  return `/api/signing/config`
+}
+
+export const getSigningConfig = async ( options?: RequestInit): Promise<SigningConfig> => {
+
+  return customFetch<SigningConfig>(getGetSigningConfigUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSigningConfigQueryKey = () => {
+    return [
+    `/api/signing/config`
+    ] as const;
+    }
+
+
+export const getGetSigningConfigQueryOptions = <TData = Awaited<ReturnType<typeof getSigningConfig>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSigningConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSigningConfigQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSigningConfig>>> = ({ signal }) => getSigningConfig({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSigningConfig>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSigningConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getSigningConfig>>>
+export type GetSigningConfigQueryError = ErrorType<unknown>
+
+
+
+export function useGetSigningConfig<TData = Awaited<ReturnType<typeof getSigningConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSigningConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSigningConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListReleaseTemplatesUrl = () => {
+
+
+
+
+  return `/api/release-templates`
+}
+
+export const listReleaseTemplates = async ( options?: RequestInit): Promise<ReleaseTemplate[]> => {
+
+  return customFetch<ReleaseTemplate[]>(getListReleaseTemplatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListReleaseTemplatesQueryKey = () => {
+    return [
+    `/api/release-templates`
+    ] as const;
+    }
+
+
+export const getListReleaseTemplatesQueryOptions = <TData = Awaited<ReturnType<typeof listReleaseTemplates>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listReleaseTemplates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListReleaseTemplatesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listReleaseTemplates>>> = ({ signal }) => listReleaseTemplates({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listReleaseTemplates>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListReleaseTemplatesQueryResult = NonNullable<Awaited<ReturnType<typeof listReleaseTemplates>>>
+export type ListReleaseTemplatesQueryError = ErrorType<unknown>
+
+
+
+export function useListReleaseTemplates<TData = Awaited<ReturnType<typeof listReleaseTemplates>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listReleaseTemplates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListReleaseTemplatesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getApproveReleaseTemplateUrl = () => {
+
+
+
+
+  return `/api/admin/release-templates`
+}
+
+export const approveReleaseTemplate = async (releaseTemplateInput: ReleaseTemplateInput, options?: RequestInit): Promise<ReleaseTemplate> => {
+
+  return customFetch<ReleaseTemplate>(getApproveReleaseTemplateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      releaseTemplateInput,)
+  }
+);}
+
+
+
+
+export const getApproveReleaseTemplateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveReleaseTemplate>>, TError,{data: BodyType<ReleaseTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveReleaseTemplate>>, TError,{data: BodyType<ReleaseTemplateInput>}, TContext> => {
+
+const mutationKey = ['approveReleaseTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveReleaseTemplate>>, {data: BodyType<ReleaseTemplateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  approveReleaseTemplate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveReleaseTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof approveReleaseTemplate>>>
+    export type ApproveReleaseTemplateMutationBody = BodyType<ReleaseTemplateInput>
+    export type ApproveReleaseTemplateMutationError = ErrorType<unknown>
+
+    export const useApproveReleaseTemplate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveReleaseTemplate>>, TError,{data: BodyType<ReleaseTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveReleaseTemplate>>,
+        TError,
+        {data: BodyType<ReleaseTemplateInput>},
+        TContext
+      > => {
+      return useMutation(getApproveReleaseTemplateMutationOptions(options));
+    }
+
+export const getRetireReleaseTemplateUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/release-templates/${id}`
+}
+
+export const retireReleaseTemplate = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getRetireReleaseTemplateUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRetireReleaseTemplateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retireReleaseTemplate>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof retireReleaseTemplate>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['retireReleaseTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retireReleaseTemplate>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  retireReleaseTemplate(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RetireReleaseTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof retireReleaseTemplate>>>
+
+    export type RetireReleaseTemplateMutationError = ErrorType<unknown>
+
+    export const useRetireReleaseTemplate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retireReleaseTemplate>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof retireReleaseTemplate>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRetireReleaseTemplateMutationOptions(options));
+    }
+
+export const getGetReleaseSigningUrl = (id: number,) => {
+
+
+
+
+  return `/api/releases/${id}/signing`
+}
+
+export const getReleaseSigning = async (id: number, options?: RequestInit): Promise<ReleaseSigning> => {
+
+  return customFetch<ReleaseSigning>(getGetReleaseSigningUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReleaseSigningQueryKey = (id: number,) => {
+    return [
+    `/api/releases/${id}/signing`
+    ] as const;
+    }
+
+
+export const getGetReleaseSigningQueryOptions = <TData = Awaited<ReturnType<typeof getReleaseSigning>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReleaseSigning>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReleaseSigningQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReleaseSigning>>> = ({ signal }) => getReleaseSigning(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReleaseSigning>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetReleaseSigningQueryResult = NonNullable<Awaited<ReturnType<typeof getReleaseSigning>>>
+export type GetReleaseSigningQueryError = ErrorType<unknown>
+
+
+
+export function useGetReleaseSigning<TData = Awaited<ReturnType<typeof getReleaseSigning>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getReleaseSigning>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetReleaseSigningQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSendReleaseSigningUrl = (id: number,) => {
+
+
+
+
+  return `/api/releases/${id}/send`
+}
+
+export const sendReleaseSigning = async (id: number,
+    releaseSigningInput: ReleaseSigningInput, options?: RequestInit): Promise<ReleaseSigning> => {
+
+  return customFetch<ReleaseSigning>(getSendReleaseSigningUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      releaseSigningInput,)
+  }
+);}
+
+
+
+
+export const getSendReleaseSigningMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendReleaseSigning>>, TError,{id: number;data: BodyType<ReleaseSigningInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendReleaseSigning>>, TError,{id: number;data: BodyType<ReleaseSigningInput>}, TContext> => {
+
+const mutationKey = ['sendReleaseSigning'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendReleaseSigning>>, {id: number;data: BodyType<ReleaseSigningInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  sendReleaseSigning(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendReleaseSigningMutationResult = NonNullable<Awaited<ReturnType<typeof sendReleaseSigning>>>
+    export type SendReleaseSigningMutationBody = BodyType<ReleaseSigningInput>
+    export type SendReleaseSigningMutationError = ErrorType<unknown>
+
+    export const useSendReleaseSigning = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendReleaseSigning>>, TError,{id: number;data: BodyType<ReleaseSigningInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendReleaseSigning>>,
+        TError,
+        {id: number;data: BodyType<ReleaseSigningInput>},
+        TContext
+      > => {
+      return useMutation(getSendReleaseSigningMutationOptions(options));
+    }
+
+export const getRefreshReleaseSigningUrl = (id: number,) => {
+
+
+
+
+  return `/api/releases/${id}/signing/refresh`
+}
+
+export const refreshReleaseSigning = async (id: number, options?: RequestInit): Promise<ReleaseSigning> => {
+
+  return customFetch<ReleaseSigning>(getRefreshReleaseSigningUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRefreshReleaseSigningMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshReleaseSigning>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof refreshReleaseSigning>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['refreshReleaseSigning'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshReleaseSigning>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  refreshReleaseSigning(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshReleaseSigningMutationResult = NonNullable<Awaited<ReturnType<typeof refreshReleaseSigning>>>
+
+    export type RefreshReleaseSigningMutationError = ErrorType<unknown>
+
+    export const useRefreshReleaseSigning = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refreshReleaseSigning>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof refreshReleaseSigning>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRefreshReleaseSigningMutationOptions(options));
+    }
+
+export const getRemindReleaseSigningUrl = (id: number,) => {
+
+
+
+
+  return `/api/releases/${id}/signing/remind`
+}
+
+export const remindReleaseSigning = async (id: number, options?: RequestInit): Promise<ReleaseSigning> => {
+
+  return customFetch<ReleaseSigning>(getRemindReleaseSigningUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRemindReleaseSigningMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof remindReleaseSigning>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof remindReleaseSigning>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['remindReleaseSigning'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof remindReleaseSigning>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  remindReleaseSigning(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemindReleaseSigningMutationResult = NonNullable<Awaited<ReturnType<typeof remindReleaseSigning>>>
+
+    export type RemindReleaseSigningMutationError = ErrorType<unknown>
+
+    export const useRemindReleaseSigning = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof remindReleaseSigning>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof remindReleaseSigning>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRemindReleaseSigningMutationOptions(options));
+    }
+
+export const getReconcileReleaseSigningUrl = (id: number,) => {
+
+
+
+
+  return `/api/releases/${id}/signing/reconcile`
+}
+
+export const reconcileReleaseSigning = async (id: number,
+    signingReconciliation: SigningReconciliation, options?: RequestInit): Promise<ReleaseSigning> => {
+
+  return customFetch<ReleaseSigning>(getReconcileReleaseSigningUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      signingReconciliation,)
+  }
+);}
+
+
+
+
+export const getReconcileReleaseSigningMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reconcileReleaseSigning>>, TError,{id: number;data: BodyType<SigningReconciliation>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reconcileReleaseSigning>>, TError,{id: number;data: BodyType<SigningReconciliation>}, TContext> => {
+
+const mutationKey = ['reconcileReleaseSigning'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reconcileReleaseSigning>>, {id: number;data: BodyType<SigningReconciliation>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reconcileReleaseSigning(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReconcileReleaseSigningMutationResult = NonNullable<Awaited<ReturnType<typeof reconcileReleaseSigning>>>
+    export type ReconcileReleaseSigningMutationBody = BodyType<SigningReconciliation>
+    export type ReconcileReleaseSigningMutationError = ErrorType<unknown>
+
+    export const useReconcileReleaseSigning = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reconcileReleaseSigning>>, TError,{id: number;data: BodyType<SigningReconciliation>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reconcileReleaseSigning>>,
+        TError,
+        {id: number;data: BodyType<SigningReconciliation>},
+        TContext
+      > => {
+      return useMutation(getReconcileReleaseSigningMutationOptions(options));
+    }
 
 export const getGetWrikeConnectionUrl = () => {
 

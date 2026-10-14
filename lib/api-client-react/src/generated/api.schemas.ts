@@ -5,6 +5,92 @@
  * Project PM API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface SigningConfig {
+  configured: boolean;
+  /** @nullable */
+  publicUrl?: string | null;
+}
+
+export interface ReleaseTemplateInput {
+  /** @minimum 1 */
+  remoteId: number;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  version: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  guestRole: string;
+}
+
+export interface ReleaseTemplate {
+  id: number;
+  remoteId: number;
+  name: string;
+  version: string;
+  guestRole: string;
+  roles: string[];
+}
+
+export interface SigningPerson {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  role: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  /** @maxLength 254 */
+  email: string;
+  status?: string;
+}
+
+export interface ReleaseSigningInput {
+  /** @minimum 1 */
+  templateId: number;
+  /** @maxItems 20 */
+  signers: SigningPerson[];
+}
+
+export interface SigningReconciliation {
+  /** @minimum 1 */
+  submissionId: number;
+}
+
+export type ReleaseSigningState = typeof ReleaseSigningState[keyof typeof ReleaseSigningState];
+
+
+export const ReleaseSigningState = {
+  not_sent: 'not_sent',
+  sending: 'sending',
+  needs_review: 'needs_review',
+  awaiting_signatures: 'awaiting_signatures',
+  declined: 'declined',
+  expired: 'expired',
+  filing_failed: 'filing_failed',
+  archived: 'archived',
+} as const;
+
+export interface ReleaseSigning {
+  state: ReleaseSigningState;
+  /** @nullable */
+  submissionId?: number | null;
+  templateId?: number;
+  signers: SigningPerson[];
+  /** @nullable */
+  lastError?: string | null;
+  /** @nullable */
+  lastReminderAt?: string | null;
+  reminderCount?: number;
+  updatedAt?: string;
+}
+
 export type ReleaseInputStatus = typeof ReleaseInputStatus[keyof typeof ReleaseInputStatus];
 
 

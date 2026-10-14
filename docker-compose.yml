@@ -70,6 +70,10 @@ services:
       WRIKE_CLIENT_ID: ${WRIKE_CLIENT_ID:-}
       WRIKE_CLIENT_SECRET: ${WRIKE_CLIENT_SECRET:-}
       WRIKE_TOKEN_KEY: ${WRIKE_TOKEN_KEY:-}
+      # Self-hosted DocuSeal; key stays on the server, never in browser code.
+      DOCUSEAL_API_URL: ${DOCUSEAL_API_URL:-http://docuseal:3000}
+      DOCUSEAL_PUBLIC_URL: ${DOCUSEAL_PUBLIC_URL:-}
+      DOCUSEAL_API_KEY: ${DOCUSEAL_API_KEY:-}
       # --- Authentik (OIDC) — OPTIONAL ---
       # Leave all three blank to run with local accounts only. When all three
       # are set, the login page also shows "Continue with Authentik".
@@ -111,6 +115,22 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Enable with: docker compose --profile signing up -d docuseal
+  # SQLite and document files both persist in docuseal_data. Expose only to
+  # the local reverse proxy; do not publish the signing service unencrypted.
+  docuseal:
+    profiles: ["signing"]
+    image: docuseal/docuseal:${DOCUSEAL_VERSION:-3.2.1}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${DOCUSEAL_PORT:-3001}:3000"
+    volumes:
+      - docuseal_data:/data/docuseal
+    environment:
+      # Bare hostname (no https://). DocuSeal uses it to generate HTTPS links.
+      FORCE_SSL: ${DOCUSEAL_HOST:-}
+      APP_URL: ${DOCUSEAL_PUBLIC_URL:-}
 
   collabora:
     image: collabora/code:latest
@@ -155,3 +175,4 @@ services:
 volumes:
   pgdata:
   uploads:
+  docuseal_data:

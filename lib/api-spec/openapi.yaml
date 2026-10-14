@@ -32,6 +32,112 @@ tags:
     description: Crew invite and public availability-reply operations
 
 paths:
+  /signing/config:
+    get:
+      operationId: getSigningConfig
+      responses:
+        "200":
+          description: Self-hosted signing configuration
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SigningConfig" }
+  /release-templates:
+    get:
+      operationId: listReleaseTemplates
+      responses:
+        "200":
+          description: Approved templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ReleaseTemplate" }
+  /admin/release-templates:
+    post:
+      operationId: approveReleaseTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReleaseTemplateInput" }
+      responses:
+        "201":
+          description: Approved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReleaseTemplate" }
+  /admin/release-templates/{id}:
+    delete:
+      operationId: retireReleaseTemplate
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204": { description: Retired without deleting signed records }
+  /releases/{id}/signing:
+    get:
+      operationId: getReleaseSigning
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Signing progress
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReleaseSigning" }
+  /releases/{id}/send:
+    post:
+      operationId: sendReleaseSigning
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReleaseSigningInput" }
+      responses:
+        "200":
+          description: Sent or safely recorded for reconciliation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReleaseSigning" }
+  /releases/{id}/signing/refresh:
+    post:
+      operationId: refreshReleaseSigning
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Refreshed, including filing retry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReleaseSigning" }
+  /releases/{id}/signing/remind:
+    post:
+      operationId: remindReleaseSigning
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Reminder requested for outstanding signers
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReleaseSigning" }
+  /releases/{id}/signing/reconcile:
+    post:
+      operationId: reconcileReleaseSigning
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SigningReconciliation" }
+      responses:
+        "200":
+          description: Verified remote submission linked after uncertain send
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReleaseSigning" }
   /integrations/wrike:
     get:
       operationId: getWrikeConnection
@@ -1491,6 +1597,65 @@ paths:
 
 components:
   schemas:
+    SigningConfig:
+      type: object
+      required: [configured]
+      properties:
+        configured: { type: boolean }
+        publicUrl: { type: ["string", "null"] }
+    ReleaseTemplateInput:
+      type: object
+      required: [remoteId, version, guestRole]
+      properties:
+        remoteId: { type: integer, minimum: 1 }
+        version: { type: string, minLength: 1, maxLength: 100 }
+        guestRole: { type: string, minLength: 1, maxLength: 100 }
+    ReleaseTemplate:
+      type: object
+      required: [id, remoteId, name, version, guestRole, roles]
+      properties:
+        id: { type: integer }
+        remoteId: { type: integer }
+        name: { type: string }
+        version: { type: string }
+        guestRole: { type: string }
+        roles: { type: array, items: { type: string } }
+    SigningPerson:
+      type: object
+      required: [role, name, email]
+      properties:
+        role: { type: string, minLength: 1, maxLength: 100 }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, format: email, maxLength: 254 }
+        status: { type: string }
+    ReleaseSigningInput:
+      type: object
+      required: [templateId, signers]
+      properties:
+        templateId: { type: integer, minimum: 1 }
+        signers:
+          type: array
+          maxItems: 20
+          items: { $ref: "#/components/schemas/SigningPerson" }
+    SigningReconciliation:
+      type: object
+      required: [submissionId]
+      properties:
+        submissionId: { type: integer, minimum: 1 }
+    ReleaseSigning:
+      type: object
+      required: [state, signers]
+      properties:
+        state: { type: string, enum: [not_sent, sending, needs_review, awaiting_signatures, declined, expired, filing_failed, archived] }
+        submissionId: { type: ["integer", "null"] }
+        templateId: { type: integer }
+        signers:
+          type: array
+          items: { $ref: "#/components/schemas/SigningPerson" }
+        lastError: { type: ["string", "null"] }
+        lastReminderAt: { type: ["string", "null"] }
+        reminderCount: { type: integer }
+        updatedAt: { type: string }
     ReleaseInput:
       type: object
       required: [guestName, guestEmail, title, templateVersion, status]

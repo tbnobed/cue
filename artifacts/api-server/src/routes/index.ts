@@ -21,6 +21,7 @@ import publicCrewRouter from "./public-crew";
 import adminUsersRouter from "./admin-users";
 import uploadsRouter from "./uploads";
 import releasesRouter from "./releases";
+import docusealRouter from "./docuseal";
 import wrikeLinksRouter from "./wrike-links";
 import wrikeIntegrationRouter from "./wrike-integration";
 import { requireAuth } from "../middlewares/require-auth";
@@ -43,6 +44,7 @@ router.use(publicCrewRouter);
 // All product data routes require a signed-in user.
 router.use(requireAuth, projectsRouter);
 router.use(requireAuth, releasesRouter);
+router.use(requireAuth, docusealRouter);
 router.use(requireAuth, wrikeLinksRouter);
 router.use(requireAuth, wrikeIntegrationRouter);
 router.use(requireAuth, milestonesRouter);

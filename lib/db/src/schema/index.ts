@@ -17,3 +17,4 @@ export * from "./user_sessions";
 export * from "./email_verifications";
 export * from "./releases";
 export * from "./wrike";
+export * from "./docuseal";

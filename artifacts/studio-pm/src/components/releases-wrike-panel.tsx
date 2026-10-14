@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListProjectReleases, getListProjectReleasesQueryKey,
@@ -8,7 +8,7 @@ import {
 import { format } from "date-fns";
 import {
   Plus, Search, Pencil, Archive, Download, Lock, ShieldCheck, AlertTriangle,
-  Loader2, RefreshCw, FileCheck2,
+  Loader2, RefreshCw, FileCheck2, PenLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { SigningChip, SigningDialog, useReleaseSigningState, isDocuSealManaged, ApprovedTemplatePicker } from "@/components/release-signing";
 import { useAuth } from "@/hooks/use-auth";
 
 const MAX_PDF = 20 * 1024 * 1024;
@@ -94,7 +95,7 @@ function ReleasesSection({ projectId, canManage, compact }: { projectId: number;
   const { toast } = useToast();
   const listKey = getListProjectReleasesQueryKey(projectId);
   const q = useListProjectReleases(projectId, {
-    query: { enabled: !!projectId, queryKey: listKey, refetchOnMount: "always" },
+    query: { enabled: !!projectId, queryKey: listKey, refetchOnMount: "always", refetchInterval: 15_000 },
   });
 
   const [search, setSearch] = useState("");
@@ -104,6 +105,8 @@ function ReleasesSection({ projectId, canManage, compact }: { projectId: number;
   const [form, setForm] = useState<FormState>(EMPTY);
   const [formError, setFormError] = useState<string | null>(null);
   const [archiving, setArchiving] = useState<ReleaseRecord | null>(null);
+  const [signingId, setSigningId] = useState<number | null>(null);
+  const signing = releases_find(q.data, signingId);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: listKey });
   const create = useCreateProjectRelease({ mutation: { onSettled: invalidate } });
@@ -173,7 +176,7 @@ function ReleasesSection({ projectId, canManage, compact }: { projectId: number;
             <h2 className="text-[13px] font-semibold tracking-tight">Guest Releases</h2>
           </div>
           <p className="text-[10.5px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
-            Statuses tracked manually · no sending or e-signature verification
+            Sent and tracked through DocuSeal · legacy manual archive kept for older records
           </p>
         </div>
         {canManage ? (
@@ -223,7 +226,7 @@ function ReleasesSection({ projectId, canManage, compact }: { projectId: number;
             <FileCheck2 className="w-7 h-7 mx-auto text-muted-foreground/60" />
             <div className="text-sm font-medium">No guest releases on file</div>
             <div className="text-xs text-muted-foreground max-w-xs mx-auto">
-              Log every on-camera guest here, then archive the countersigned PDF once all signatures are in.
+              Log every on-camera guest here, then send the release through DocuSeal. The signed PDF is filed automatically.
             </div>
             {canManage && (
               <Button size="sm" variant="outline" className="gap-1.5" onClick={openNew}><Plus className="w-3.5 h-3.5" /> Log first guest</Button>
@@ -235,7 +238,7 @@ function ReleasesSection({ projectId, canManage, compact }: { projectId: number;
           <ul className="space-y-2">
             {filtered.map(r => (
               <ReleaseRow key={r.id} r={r} canManage={canManage} compact={compact}
-                onEdit={() => openEdit(r)} onArchive={() => setArchiving(r)} />
+                onEdit={() => openEdit(r)} onArchive={() => setArchiving(r)} onSigning={() => setSigningId(r.id)} />
             ))}
           </ul>
         )}
@@ -246,7 +249,7 @@ function ReleasesSection({ projectId, canManage, compact }: { projectId: number;
           <form onSubmit={submit}>
             <DialogHeader>
               <DialogTitle>{editing ? "Edit release record" : "New release record"}</DialogTitle>
-              <DialogDescription>Status is set by you. Cue does not send releases or verify signatures.</DialogDescription>
+              <DialogDescription>Save as draft, then use Sign to send it through DocuSeal. The manual status only applies to legacy records handled outside DocuSeal.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid sm:grid-cols-2 gap-4">
@@ -264,6 +267,13 @@ function ReleasesSection({ projectId, canManage, compact }: { projectId: number;
                   data-testid="input-release-title" onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
               </Field>
               <div className="grid sm:grid-cols-3 gap-4">
+                {!editing && (
+                  <div className="sm:col-span-3 grid gap-1.5">
+                    <Label className="text-xs">Approved DocuSeal template</Label>
+                    <ApprovedTemplatePicker value={form.templateVersion} onPick={t => setForm(f => ({ ...f, templateVersion: t.version }))} />
+                    <p className="text-[10.5px] text-muted-foreground">Fills the version below. The version actually used is set from the approved template chosen when you send.</p>
+                  </div>
+                )}
                 <Field id="rel-tpl" label="Template version *">
                   <Input id="rel-tpl" maxLength={100} value={form.templateVersion} placeholder="TBN-GR v3.2"
                     data-testid="input-release-template" onChange={e => setForm(f => ({ ...f, templateVersion: e.target.value }))} />
@@ -272,7 +282,7 @@ function ReleasesSection({ projectId, canManage, compact }: { projectId: number;
                   <Input id="rel-date" type="date" value={form.productionDate} data-testid="input-release-date"
                     onChange={e => setForm(f => ({ ...f, productionDate: e.target.value }))} />
                 </Field>
-                <Field id="rel-status" label="Status (manual)">
+                <Field id="rel-status" label="Status (legacy manual)">
                   <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v as ReleaseInputStatus }))}>
                     <SelectTrigger id="rel-status" data-testid="select-release-status"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -299,19 +309,31 @@ function ReleasesSection({ projectId, canManage, compact }: { projectId: number;
         </DialogContent>
       </Dialog>
 
+      <SigningDialog release={signing} canManage={canManage} onClose={() => setSigningId(null)} />
       <ArchiveDialog release={archiving} onClose={() => setArchiving(null)} onDone={invalidate} />
     </section>
   );
+}
+
+function releases_find(list: ReleaseRecord[] | undefined, id: number | null) {
+  return id == null ? null : (list ?? []).find(r => r.id === id) ?? null;
 }
 
 function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return <div className="grid gap-1.5"><Label htmlFor={id} className="text-xs">{label}</Label>{children}</div>;
 }
 
-function ReleaseRow({ r, canManage, compact, onEdit, onArchive }: {
-  r: ReleaseRecord; canManage: boolean; compact: boolean; onEdit: () => void; onArchive: () => void;
+function ReleaseRow({ r, canManage, compact, onEdit, onArchive, onSigning }: {
+  r: ReleaseRecord; canManage: boolean; compact: boolean; onEdit: () => void; onArchive: () => void; onSigning: () => void;
 }) {
   const archived = r.status === "archived";
+  const sq = useReleaseSigningState(r.id);
+  const managed = isDocuSealManaged(sq.data);
+  const prevArchived = sq.data?.state === "archived";
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (prevArchived && !archived) void qc.invalidateQueries({ queryKey: getListProjectReleasesQueryKey(r.projectId) });
+  }, [prevArchived, archived, qc, r.projectId]);
   return (
     <li data-testid={`row-release-${r.id}`}
       className={`rounded-xl border p-3.5 transition-colors ${archived ? "border-primary/25 bg-primary/[0.04]" : "border-border/60 bg-white/[0.015] hover:bg-white/[0.03]"}`}>
@@ -320,6 +342,8 @@ function ReleaseRow({ r, canManage, compact, onEdit, onArchive }: {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold truncate" data-testid={`text-release-guest-${r.id}`}>{r.guestName}</span>
             <StatusChip status={r.status} />
+            {sq.data && managed && <SigningChip state={sq.data.state} testId={`status-signing-${r.id}`} />}
+            {sq.isError && <span className="text-[10px] font-mono text-red-300" role="alert" data-testid={`error-signing-${r.id}`}>signing status unavailable: {errMsg(sq.error)}</span>}
           </div>
           <div className="text-[13px] text-foreground/80 truncate">{r.title}</div>
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10.5px] font-mono text-muted-foreground tabular-nums">
@@ -330,12 +354,19 @@ function ReleaseRow({ r, canManage, compact, onEdit, onArchive }: {
           {r.notes && <p className="text-xs text-muted-foreground line-clamp-2 pt-0.5">{r.notes}</p>}
         </div>
         <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+          {(managed || (canManage && !archived)) && (
+            <Button size="sm" variant={managed ? "outline" : "default"} className="h-7 gap-1.5 text-xs" onClick={onSigning} data-testid={`button-signing-${r.id}`}>
+              <PenLine className="w-3 h-3" /> {managed ? "Signing" : "Sign"}
+            </Button>
+          )}
           {archived ? (
             <Button asChild size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
               <a href={`${BASE}/api/releases/${r.id}/file`} target="_blank" rel="noreferrer" data-testid={`link-download-release-${r.id}`}>
                 <Download className="w-3 h-3" /> PDF
               </a>
             </Button>
+          ) : canManage && managed ? (
+            <span className="text-[10px] font-mono text-muted-foreground inline-flex items-center gap-1" data-testid={`text-docuseal-managed-${r.id}`}><Lock className="w-3 h-3" /> Managed by DocuSeal</span>
           ) : canManage ? (
             <>
               <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs" onClick={onEdit} data-testid={`button-edit-release-${r.id}`}>
@@ -343,9 +374,9 @@ function ReleaseRow({ r, canManage, compact, onEdit, onArchive }: {
               </Button>
               <Button size="sm" variant={r.status === "signed" ? "outline" : "ghost"} className="h-7 gap-1.5 text-xs"
                 disabled={r.status !== "signed"} onClick={onArchive}
-                title={r.status === "signed" ? "Archive signed PDF" : "Mark as signed before archiving"}
+                title={r.status === "signed" ? "Legacy: upload a signed PDF manually" : "Legacy: mark as signed before manual archiving"}
                 data-testid={`button-archive-release-${r.id}`}>
-                <Archive className="w-3 h-3" /> Archive
+                <Archive className="w-3 h-3" /> Legacy archive
               </Button>
             </>
           ) : null}
@@ -397,9 +428,9 @@ function ArchiveDialog({ release, onClose, onDone }: { release: ReleaseRecord | 
     <Dialog open={!!release} onOpenChange={o => { if (!o && !archive.isPending) { reset(); onClose(); } }}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Archive signed release</DialogTitle>
+          <DialogTitle>Legacy manual archive</DialogTitle>
           <DialogDescription>
-            {release?.guestName} · {release?.title}. Once archived, this record and its PDF cannot be edited or replaced.
+            {release?.guestName} · {release?.title}. For records signed outside DocuSeal only. Once archived, this record and its PDF cannot be edited or replaced.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">

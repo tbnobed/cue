@@ -1,9 +1,14 @@
-# Self-hosted release foundation
+# Self-hosted releases
 
 This feature runs in the existing Docker-hosted application. It requires no
 Replit connector, Replit storage service, OneDrive, or live Wrike credentials.
 
-## Upgrade an existing installation
+**DocuSeal is now the main signing workflow.** Follow [DOCUSEAL.md](DOCUSEAL.md)
+for same-server installation, current migration commands, approved templates,
+automatic status tracking and signed-document filing. The manual workflow below
+is retained only for legacy documents signed outside DocuSeal.
+
+## Historical foundation-only upgrade
 
 Back up the existing database and uploads volume first. The normal Compose
 `migrate` service applies the Drizzle schema. For an additive SQL alternative,
@@ -18,7 +23,7 @@ docker compose up -d app
 Do not assume rebuilding the app automatically runs migrations on an already
 running installation. Use the migration service or the explicit SQL step.
 
-## Release records
+## Legacy manual release records
 
 Project owners and administrators create/edit release records and manually
 track draft, awaiting-signatures, and signed states. Project members can read

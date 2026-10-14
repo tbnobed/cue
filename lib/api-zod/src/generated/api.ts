@@ -8,6 +8,215 @@
 import * as zod from 'zod';
 
 
+export const GetSigningConfigResponse = zod.object({
+  "configured": zod.boolean(),
+  "publicUrl": zod.string().nullish()
+})
+
+
+export const ListReleaseTemplatesResponseItem = zod.object({
+  "id": zod.number(),
+  "remoteId": zod.number(),
+  "name": zod.string(),
+  "version": zod.string(),
+  "guestRole": zod.string(),
+  "roles": zod.array(zod.string())
+})
+export const ListReleaseTemplatesResponse = zod.array(ListReleaseTemplatesResponseItem)
+
+
+
+export const approveReleaseTemplateBodyVersionMax = 100;
+
+export const approveReleaseTemplateBodyGuestRoleMax = 100;
+
+
+
+export const ApproveReleaseTemplateBody = zod.object({
+  "remoteId": zod.number().min(1),
+  "version": zod.string().min(1).max(approveReleaseTemplateBodyVersionMax),
+  "guestRole": zod.string().min(1).max(approveReleaseTemplateBodyGuestRoleMax)
+})
+
+
+export const RetireReleaseTemplateParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const GetReleaseSigningParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const getReleaseSigningResponseSignersItemRoleMax = 100;
+
+export const getReleaseSigningResponseSignersItemNameMax = 200;
+
+export const getReleaseSigningResponseSignersItemEmailMax = 254;
+
+
+
+export const GetReleaseSigningResponse = zod.object({
+  "state": zod.enum(['not_sent', 'sending', 'needs_review', 'awaiting_signatures', 'declined', 'expired', 'filing_failed', 'archived']),
+  "submissionId": zod.number().nullish(),
+  "templateId": zod.number().optional(),
+  "signers": zod.array(zod.object({
+  "role": zod.string().min(1).max(getReleaseSigningResponseSignersItemRoleMax),
+  "name": zod.string().min(1).max(getReleaseSigningResponseSignersItemNameMax),
+  "email": zod.string().email().max(getReleaseSigningResponseSignersItemEmailMax),
+  "status": zod.string().optional()
+})),
+  "lastError": zod.string().nullish(),
+  "lastReminderAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "updatedAt": zod.string().optional()
+})
+
+
+export const SendReleaseSigningParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const sendReleaseSigningBodySignersItemRoleMax = 100;
+
+export const sendReleaseSigningBodySignersItemNameMax = 200;
+
+export const sendReleaseSigningBodySignersItemEmailMax = 254;
+
+export const sendReleaseSigningBodySignersMax = 20;
+
+
+
+export const SendReleaseSigningBody = zod.object({
+  "templateId": zod.number().min(1),
+  "signers": zod.array(zod.object({
+  "role": zod.string().min(1).max(sendReleaseSigningBodySignersItemRoleMax),
+  "name": zod.string().min(1).max(sendReleaseSigningBodySignersItemNameMax),
+  "email": zod.string().email().max(sendReleaseSigningBodySignersItemEmailMax),
+  "status": zod.string().optional()
+})).max(sendReleaseSigningBodySignersMax)
+})
+
+export const sendReleaseSigningResponseSignersItemRoleMax = 100;
+
+export const sendReleaseSigningResponseSignersItemNameMax = 200;
+
+export const sendReleaseSigningResponseSignersItemEmailMax = 254;
+
+
+
+export const SendReleaseSigningResponse = zod.object({
+  "state": zod.enum(['not_sent', 'sending', 'needs_review', 'awaiting_signatures', 'declined', 'expired', 'filing_failed', 'archived']),
+  "submissionId": zod.number().nullish(),
+  "templateId": zod.number().optional(),
+  "signers": zod.array(zod.object({
+  "role": zod.string().min(1).max(sendReleaseSigningResponseSignersItemRoleMax),
+  "name": zod.string().min(1).max(sendReleaseSigningResponseSignersItemNameMax),
+  "email": zod.string().email().max(sendReleaseSigningResponseSignersItemEmailMax),
+  "status": zod.string().optional()
+})),
+  "lastError": zod.string().nullish(),
+  "lastReminderAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "updatedAt": zod.string().optional()
+})
+
+
+export const RefreshReleaseSigningParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const refreshReleaseSigningResponseSignersItemRoleMax = 100;
+
+export const refreshReleaseSigningResponseSignersItemNameMax = 200;
+
+export const refreshReleaseSigningResponseSignersItemEmailMax = 254;
+
+
+
+export const RefreshReleaseSigningResponse = zod.object({
+  "state": zod.enum(['not_sent', 'sending', 'needs_review', 'awaiting_signatures', 'declined', 'expired', 'filing_failed', 'archived']),
+  "submissionId": zod.number().nullish(),
+  "templateId": zod.number().optional(),
+  "signers": zod.array(zod.object({
+  "role": zod.string().min(1).max(refreshReleaseSigningResponseSignersItemRoleMax),
+  "name": zod.string().min(1).max(refreshReleaseSigningResponseSignersItemNameMax),
+  "email": zod.string().email().max(refreshReleaseSigningResponseSignersItemEmailMax),
+  "status": zod.string().optional()
+})),
+  "lastError": zod.string().nullish(),
+  "lastReminderAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "updatedAt": zod.string().optional()
+})
+
+
+export const RemindReleaseSigningParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const remindReleaseSigningResponseSignersItemRoleMax = 100;
+
+export const remindReleaseSigningResponseSignersItemNameMax = 200;
+
+export const remindReleaseSigningResponseSignersItemEmailMax = 254;
+
+
+
+export const RemindReleaseSigningResponse = zod.object({
+  "state": zod.enum(['not_sent', 'sending', 'needs_review', 'awaiting_signatures', 'declined', 'expired', 'filing_failed', 'archived']),
+  "submissionId": zod.number().nullish(),
+  "templateId": zod.number().optional(),
+  "signers": zod.array(zod.object({
+  "role": zod.string().min(1).max(remindReleaseSigningResponseSignersItemRoleMax),
+  "name": zod.string().min(1).max(remindReleaseSigningResponseSignersItemNameMax),
+  "email": zod.string().email().max(remindReleaseSigningResponseSignersItemEmailMax),
+  "status": zod.string().optional()
+})),
+  "lastError": zod.string().nullish(),
+  "lastReminderAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "updatedAt": zod.string().optional()
+})
+
+
+export const ReconcileReleaseSigningParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const ReconcileReleaseSigningBody = zod.object({
+  "submissionId": zod.number().min(1)
+})
+
+export const reconcileReleaseSigningResponseSignersItemRoleMax = 100;
+
+export const reconcileReleaseSigningResponseSignersItemNameMax = 200;
+
+export const reconcileReleaseSigningResponseSignersItemEmailMax = 254;
+
+
+
+export const ReconcileReleaseSigningResponse = zod.object({
+  "state": zod.enum(['not_sent', 'sending', 'needs_review', 'awaiting_signatures', 'declined', 'expired', 'filing_failed', 'archived']),
+  "submissionId": zod.number().nullish(),
+  "templateId": zod.number().optional(),
+  "signers": zod.array(zod.object({
+  "role": zod.string().min(1).max(reconcileReleaseSigningResponseSignersItemRoleMax),
+  "name": zod.string().min(1).max(reconcileReleaseSigningResponseSignersItemNameMax),
+  "email": zod.string().email().max(reconcileReleaseSigningResponseSignersItemEmailMax),
+  "status": zod.string().optional()
+})),
+  "lastError": zod.string().nullish(),
+  "lastReminderAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "updatedAt": zod.string().optional()
+})
+
+
 export const GetWrikeConnectionResponse = zod.object({
   "configured": zod.boolean(),
   "connected": zod.boolean(),

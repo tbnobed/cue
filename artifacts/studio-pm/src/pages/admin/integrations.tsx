@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { errMsg, ErrorBox, fmtDate } from "@/components/releases-wrike-panel";
+import { DocuSealAdminSection } from "@/components/release-signing";
 
 const DOC_PUBLIC_URL = "https://cue.obtv.io";
 const DOC_CALLBACK = "https://cue.obtv.io/api/integrations/wrike/callback";
@@ -160,6 +161,8 @@ export default function IntegrationsAdmin() {
           </ul>
         </div>
       </section>
+
+      <DocuSealAdminSection />
     </div>
   );
 }

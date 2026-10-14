@@ -7,7 +7,7 @@ TBN produces specials throughout the year and lacks a consistent shared filing a
 
 **Why:** The user wants to learn from existing teams and connect existing tools rather than duplicate their processes.
 
-**How to apply:** The proposed flow should cover producer project selection and guest intake, the current approved release, all required signatures, automatic naming and archiving, producer confirmation, authorized status/archive visibility, reminders, and filing-failure follow-up. Guests need a phone-friendly experience, clear show information, minimal repeated typing, and a signed copy. Signing-provider selection and implementation have not yet been approved.
+**How to apply:** The proposed flow should cover producer project selection and guest intake, the current approved release, all required signatures, automatic naming and archiving, producer confirmation, authorized status/archive visibility, reminders, and filing-failure follow-up. Guests need a phone-friendly experience, clear show information, minimal repeated typing, and a signed copy.
 
 The user does not want OneDrive storage: they want all documents stored in this application and want to evaluate it as the whole project management tool and document holding place.
 
@@ -27,3 +27,11 @@ not depend on a single administrator's Wrike account.
 **Why:** The user explicitly rejected the shared-account assumption and approved personal connections and queued synchronization.
 
 **How to apply:** Preserve personal authorization boundaries and designated project sync ownership in future integrations; do not revert to organization-wide credential sharing.
+
+DocuSeal is the main signing engine for all release forms and runs on the same
+self-hosted server alongside Cue.
+
+**Why:** The user explicitly selected DocuSeal and same-server hosting.
+
+**How to apply:** Use the self-hosted DocuSeal API, keep completed documents in Cue,
+and do not substitute a cloud signing provider or Replit hosting/integrations.
