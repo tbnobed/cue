@@ -178,6 +178,19 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ReleaseSigning" }
+  /releases/{id}/signing/resend:
+    post:
+      operationId: resendReleaseSigning
+      description: Admin-only recovery resend, bypassing the reminder cooldown without creating a new submission.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Refreshed state with resend result; lastError contains provider failures
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReleaseSigning" }
+        "403": { description: Administrator access required }
   /releases/{id}/signing/remind:
     post:
       operationId: remindReleaseSigning

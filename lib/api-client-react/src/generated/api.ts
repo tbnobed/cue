@@ -919,6 +919,73 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getRefreshReleaseSigningMutationOptions(options));
     }
 
+export const getResendReleaseSigningUrl = (id: number,) => {
+
+
+
+
+  return `/api/releases/${id}/signing/resend`
+}
+
+/**
+ * Admin-only recovery resend, bypassing the reminder cooldown without creating a new submission.
+ */
+export const resendReleaseSigning = async (id: number, options?: RequestInit): Promise<ReleaseSigning> => {
+
+  return customFetch<ReleaseSigning>(getResendReleaseSigningUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResendReleaseSigningMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendReleaseSigning>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendReleaseSigning>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['resendReleaseSigning'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendReleaseSigning>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  resendReleaseSigning(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendReleaseSigningMutationResult = NonNullable<Awaited<ReturnType<typeof resendReleaseSigning>>>
+
+    export type ResendReleaseSigningMutationError = ErrorType<void>
+
+    export const useResendReleaseSigning = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendReleaseSigning>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendReleaseSigning>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getResendReleaseSigningMutationOptions(options));
+    }
+
 export const getRemindReleaseSigningUrl = (id: number,) => {
 
 

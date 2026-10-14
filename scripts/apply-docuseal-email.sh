@@ -3,9 +3,17 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mode="${1:-apply}"
-if [[ "$mode" != "apply" && "$mode" != "--check" ]]; then
-  echo "Usage: bash scripts/apply-docuseal-email.sh [--check]"
+if [[ "$mode" != "apply" && "$mode" != "--check" && "$mode" != "--test-email" ]]; then
+  echo "Usage: bash scripts/apply-docuseal-email.sh [--check | --test-email]"
   exit 2
+fi
+recipient=""
+if [[ "$mode" == "--test-email" ]]; then
+  read -r -p "Send one DocuSeal delivery test to your email address: " recipient
+  if [[ ! "$recipient" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    echo "Enter one valid email address. No message was sent."
+    exit 2
+  fi
 fi
 if [[ "$mode" == "apply" ]]; then
 python3 - <<'PY'
@@ -45,7 +53,7 @@ if [[ "$ready" != "true" ]]; then
 fi
 echo "Checking DocuSeal SMTP configuration and SendGrid authentication..."
 # Capture framework output rather than exposing settings or server error text.
-result="$(docker compose exec -T -w /app docuseal bundle exec rails runner - 2>&1 <<'RUBY'
+result="$(docker compose exec -T -w /app docuseal bundle exec rails runner - "$recipient" 2>&1 <<'RUBY'
 require 'net/smtp'
 begin
   unless ENV['SMTP_PASSWORD'].to_s.strip.length > 0 && ENV['SMTP_FROM'].to_s.strip.length > 0
@@ -58,10 +66,43 @@ begin
   smtp.open_timeout = 15
   smtp.read_timeout = 25
   smtp.enable_starttls
-  smtp.start('sign.obtv.io', settings.fetch(:user_name), settings.fetch(:password), :plain) {}
-  puts 'CUE_SMTP_OK: SendGrid accepted SMTP authentication over STARTTLS. No email was sent.'
+  recipient = ARGV.first.to_s
+  # Use the real running container's From address and SMTP settings. This is
+  # a transport diagnostic, not a new release or a signature invitation.
+  smtp.start('sign.obtv.io', settings.fetch(:user_name), settings.fetch(:password), :plain) do |session|
+    unless recipient.empty?
+      require 'mail'
+      message = Mail.new(
+        from: ENV.fetch('SMTP_FROM'), to: recipient,
+        subject: 'Cue / DocuSeal email delivery test',
+        body: 'This is one requested email delivery test from the DocuSeal container. No release or signing request was created.',
+        date: Time.now
+      )
+      raise 'invalid_sender' unless message.from&.length == 1
+      session.send_message(message.to_s, message.from.first, recipient)
+    end
+  end
+  if recipient.empty?
+    puts 'CUE_SMTP_OK: SendGrid accepted SMTP authentication over STARTTLS. No email was sent.'
+  else
+    puts 'CUE_SMTP_OK: SendGrid accepted the test message for delivery. Subject: Cue / DocuSeal email delivery test'
+    puts 'CUE_SMTP_NEXT: If absent from your inbox, check SendGrid Email Activity for this recipient and subject (delivered, deferred, bounced, blocked or dropped).'
+  end
 rescue StandardError => e
   puts "CUE_SMTP_FAILED: #{e.class.name}. SMTP verification failed; delivery is not confirmed."
+  status = e.respond_to?(:response) ? e.response&.status.to_s : ''
+  puts "CUE_SMTP_STATUS: #{status}" if status.match?(/\A[245]\d{2}\z/)
+  # Classify provider errors without printing addresses, tokens or raw responses.
+  detail = e.message.to_s.downcase
+  if detail.include?('verified sender') || detail.include?('sender identity')
+    puts 'CUE_SMTP_REASON: SendGrid rejected the From address. Verify the configured EMAIL_FROM or its domain in SendGrid Sender Authentication.'
+  elsif e.is_a?(Net::SMTPAuthenticationError)
+    puts 'CUE_SMTP_REASON: SendGrid rejected authentication. Check the key and its Mail Send permission.'
+  elsif detail.include?('invalid_sender')
+    puts 'CUE_SMTP_REASON: The running container must have exactly one valid SMTP_FROM sender.'
+  else
+    puts 'CUE_SMTP_REASON: Check SendGrid Email Activity and account sending restrictions for the rejection reason.'
+  end
   exit 1
 end
 RUBY
@@ -71,5 +112,5 @@ RUBY
   exit 1
 }
 printf '%s\n' "$result" | grep '^CUE_SMTP_OK:' || { echo "No SMTP verification result received."; exit 1; }
-echo "Use Remind on an existing outstanding release to retry its signing email."
+echo "After successful delivery, use Signing > Resend now as an admin to retry an existing request without the reminder wait."
 echo "SMTP acceptance does not guarantee inbox delivery; check SendGrid Email Activity if it does not arrive."

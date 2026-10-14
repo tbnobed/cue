@@ -108,7 +108,8 @@ export async function sendForSigning(id: number, templateId: number, additional:
 
 // Row locks are held while consulting DocuSeal so competing manual/background
 // refreshes cannot archive twice or send duplicate reminders across replicas.
-export async function refreshSigning(id: number, remind = false) {
+// adminResendActorId may only be supplied by the requireAdmin-gated resend route.
+export async function refreshSigning(id: number, remind = false, adminResendActorId?: number) {
   return db.transaction(async tx => {
     // Same lock order as release edits and send.
     const [release] = await tx.select().from(releases).where(eq(releases.id, id)).for("update");
@@ -160,7 +161,7 @@ export async function refreshSigning(id: number, remind = false) {
       }
       const due = Date.now() - (lastReminderAt ?? local.createdAt).getTime() >= 3 * 86400_000;
       if (!completed && state === "awaiting_signatures" && (remind || (due && reminderCount < 3))) {
-        if (lastReminderAt && Date.now() - lastReminderAt.getTime() < 3600_000) {
+        if (adminResendActorId === undefined && lastReminderAt && Date.now() - lastReminderAt.getTime() < 3600_000) {
           if (remind) throw new SigningError("Wait at least one hour between reminders.", 409);
         } else {
           // Reserve the batch even if a later recipient fails, so retries do not
@@ -168,7 +169,10 @@ export async function refreshSigning(id: number, remind = false) {
           lastReminderAt = new Date();
           reminderCount++;
           await tx.update(signing).set({ lastReminderAt, reminderCount }).where(eq(signing.releaseId, id));
-          await tx.insert(events).values({ releaseId: id, actorId: release.createdBy, action: "docuseal:reminders-requested" });
+          await tx.insert(events).values({
+            releaseId: id, actorId: adminResendActorId ?? release.createdBy,
+            action: adminResendActorId === undefined ? "docuseal:reminders-requested" : "docuseal:admin-resend-requested",
+          });
           for (const person of remote.submitters.filter(s => s.status !== "completed" && s.status !== "declined")) {
             await docuseal(`/submitters/${person.id}`, "PUT", { send_email: true });
           }

@@ -105,6 +105,12 @@ router.post("/releases/:id/signing/remind", async (req, res) => {
   if (!id) return;
   try { res.json(await refreshSigning(id, true)); } catch (error) { fail(res, error); }
 });
+router.post("/releases/:id/signing/resend", requireAdmin, async (req, res) => {
+  const id = await authorize(req, res, true);
+  if (!id) return;
+  try { res.json(await refreshSigning(id, true, req.authUser!.id)); }
+  catch (error) { fail(res, error); }
+});
 router.post("/releases/:id/signing/reconcile", async (req, res) => {
   const id = await authorize(req, res, true);
   if (!id) return;

@@ -237,6 +237,38 @@ export const RefreshReleaseSigningResponse = zod.object({
 })
 
 
+/**
+ * Admin-only recovery resend, bypassing the reminder cooldown without creating a new submission.
+ */
+export const ResendReleaseSigningParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const resendReleaseSigningResponseSignersItemRoleMax = 100;
+
+export const resendReleaseSigningResponseSignersItemNameMax = 200;
+
+export const resendReleaseSigningResponseSignersItemEmailMax = 254;
+
+
+
+export const ResendReleaseSigningResponse = zod.object({
+  "state": zod.enum(['not_sent', 'sending', 'needs_review', 'awaiting_signatures', 'declined', 'expired', 'filing_failed', 'archived']),
+  "submissionId": zod.number().nullish(),
+  "templateId": zod.number().optional(),
+  "signers": zod.array(zod.object({
+  "role": zod.string().min(1).max(resendReleaseSigningResponseSignersItemRoleMax),
+  "name": zod.string().min(1).max(resendReleaseSigningResponseSignersItemNameMax),
+  "email": zod.string().email().max(resendReleaseSigningResponseSignersItemEmailMax),
+  "status": zod.string().optional()
+})),
+  "lastError": zod.string().nullish(),
+  "lastReminderAt": zod.string().nullish(),
+  "reminderCount": zod.number().optional(),
+  "updatedAt": zod.string().optional()
+})
+
+
 export const RemindReleaseSigningParams = zod.object({
   "id": zod.coerce.number()
 })

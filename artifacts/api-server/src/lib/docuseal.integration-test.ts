@@ -139,6 +139,18 @@ async function main() {
     assert.equal(reminders, 1, "Only the remaining signer is reminded");
     await refreshSigning(ids[0], true);
     assert.equal(reminders, 1, "Cooldown blocks duplicate reminders");
+    assert.equal((await api(`/releases/${ids[0]}/signing/resend`, "POST")).status, 403, "Project owner cannot use admin override");
+    assert.equal((await api(`/releases/${ids[0]}/signing/resend`, "POST", undefined, stranger.id)).status, 403);
+    const sendsBeforeResend = sends;
+    const resent = await api(`/releases/${ids[0]}/signing/resend`, "POST", undefined, owner.id, true);
+    assert.equal(resent.status, 200);
+    assert.equal((await resent.json() as { lastError: string | null }).lastError, null, "Admin resend clears cooldown error");
+    assert.equal(reminders, 2, "Admin override only resends outstanding signer");
+    assert.equal(sends, sendsBeforeResend, "Resend never creates a new submission");
+    const audit = await db.select().from(releaseEventsTable).where(eq(releaseEventsTable.releaseId, ids[0]));
+    assert.ok(audit.some(e => e.action === "docuseal:admin-resend-requested" && e.actorId === owner.id));
+    await refreshSigning(ids[0], true);
+    assert.equal(reminders, 2, "Normal reminders keep their cooldown after an override");
     const [partial] = await db.select().from(releasesTable).where(eq(releasesTable.id, ids[0]));
     assert.equal(partial.storageKey, null);
     record.status = "completed"; record.completed_at = new Date().toISOString();

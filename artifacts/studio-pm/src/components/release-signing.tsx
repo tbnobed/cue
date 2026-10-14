@@ -5,7 +5,7 @@ import {
   useListReleaseTemplates, getListReleaseTemplatesQueryKey,
   useApproveReleaseTemplate, useRetireReleaseTemplate,
   useGetReleaseSigning, getGetReleaseSigningQueryKey,
-  useSendReleaseSigning, useRefreshReleaseSigning, useRemindReleaseSigning, useReconcileReleaseSigning,
+  useSendReleaseSigning, useRefreshReleaseSigning, useRemindReleaseSigning, useReconcileReleaseSigning, useResendReleaseSigning,
   getListProjectReleasesQueryKey,
   type ReleaseRecord, type ReleaseSigning, type ReleaseTemplate,
 } from "@workspace/api-client-react";
@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { ErrorBox, errMsg, fmtDate } from "@/components/releases-wrike-panel";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -110,6 +111,9 @@ function SigningBody({ release, canManage }: { release: ReleaseRecord; canManage
   const send = useSendReleaseSigning({ mutation: { onSettled } });
   const refresh = useRefreshReleaseSigning({ mutation: { onSettled } });
   const remind = useRemindReleaseSigning({ mutation: { onSettled } });
+  const resend = useResendReleaseSigning({ mutation: { onSettled } });
+  const auth = useAuth();
+  const isAdmin = auth.status === "authenticated" && auth.user.isAdmin;
   const reconcile = useReconcileReleaseSigning({ mutation: { onSettled } });
 
   const [templateId, setTemplateId] = useState<string>("");
@@ -139,7 +143,7 @@ function SigningBody({ release, canManage }: { release: ReleaseRecord; canManage
     void run("Sent for signature", () => send.mutateAsync({ id: release.id, data: { templateId: tpl.id, signers } }));
   }
 
-  const anyBusy = send.isPending || refresh.isPending || remind.isPending || reconcile.isPending;
+  const anyBusy = send.isPending || refresh.isPending || remind.isPending || resend.isPending || reconcile.isPending;
   const state = s?.state ?? "not_sent";
   const isDraft = release.status === "draft";
 
@@ -255,6 +259,18 @@ function SigningBody({ release, canManage }: { release: ReleaseRecord; canManage
             <Button variant="outline" size="sm" disabled={anyBusy} data-testid="button-signing-remind"
               onClick={() => run("Reminder sent", () => remind.mutateAsync({ id: release.id }))}>
               {remind.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <BellRing className="w-3.5 h-3.5 mr-1.5" />}Remind
+            </Button>
+          )}
+          {isAdmin && state === "awaiting_signatures" && (
+            <Button variant="outline" size="sm" disabled={anyBusy} data-testid="button-signing-resend"
+              title="Admin recovery: bypass the one-hour reminder wait"
+              onClick={() => {
+                if (window.confirm("Resend signing emails now to outstanding signers? This bypasses the one-hour wait. Anyone who already received an invitation may receive another email. No new release is created.")) {
+                  void run("Resend requested — inbox delivery is not confirmed", () => resend.mutateAsync({ id: release.id }));
+                }
+              }}>
+              {resend.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Send className="w-3.5 h-3.5 mr-1.5" />}
+              Resend now
             </Button>
           )}
           {s && state === "not_sent" && isDraft && cfg.data?.configured && (

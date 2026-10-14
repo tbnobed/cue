@@ -30,12 +30,27 @@ Then use Cue's Remind action on an existing outstanding signing request.
 Reminder cooldowns still apply. Check SendGrid Email Activity for delivery,
 bounce, suppression, or blocked-sender errors if mail does not arrive.
 
+Administrators can use **Signing → Resend now** to recover after a mail setup
+failure without waiting an hour. Confirmation is required. It only retries
+outstanding signers on the existing submission and records the requesting admin
+in the release audit history. Standard Remind cooldowns remain in place.
+An accepted resend request does not prove inbox delivery.
+
 An SMTP authentication pass confirms connectivity/credentials, not sender
 verification or inbox placement.
 
 The script waits for HTTP readiness and runs Rails from `/app`, not the image's
 default data directory. To verify an already-running container without another
 restart, run `bash scripts/apply-docuseal-email.sh --check`.
+
+To actually send one diagnostic message, run
+`bash scripts/apply-docuseal-email.sh --test-email` and enter your own recipient
+address at the terminal prompt. It uses the running DocuSeal container's SMTP
+credentials and From address, reports acceptance or a sanitized rejection,
+and does not restart services or create a release. Authentication-only checks
+cannot detect an unverified sender. A test accepted by SMTP can still be
+suppressed, bounced, or filtered: inspect SendGrid Email Activity by recipient
+and the subject `Cue / DocuSeal email delivery test`.
 
 ### Production-wide share links and QR codes
 
