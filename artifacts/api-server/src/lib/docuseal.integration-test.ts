@@ -16,6 +16,7 @@ import { getSubmission, downloadSignedPdf } from "./docuseal-client";
 import { refreshSigning, readSigning, verifySubmission } from "./docuseal-signing";
 import { releasePath, hashRelease, removeUncommittedRelease } from "./release-storage";
 import fs from "node:fs/promises";
+import { prefillReleaseFields } from "./docuseal-fields";
 
 async function main() {
   process.env.DOCUSEAL_API_URL = "http://docuseal-fixture:3000";
@@ -36,9 +37,10 @@ async function main() {
     id: 8765, name: "Approved test", updated_at: "2026-10-14T00:00:00Z", schema: [], archived_at: null,
     submitters: [{ name: "Guest", uuid: "g" }, { name: "Producer", uuid: "p" }],
     fields: [
-      ...["GuestName", "GuestEmail", "ProjectName", "ReleaseTitle", "ProductionDate"].map(name => ({
+      ...["Print Name", "Email", "Name of Program", "Date", "Address", "Phone number"].map(name => ({
         name, type: "text", submitter_uuid: "g", required: true,
       })),
+      { name: "Print Name", type: "text", submitter_uuid: "p", required: true },
       { name: "Guest signature", type: "signature", submitter_uuid: "g", required: true },
       { name: "Producer signature", type: "signature", submitter_uuid: "p", required: true },
     ],
@@ -111,7 +113,15 @@ async function main() {
     assert.equal(lastPayload.bcc_completed, owner.email);
     assert.match(lastPayload.message.body, /\{\{submitter.link\}\}/);
     assert.equal(lastPayload.submitters[0].email, created[0].guestEmail);
-    assert.equal(lastPayload.submitters[0].fields.length, 5);
+    assert.deepEqual(lastPayload.submitters[0].fields.map((f: any) => f.name), ["Print Name", "Email", "Name of Program"]);
+    assert.equal(lastPayload.submitters[1].fields.length, 0, "Countersigner name must not receive guest identity");
+    assert.deepEqual(prefillReleaseFields([
+      { name: "GuestName", type: "text", submitter_uuid: "g" },
+      { name: "ProductionDate", type: "date", submitter_uuid: "g" },
+      { name: "Date signed", type: "date", submitter_uuid: "g" },
+      { name: "Email", type: "signature", submitter_uuid: "g" },
+    ], "g", "g", { GuestName: "Guest", ProductionDate: "2026-10-14", GuestEmail: "guest@example.invalid" }).map(f => f.name),
+    ["GuestName", "ProductionDate"], "Canonical names still work; signing dates/signatures remain untouched");
     assert.ok(lastPayload.submitters[0].fields.every((f: any) => f.readonly && f.name !== "Guest signature"));
     const publicStatus = await (await api(`/releases/${ids[0]}/signing`)).json() as object;
     assert.ok(!("requestKey" in publicStatus));

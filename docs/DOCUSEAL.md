@@ -105,7 +105,19 @@ Upload your legally approved release PDF in DocuSeal and create the signer roles
 field**. Prepare separate templates for each release type. Cue does not supply
 or legally approve the release text.
 
-To prefill production details, use these exact field names:
+Keep the fields already in your approved PDF. Cue recognizes existing field
+names without requiring added fields or changes to the document:
+
+| Existing field | Cue value |
+|---|---|
+| `Print Name` / `Printed Name` | Guest name (guest role only) |
+| `Email` / `Email Address` | Guest email (guest role only) |
+| `Name of Program` / `Program Name` | Cue project/show name |
+
+Matching ignores case, spaces and punctuation. Unknown or automatically numbered
+field names are left for the signer, not guessed from the PDF's visual labels.
+No production field is required for template approval. The following original
+Cue field names also remain supported:
 
 | Field | Cue value |
 |---|---|
@@ -115,10 +127,11 @@ To prefill production details, use these exact field names:
 | `ReleaseTitle` | Release title |
 | `ProductionDate` | Production date, `YYYY-MM-DD` |
 
-Use text fields for these values. Cue fills matching fields for their assigned
-roles and makes them read-only. Other fields remain for the signer to fill.
-Do not put an automatic value on a signature field. Make the production date
-optional in the template if releases may omit it.
+Cue fills recognized text fields and makes them read-only. An explicitly named
+`ProductionDate` may also be a date field. Missing Cue values are left editable.
+Generic `Date` and signing-date fields are never populated with the production
+date. Signatures, initials, address, phone and unknown fields remain with the
+signer. Guest identity is never copied into a countersigner's name/email fields.
 
 In Cue's DocuSeal admin section enter the numeric template ID, a version label
 and the exact guest role name; select **Fetch & approve**. Approval captures the

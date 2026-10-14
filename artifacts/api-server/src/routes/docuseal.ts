@@ -46,12 +46,6 @@ router.post("/admin/release-templates", requireAdmin, async (req, res) => {
     if (template.archived_at || !roles.includes(input.data.guestRole) || new Set(roles).size !== roles.length) {
       throw new SigningError("Use a non-archived template with distinct roles and an exact matching guest role.", 400);
     }
-    for (const name of ["GuestName", "GuestEmail", "ProjectName", "ReleaseTitle", "ProductionDate"]) {
-      const fields = template.fields.filter(f => f.name === name);
-      if (!fields.length || fields.some(f => !["text", ...(name === "ProductionDate" ? ["date"] : [])].includes(f.type))) {
-        throw new SigningError(`Add the ${name} production field as text${name === "ProductionDate" ? " or date" : ""} before approval.`, 400);
-      }
-    }
     for (const role of template.submitters) {
       if (!template.fields.some(f => f.submitter_uuid === role.uuid && f.type === "signature" && f.required !== false)) {
         throw new SigningError(`The ${role.name} role must have a required signature field.`, 400);

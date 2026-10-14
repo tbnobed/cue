@@ -12,6 +12,7 @@ import {
 } from "./docuseal-client";
 import { storeRelease, removeUncommittedRelease } from "./release-storage";
 import { logger } from "./logger";
+import { prefillReleaseFields } from "./docuseal-fields";
 
 export function publicSigning(row: typeof signing.$inferSelect | undefined) {
   if (!row) return { state: "not_sent", signers: [] };
@@ -84,9 +85,8 @@ export async function sendForSigning(id: number, templateId: number, additional:
         const uuid = remote.submitters.find(s => s.name === person.role)!.uuid;
         return {
           ...person, external_id: context.job.requestKey,
-          fields: remote.fields.filter(f => f.submitter_uuid === uuid && f.name in values && ["text", "date"].includes(f.type)).map(f => ({
-            name: f.name, default_value: values[f.name], readonly: true,
-          })),
+          fields: prefillReleaseFields(remote.fields, uuid,
+            remote.submitters.find(s => s.name === approved.guestRole)!.uuid, values),
         };
       }),
     });
