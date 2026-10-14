@@ -8,6 +8,31 @@ reminders and its own immutable signed-PDF archive.
 
 ## Server setup
 
+### SendGrid delivery for signing emails
+
+DocuSeal now reuses the server's existing `SENDGRID_API_KEY` and `EMAIL_FROM`
+through SMTP at smtp.sendgrid.net:587 with mandatory STARTTLS and certificate
+verification. The sender must be verified in SendGrid and the key must allow
+Mail Send. Environment SMTP configuration takes precedence over DocuSeal's
+saved email settings.
+
+After syncing the updated project, run:
+
+```sh
+cd ~/cue
+bash scripts/apply-docuseal-email.sh
+```
+
+This checks that both settings are present without printing credentials,
+recreates only DocuSeal, and checks encrypted SMTP authentication. It does not
+send a test email, recreate submissions, change NPM, or delete documents.
+Then use Cue's Remind action on an existing outstanding signing request.
+Reminder cooldowns still apply. Check SendGrid Email Activity for delivery,
+bounce, suppression, or blocked-sender errors if mail does not arrive.
+
+An SMTP authentication pass confirms connectivity/credentials, not sender
+verification or inbox placement.
+
 ### Production-wide share links and QR codes
 
 After syncing this version of Cue to the server, apply the additive tables and

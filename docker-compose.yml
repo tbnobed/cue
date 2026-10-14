@@ -132,6 +132,17 @@ services:
       # Bare hostname (no https://). DocuSeal uses it to generate HTTPS links.
       FORCE_SSL: ${DOCUSEAL_HOST:-}
       APP_URL: ${DOCUSEAL_PUBLIC_URL:-}
+      # Reuse Cue's existing SendGrid mail-send key and verified sender.
+      SMTP_ADDRESS: smtp.sendgrid.net
+      SMTP_PORT: "587"
+      SMTP_USERNAME: apikey
+      SMTP_PASSWORD: ${SENDGRID_API_KEY:-}
+      SMTP_FROM: ${EMAIL_FROM:-}
+      SMTP_AUTHENTICATION: plain
+      SMTP_ENABLE_STARTTLS: "true"
+      SMTP_ENABLE_SSL: "false"
+      SMTP_ENABLE_TLS: "false"
+      SMTP_SSL_VERIFY: "true"
 
   collabora:
     image: collabora/code:latest

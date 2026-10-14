@@ -21,3 +21,12 @@ can be null otherwise even after all signers finish.
 
 **How to apply:** Preserve this include parameter in provider polling and treat
 missing or invalid combined PDFs as retryable filing failures, not completion.
+
+Do not treat completed invitation jobs as proof of email delivery.
+
+**Why:** DocuSeal 3.2.1's mail interceptor switches to a test delivery method
+when self-hosted SMTP is absent, so invitation jobs can finish without sending.
+
+**How to apply:** Verify SMTP configuration and transport separately from the
+API connection. Environment SMTP overrides saved settings; SMTP authentication
+alone does not verify the From address or inbox delivery.
