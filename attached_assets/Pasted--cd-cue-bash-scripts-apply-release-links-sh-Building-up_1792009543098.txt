@@ -1,0 +1,90 @@
+ cd ~/cue
+bash scripts/apply-release-links.sh
+Building updated Cue (the running app stays up during the build)...
+[+] Building 37.7s (61/61) FINISHED
+ => [internal] load local bake definitions                                                                                                                                 0.0s
+ => => reading from stdin 880B                                                                                                                                             0.0s
+ => [internal] load build definition from Dockerfile                                                                                                                       0.0s
+ => => transferring dockerfile: 4.42kB                                                                                                                                     0.0s
+ => [internal] load metadata for docker.io/library/node:24-slim                                                                                                            0.5s
+ => [internal] load .dockerignore                                                                                                                                          0.0s
+ => => transferring context: 2B                                                                                                                                            0.0s
+ => [internal] load build context                                                                                                                                          0.0s
+ => => transferring context: 317.87kB                                                                                                                                      0.0s
+ => [base  1/31] FROM docker.io/library/node:24-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20                                               0.0s
+ => CACHED [base  2/31] RUN corepack enable                                                                                                                                0.0s
+ => CACHED [base  3/31] WORKDIR /app                                                                                                                                       0.0s
+ => CACHED [base  4/31] COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json tsconfig.json ./                                                           0.0s
+ => CACHED [base  5/31] COPY lib/api-spec/package.json lib/api-spec/                                                                                                       0.0s
+ => CACHED [base  6/31] COPY lib/api-spec/orval.config.ts lib/api-spec/                                                                                                    0.0s
+ => [base  7/31] COPY lib/api-spec/openapi.yaml lib/api-spec/                                                                                                              0.0s
+ => [base  8/31] COPY lib/api-client-react/package.json lib/api-client-react/                                                                                              0.0s
+ => [base  9/31] COPY lib/api-client-react/tsconfig.json lib/api-client-react/                                                                                             0.0s
+ => [base 10/31] COPY lib/api-zod/package.json lib/api-zod/                                                                                                                0.0s
+ => [base 11/31] COPY lib/api-zod/tsconfig.json lib/api-zod/                                                                                                               0.0s
+ => [base 12/31] COPY lib/db/package.json lib/db/                                                                                                                          0.0s
+ => [base 13/31] COPY lib/db/tsconfig.json lib/db/                                                                                                                         0.0s
+ => [base 14/31] COPY lib/db/drizzle.config.ts lib/db/                                                                                                                     0.0s
+ => [base 15/31] COPY artifacts/api-server/package.json artifacts/api-server/                                                                                              0.0s
+ => [base 16/31] COPY artifacts/api-server/tsconfig.json artifacts/api-server/                                                                                             0.0s
+ => [base 17/31] COPY artifacts/studio-pm/package.json artifacts/studio-pm/                                                                                                0.0s
+ => [base 18/31] COPY artifacts/studio-pm/tsconfig.json artifacts/studio-pm/                                                                                               0.0s
+ => [base 19/31] COPY scripts/package.json scripts/                                                                                                                        0.0s
+ => [base 20/31] COPY scripts/tsconfig.json scripts/                                                                                                                       0.0s
+ => [base 21/31] RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile                                                                          7.5s
+ => [base 22/31] COPY lib/ lib/                                                                                                                                            0.0s
+ => [base 23/31] COPY artifacts/ artifacts/                                                                                                                                0.1s
+ => [base 24/31] COPY scripts/ scripts/                                                                                                                                    0.0s
+ => [base 25/31] RUN pnpm --filter @workspace/api-spec run codegen                                                                                                        13.2s
+ => [base 26/31] WORKDIR /app/artifacts/studio-pm                                                                                                                          0.0s
+ => [base 27/31] RUN BASE_PATH=/ PORT=3000 pnpm run build                                                                                                                 12.7s
+ => [base 28/31] WORKDIR /app/artifacts/api-server                                                                                                                         0.1s
+ => [base 29/31] RUN pnpm run build                                                                                                                                        1.4s
+ => [base 30/31] WORKDIR /app/scripts                                                                                                                                      0.0s
+ => [base 31/31] RUN pnpm run build                                                                                                                                        1.1s
+ => CACHED [runner  2/24] RUN corepack enable   && apt-get update   && apt-get install -y --no-install-recommends curl   && rm -rf /var/lib/apt/lists/*                    0.0s
+ => CACHED [runner  3/24] WORKDIR /app                                                                                                                                     0.0s
+ => CACHED [runner  4/24] COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json tsconfig.json ./                                                         0.0s
+ => CACHED [runner  5/24] COPY lib/api-spec/package.json lib/api-spec/                                                                                                     0.0s
+ => CACHED [runner  6/24] COPY lib/api-client-react/package.json lib/api-client-react/                                                                                     0.0s
+ => CACHED [runner  7/24] COPY lib/api-client-react/tsconfig.json lib/api-client-react/                                                                                    0.0s
+ => CACHED [runner  8/24] COPY lib/api-zod/package.json lib/api-zod/                                                                                                       0.0s
+ => CACHED [runner  9/24] COPY lib/api-zod/tsconfig.json lib/api-zod/                                                                                                      0.0s
+ => CACHED [runner 10/24] COPY lib/db/package.json lib/db/                                                                                                                 0.0s
+ => CACHED [runner 11/24] COPY lib/db/tsconfig.json lib/db/                                                                                                                0.0s
+ => CACHED [runner 12/24] COPY artifacts/api-server/package.json artifacts/api-server/                                                                                     0.0s
+ => CACHED [runner 13/24] COPY artifacts/studio-pm/package.json artifacts/studio-pm/                                                                                       0.0s
+ => CACHED [runner 14/24] COPY artifacts/mockup-sandbox/package.json artifacts/mockup-sandbox/                                                                             0.0s
+ => CACHED [runner 15/24] COPY scripts/package.json scripts/                                                                                                               0.0s
+ => CACHED [runner 16/24] COPY scripts/tsconfig.json scripts/                                                                                                              0.0s
+ => CACHED [runner 17/24] RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod                                                          0.0s
+ => [runner 18/24] COPY --from=base /app/artifacts/api-server/dist artifacts/api-server/dist                                                                               0.0s
+ => [runner 19/24] COPY --from=base /app/artifacts/studio-pm/dist artifacts/studio-pm/dist                                                                                 0.0s
+ => [runner 20/24] COPY --from=base /app/lib/api-zod/src/generated lib/api-zod/src/generated                                                                               0.0s
+ => [runner 21/24] COPY --from=base /app/lib/db/src lib/db/src                                                                                                             0.0s
+ => [runner 22/24] COPY --from=base /app/scripts/dist scripts/dist                                                                                                         0.0s
+ => [runner 23/24] COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh                                                                                           0.0s
+ => [runner 24/24] RUN chmod +x /usr/local/bin/docker-entrypoint.sh                                                                                                        0.2s
+ => exporting to image                                                                                                                                                     0.1s
+ => => exporting layers                                                                                                                                                    0.1s
+ => => writing image sha256:671b40ff08898bf3e8cd1eb9aaa97894e041584dc9021983b241eb5086f53688                                                                               0.0s
+ => => naming to docker.io/library/cue-app                                                                                                                                 0.0s
+ => resolving provenance for metadata file                                                                                                                                 0.0s
+[+] Building 1/1
+ ✔ cue-app  Built                                                                                                                                                          0.0s
+Adding release link tables (existing records are unchanged)...
+BEGIN
+NOTICE:  relation "release_links" already exists, skipping
+CREATE TABLE
+CREATE TABLE
+NOTICE:  relation "release_enrollments" already exists, skipping
+NOTICE:  relation "release_enrollments_link_email" already exists, skipping
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+COMMIT
+Restarting Cue with the updated image...
+[+] Running 1/1
+ ✔ Container cue-app-1  Started                                                                                                                                           10.6s
+Done. Open a production in Cue, then Releases > Share links.
+obtv-admin@yt-analyzer:~/cue$
