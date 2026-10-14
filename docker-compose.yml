@@ -24,6 +24,7 @@ services:
     build:
       context: .
       target: base
+    working_dir: /app
     command: ["sh", "-c", "node lib/db/migrate-wrike.cjs && pnpm --filter @workspace/db run push"]
     environment:
       DATABASE_URL: postgres://studiopm:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in your .env}@db:5432/studiopm
