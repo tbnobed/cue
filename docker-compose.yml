@@ -125,7 +125,7 @@ services:
     image: docuseal/docuseal:${DOCUSEAL_VERSION:-3.2.1}
     restart: unless-stopped
     ports:
-      - "${DOCUSEAL_BIND:-127.0.0.1}:${DOCUSEAL_PORT:-3001}:3000"
+      - "${DOCUSEAL_BIND:-192.168.100.65}:${DOCUSEAL_PORT:-3001}:3000"
     volumes:
       - docuseal_data:/data/docuseal
     environment:

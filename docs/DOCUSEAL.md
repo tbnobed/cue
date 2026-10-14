@@ -40,7 +40,7 @@ interruption during recreation. Restrict port 3001 to NPM before running.
    DOCUSEAL_PUBLIC_URL=https://sign.obtv.io
    DOCUSEAL_API_URL=http://docuseal:3000
    DOCUSEAL_PORT=3001
-   DOCUSEAL_BIND=<Cue-server-private-IP>
+   DOCUSEAL_BIND=192.168.100.65
    DOCUSEAL_VERSION=3.2.1
    ```
 

@@ -24,7 +24,7 @@ if ! ip -4 -o addr show | grep -Fq " $DOCUSEAL_BIND/"; then
   printf 'This host does not own %s. Run this script on the Cue server.\n' "$DOCUSEAL_BIND" >&2
   exit 1
 fi
-if ! grep -Fq '${DOCUSEAL_BIND:-127.0.0.1}:${DOCUSEAL_PORT:-3001}:3000' docker-compose.yml; then
+if ! grep -Fq '${DOCUSEAL_BIND:-192.168.100.65}:${DOCUSEAL_PORT:-3001}:3000' docker-compose.yml; then
   echo 'docker-compose.yml is outdated. Update the project files before retrying.' >&2
   exit 1
 fi

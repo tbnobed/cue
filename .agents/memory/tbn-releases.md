@@ -44,3 +44,12 @@ as Cue. Cue remains at `cue.obtv.io`.
 
 **How to apply:** Use the existing NPM setup, not host Nginx/Certbot installation
 commands. Do not invent or treat a suggested signing hostname as approved.
+
+Fix this project's Docker configuration in the codebase rather than asking the
+user to manually edit the Docker files.
+
+**Why:** The user explicitly and repeatedly rejected doing those edits themselves.
+
+**How to apply:** Make deployment configuration fixes directly; give only the
+necessary server update/apply commands afterward. NPM's existing signing
+forwarding configuration is already set and should not be reconfigured.
