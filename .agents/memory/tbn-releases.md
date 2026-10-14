@@ -14,3 +14,9 @@ The user does not want OneDrive storage: they want all documents stored in this 
 **Why:** The user explicitly replaced the proposed OneDrive archive with this application.
 
 **How to apply:** Use app-owned document storage and project tracking. Wrike must remain in use through its API until TBN is ready to migrate away; the user has authorized building the foundations. Keep backup infrastructure separate from the producer-facing archive.
+
+Keep Releases navigation separate from Wrike integration controls.
+
+**Why:** The user explicitly objected to combining unrelated production and integration functionality under a "Releases and Wrike" tab.
+
+**How to apply:** Label production navigation by its purpose (Releases); keep provider-specific setup in project integrations, not inside the release workflow.

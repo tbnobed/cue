@@ -78,14 +78,14 @@ function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void 
   );
 }
 
-export function ReleasesWrikePanel({ project, compact = false }: { project: Project; compact?: boolean }) {
+export function ReleasesPanel({ project, compact = false }: { project: Project; compact?: boolean }) {
   const canManage = useCanManageProject(project);
-  return (
-    <div className={compact ? "space-y-4" : "grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5 items-start"}>
-      <ReleasesSection projectId={project.id} canManage={canManage} compact={compact} />
-      <WrikeSection projectId={project.id} canManage={canManage} />
-    </div>
-  );
+  return <ReleasesSection projectId={project.id} canManage={canManage} compact={compact} />;
+}
+
+export function ProjectWrikeIntegration({ project }: { project: Project }) {
+  const canManage = useCanManageProject(project);
+  return <WrikeSection projectId={project.id} canManage={canManage} />;
 }
 
 // ─── RELEASES ───────────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { useMobileTitle } from "@/components/layout/mobile-shell";
 import { useOpenDocument } from "@/lib/open-document";
 import { printCallSheet } from "@/lib/print-call-sheet";
-import { ReleasesWrikePanel } from "@/components/releases-wrike-panel";
+import { ReleasesPanel, ProjectWrikeIntegration } from "@/components/releases-wrike-panel";
 
 type Tab = "tasks" | "milestones" | "crew" | "sheets" | "docs" | "releases";
 
@@ -121,8 +121,12 @@ export default function MobileProjectDetail() {
         <DocsList items={docs ?? []} />
       )}
       {tab === "releases" && (
-        <div style={{ marginTop: 6 }}><ReleasesWrikePanel project={project} compact /></div>
+        <div style={{ marginTop: 6 }}><ReleasesPanel project={project} compact /></div>
       )}
+      <details className="m-glass rounded-xl p-4 mt-5">
+        <summary className="cursor-pointer text-sm font-medium">Project integrations</summary>
+        <div className="mt-4"><ProjectWrikeIntegration project={project} /></div>
+      </details>
     </>
   );
 }
