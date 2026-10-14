@@ -62,3 +62,12 @@ manually entering every participant's name.
 **How to apply:** Let each guest provide their own identity. Keep private signing
 sessions and completed documents separate per guest; the shared link is intake,
 not permission to view other participants or their signed documents.
+
+The release form's “Name of Program” must use the production name entered in
+Cue's Release title field, not the parent project's name.
+
+**Why:** The user explicitly identified Release title as the source for this
+printed form field.
+
+**How to apply:** Keep this meaning consistent for individually created releases
+and production share links; preserve separately named ProjectName fields.

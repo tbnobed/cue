@@ -119,6 +119,12 @@ async function main() {
     assert.match(lastPayload.message.body, /\{\{submitter.link\}\}/);
     assert.equal(lastPayload.submitters[0].email, created[0].guestEmail);
     assert.deepEqual(lastPayload.submitters[0].fields.map((f: any) => f.name), ["Print Name", "Email", "Name of Program"]);
+    assert.equal(lastPayload.submitters[0].fields.find((f: any) => f.name === "Name of Program").default_value, created[0].title);
+    assert.deepEqual(prefillReleaseFields([
+      { name: "Program Name", type: "text", submitter_uuid: "g" },
+      { name: "ProjectName", type: "text", submitter_uuid: "g" },
+    ], "g", "g", { ProjectName: "Parent project", ReleaseTitle: "Production title" }).map(f => f.default_value),
+    ["Production title", "Parent project"], "Program uses release title; explicit ProjectName preserves project mapping");
     assert.equal(lastPayload.submitters[1].fields.length, 0, "Countersigner name must not receive guest identity");
     assert.deepEqual(prefillReleaseFields([
       { name: "GuestName", type: "text", submitter_uuid: "g" },
@@ -209,6 +215,7 @@ async function main() {
     assert.equal(sends, before + 1, "Concurrent public registrations send exactly one request");
     assert.equal(lastPayload.submitters[0].name, person.name);
     assert.equal(lastPayload.submitters[0].email, person.email);
+    assert.equal(lastPayload.submitters[0].fields.find((f: any) => f.name === "Name of Program").default_value, linkBody.title, "Shared-link title fills program name");
     assert.equal(lastPayload.send_email, true);
     const [selfEnrollment] = await db.select().from(releaseEnrollmentsTable).where(eq(releaseEnrollmentsTable.linkId, shared.id));
     const selfSigning = (await readSigning(selfEnrollment.releaseId))!;

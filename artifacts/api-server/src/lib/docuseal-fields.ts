@@ -4,7 +4,7 @@ import type { RemoteTemplate } from "./docuseal-client";
 const aliases: Record<string, string> = {
   guestname: "GuestName", printname: "GuestName", printedname: "GuestName",
   guestemail: "GuestEmail", email: "GuestEmail", emailaddress: "GuestEmail",
-  projectname: "ProjectName", nameofprogram: "ProjectName", programname: "ProjectName",
+  projectname: "ProjectName", nameofprogram: "ReleaseTitle", programname: "ReleaseTitle",
   releasetitle: "ReleaseTitle", productiondate: "ProductionDate",
 };
 export function prefillReleaseFields(

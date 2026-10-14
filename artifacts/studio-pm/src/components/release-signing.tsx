@@ -341,7 +341,7 @@ export function DocuSealAdminSection() {
           <div className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">Building a template in DocuSeal</div>
           <ol className="list-decimal pl-5 text-[12.5px] text-muted-foreground space-y-1 leading-relaxed">
             <li>Signature and signing date stay under the signer's control. Address, phone and unrecognized fields are left for the signer; Cue does not invent those values.</li>
-            <li>Keep the existing fields in your approved PDF. Cue recognizes Print Name, Email, and Name of Program and fills them from the guest and project. These original Cue field names are also supported, but are not required:
+            <li>Keep the existing fields in your approved PDF. Cue fills Print Name and Email from the guest, and Name of Program from the release title (or the production share-link title). Name of Program must be a text field in DocuSeal, not only a printed line on the PDF. These original Cue field names are also supported, but are not required:
               <span className="flex flex-wrap gap-1.5 pt-1">{FIELDS.map(f => <code key={f} className="text-[11px] font-mono px-2 py-0.5 rounded bg-muted/40 ring-1 ring-border/60 text-foreground/85">{f}</code>)}</span>
             </li>
             <li>Define roles, for example <code>Guest</code> plus any countersigner such as <code>Producer</code>. The guest role entered below must match the DocuSeal role name exactly.</li>

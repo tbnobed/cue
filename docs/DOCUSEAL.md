@@ -210,7 +210,7 @@ names without requiring added fields or changes to the document:
 |---|---|
 | `Print Name` / `Printed Name` | Guest name (guest role only) |
 | `Email` / `Email Address` | Guest email (guest role only) |
-| `Name of Program` / `Program Name` | Cue project/show name |
+| `Name of Program` / `Program Name` | Release title (production share-link title for self-registration) |
 
 Matching ignores case, spaces and punctuation. Unknown or automatically numbered
 field names are left for the signer, not guessed from the PDF's visual labels.
