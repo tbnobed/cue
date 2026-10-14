@@ -68,6 +68,8 @@
 
 /* LIGHT MODE */
 :root {
+  /* Native date/time controls must use the same theme as their backgrounds. */
+  color-scheme: light;
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
   --opaque-button-border-intensity: -8;
@@ -142,6 +144,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);
   --opaque-button-border-intensity: 9;
@@ -198,6 +201,15 @@
 }
 
 @layer base {
+  input:is([type="date"], [type="datetime-local"], [type="time"], [type="month"], [type="week"])::-webkit-calendar-picker-indicator {
+    opacity: 1;
+    cursor: pointer;
+  }
+
+  input:disabled::-webkit-calendar-picker-indicator {
+    cursor: not-allowed;
+  }
+
   * {
     @apply border-border;
   }
