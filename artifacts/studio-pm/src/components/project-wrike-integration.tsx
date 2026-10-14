@@ -151,7 +151,7 @@ function WrikeSection({ projectId, canManage, isAdmin }: { projectId: number; ca
       const run = await sync.mutateAsync({ projectId });
       if (run.status === "error") toast({ title: "Sync failed", description: run.error ?? "Wrike import failed.", variant: "destructive" });
       else if (run.status === "running") toast({ title: "Sync started" });
-      else toast({ title: "Wrike sync complete", description: `${run.created} created · ${run.updated} updated · ${run.skipped} skipped` });
+      else toast({ title: run.created + run.updated + run.skipped === 0 ? "No tasks found in the linked Wrike location" : "Wrike sync complete", description: run.created + run.updated + run.skipped === 0 ? "Check that you linked the intended parent folder or project. A successful request does not mean tasks were imported." : `${run.created} created · ${run.updated} updated · ${run.skipped} skipped` });
     } catch (err) { setError(errMsg(err)); }
     finally { setConfirmSync(false); }
   }
@@ -248,11 +248,11 @@ function WrikeSection({ projectId, canManage, isAdmin }: { projectId: number; ca
           </div>
         ) : (
           <div className="text-center py-4 space-y-3" data-testid="empty-wrike">
-            <div className="text-sm text-muted-foreground">No Wrike project linked.</div>
+            <div className="text-sm text-muted-foreground">No Wrike project or folder linked.</div>
             {isAdmin ? (
               <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setPickerOpen(true)} disabled={!connected}
-                data-testid="button-link-wrike"><Link2 className="w-3.5 h-3.5" /> Link Wrike project</Button>
-            ) : <div className="text-[11px] font-mono text-muted-foreground">An admin can link a Wrike project.</div>}
+                data-testid="button-link-wrike"><Link2 className="w-3.5 h-3.5" /> Link Wrike project or folder</Button>
+            ) : <div className="text-[11px] font-mono text-muted-foreground">An admin can link a Wrike project or folder.</div>}
             {error && <ErrorBox message={error} />}
           </div>
         )}
@@ -381,22 +381,22 @@ function WrikeProjectPicker({ open, onOpenChange, onPick, currentId }: {
     <Dialog open={open} onOpenChange={o => !saving && onOpenChange(o)}>
       <DialogContent className="sm:max-w-[560px] max-h-[90dvh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Link a Wrike project</DialogTitle>
-          <DialogDescription>Pick the Wrike project to import tasks from. Cue verifies it on the server.</DialogDescription>
+          <DialogTitle>Link a Wrike project or folder</DialogTitle>
+          <DialogDescription>Choose the parent location containing your tasks—not an individual item inside it. Cue imports tasks from this location and its descendants.</DialogDescription>
         </DialogHeader>
         <div className="relative">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input type="search" autoFocus value={input} onChange={e => setInput(e.target.value)} placeholder="Search Wrike projects…"
+          <Input type="search" autoFocus value={input} onChange={e => setInput(e.target.value)} placeholder="Search Wrike projects and folders…"
             className="pl-8 h-9 text-sm" data-testid="input-search-wrike-projects" />
         </div>
         <div className="flex-1 min-h-[200px] overflow-y-auto -mx-1 px-1">
           {q.isLoading || q.isFetching && !q.data ? (
             <div className="space-y-2">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}</div>
           ) : q.isError ? (
-            <ErrorBox message={`Couldn't load Wrike projects: ${errMsg(q.error)}`} onRetry={() => q.refetch()} />
+            <ErrorBox message={`Couldn't load Wrike projects and folders: ${errMsg(q.error)}`} onRetry={() => q.refetch()} />
           ) : items.length === 0 ? (
             <div className="text-center py-10 text-sm text-muted-foreground font-mono" data-testid="empty-wrike-projects">
-              {search ? `No projects match "${search}".` : "No Wrike projects visible to the connected account."}
+              {next ? "No results on this page. Select Next to continue." : search ? `No projects or folders match "${search}". Check that the connected Wrike account has access.` : "No Wrike projects or folders visible to the connected account."}
             </div>
           ) : (
             <ul className="space-y-1.5">

@@ -41,7 +41,8 @@ No Replit services or OneDrive are involved.
 1. Sign in to Cue as an administrator and open **Admin → Integrations**.
 2. Select **Connect Wrike**, authorize the intended TBN account, and return to Cue.
 3. In a Cue project's **Overview → Project integrations**, choose a Wrike
-   project from the searchable, paginated picker. Only admins can link remote
+   project or folder from the searchable, paginated picker. Select the parent
+   containing the tasks, not an individual child project. Only admins can link remote
    data: the shared Wrike connection may see data ordinary Cue users cannot.
 4. Review the project's Cue membership before importing: its members will see
    the imported tasks. No memberships are automatically created.

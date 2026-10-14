@@ -3,6 +3,7 @@ import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { db, wrikeConnectionsTable, projectWrikeLinksTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { requireAdmin } from "../middlewares/require-auth";
+import { wrikeDiscoveryParams } from "../lib/wrike-discovery";
 import { exchangeWrikeToken, folderPageSchema, safeWrikeError, wrikeGet } from "../lib/wrike-client";
 import { requireWrikeConfig, sealWrikeToken, validWrikeHost, validWrikeUrl, wrikeConfig, WrikeError } from "../lib/wrike-security";
 
@@ -72,9 +73,7 @@ router.get("/integrations/wrike/projects", requireAdmin, async (req, res) => {
   const token = typeof req.query.nextPageToken === "string" ? req.query.nextPageToken : "";
   if (search.length > 200 || token.length > 4000) { res.status(400).json({ error: "Search or page token is too long." }); return; }
   try {
-    const params = new URLSearchParams({ project: "true", deleted: "false", pageSize: "100" });
-    if (search) params.set("title", search);
-    if (token) params.set("nextPageToken", token);
+    const params = wrikeDiscoveryParams(search, token);
     const page = await wrikeGet(`/folders?${params}`, folderPageSchema);
     if (page.data.some(p => !validWrikeUrl(p.permalink))) throw new WrikeError("Wrike returned an invalid project link.");
     res.json({ projects: page.data.map(p => ({ id: p.id, title: p.title, permalink: p.permalink })), nextPageToken: page.nextPageToken ?? null });
